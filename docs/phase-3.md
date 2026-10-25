@@ -40,4 +40,4 @@ Webview operations remain allowlisted and revision/scope checked. Provider Setti
 
 Pure tests cover schema rejection, action-preserving plans, journal persistence before mutation, storage failure, partial rollback, stale-value preservation, external-edit conflicts, provider capability distinctions and diagnostic confidence. Real VS Code tests cover scoped profile save/apply, cancellation, JSON file round trips and rejection, persistent pause state across service recreation, granular resume, language rules and storage failure isolation.
 
-Phase 4 still needs wider compatibility and remote-workspace coverage, full screen-reader and performance reviews, real multi-window concurrency exercises, release assets and Marketplace preparation. The existing development-only packaging advisory remains an upstream limitation.
+Phase 4 still needs wider compatibility and remote-workspace coverage, full screen-reader and performance reviews, real multi-window concurrency exercises, release assets and Marketplace preparation. The development-only packaging advisory noted at this phase was subsequently resolved; see [packaging security](packaging-security.md).

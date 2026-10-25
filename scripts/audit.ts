@@ -7,7 +7,7 @@ assert.equal(
     JSON.parse(readFileSync("package.json", "utf8")).dependencies ?? {},
   ).length,
   0,
-  "Review the audit baseline before adding production dependencies",
+  "Review the packaging policy before adding production dependencies",
 );
 const audit = spawnSync("bun", ["audit", "--json"], { encoding: "utf8" });
 assert.ok(!audit.error, String(audit.error));
@@ -18,20 +18,16 @@ writeFileSync(
   "test-results/audit.json",
   `${JSON.stringify(report, null, 2)}\n`,
 );
-for (const [name, findings] of Object.entries(report)) {
-  assert.ok(Array.isArray(findings), "Unexpected audit response");
-  for (const finding of findings) {
-    assert.ok(
-      name === "@azure/msal-node" &&
-        finding.url === "https://github.com/advisories/GHSA-xcx6-jx8p-x3h5",
-      `New dependency advisory: ${name} ${finding.url}`,
-    );
-    console.warn(
-      "Known development packaging advisory GHSA-xcx6-jx8p-x3h5 remains. Strict release audit blocks release preparation. See SECURITY.md.",
-    );
-  }
-}
-assert.ok(
-  audit.status === 0 || Object.keys(report).length > 0,
-  "Audit failed without a report",
+assert.equal(
+  audit.status,
+  0,
+  `Dependency audit failed: ${audit.stdout || audit.stderr}`,
+);
+assert.deepEqual(
+  report,
+  {},
+  "Dependency advisories must be resolved before merging or release",
+);
+console.log(
+  "Dependency audit passed: no vulnerabilities, no advisory exceptions.",
 );

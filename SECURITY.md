@@ -4,11 +4,11 @@ Report a security issue privately to imrajudhami@gmail.com. Include the extensio
 
 The extension is in development; no Marketplace release is configured by this repository. Security fixes target main and the next release. Ordinary bugs belong in GitHub Issues.
 
-## Current packaging advisory
+## Dependency audits
 
-GHSA-xcx6-jx8p-x3h5 affects the development-only chain @vscode/vsce 4.0.0 → @azure/identity 4.14.0 → @azure/msal-node 6.0.1. Identity requires MSAL ^6.0.0; the patched MSAL >=7.1.0 is outside that range. No incompatible override is used. This dependency is excluded from the VSIX and the extension performs no authentication flow.
+PR validation and release preparation require a clean, unfiltered bun audit. No advisory exceptions are allowed. Reports are uploaded as CI artifacts.
 
-PR validation reports this single existing advisory and fails on any additional advisory. This baseline is not permission to publish: the release-draft workflow runs strict, unfiltered bun audit and currently stops on this finding. A compatible upstream fix must be reviewed and the baseline removed before public release. The policy lives in scripts/audit.ts; the full report is uploaded as a CI artifact.
+GHSA-xcx6-jx8p-x3h5 is resolved by a temporary Bun override scoped to @azure/identity 4.14.0, selecting patched MSAL 7.1.1. This deliberately exceeds Identity's declared ^6.0.0 range and is backed by compatibility tests for the packaging tool's actual dependency pair. See [the reviewed rationale, tests, limitations and removal condition](docs/packaging-security.md). No authentication dependency tree is shipped in the VSIX.
 
 ## Boundaries reviewed
 
