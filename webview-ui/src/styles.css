@@ -843,3 +843,52 @@ fieldset.save-stack {
   border: 0;
   min-width: 0;
 }
+
+.finding {
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.finding:last-child {
+  border-bottom: 0;
+}
+.finding p,
+.workflow-note {
+  font-size: 12px;
+  margin-bottom: 0;
+}
+.recovery-card {
+  padding: 24px;
+  border: 1px solid var(--vscode-editorWarning-foreground, var(--border));
+  border-radius: 10px;
+  background: var(--surface);
+  margin-bottom: 20px;
+}
+.recovery-card p {
+  font-size: 12px;
+}
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+.provider-grid small {
+  margin: 12px 0;
+}
+.provider-grid details {
+  font-size: 11px;
+  margin: 16px 0;
+  color: var(--muted);
+}
+.provider-grid pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+}
+.provider-grid button {
+  margin: 5px 5px 0 0;
+}
+.callout button {
+  margin-top: 12px;
+}

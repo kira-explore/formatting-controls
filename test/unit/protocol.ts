@@ -85,3 +85,27 @@ test("rejected requests retain a bounded correlation ID for UI recovery", () => 
   assert.equal(correlationId({ id: "x".repeat(81) }), undefined);
   assert.equal(parseRequest({ ...envelope, type: "ready" }).type, "ready");
 });
+
+test("workflow messages require known operations, bounded names and revisions", () => {
+  assert.equal(
+    parseRequest({
+      ...envelope,
+      type: "profile",
+      action: "apply",
+      name: "Strict",
+    }).type,
+    "profile",
+  );
+  assert.equal(parseRequest({ ...envelope, type: "pause" }).type, "pause");
+  for (const raw of [
+    { ...envelope, type: "profile", action: "execute", name: "x" },
+    { ...envelope, type: "profile", action: "save", name: " " },
+    { ...envelope, type: "profile", action: "apply", name: "x".repeat(81) },
+    {
+      ...envelope,
+      type: "providerSettings",
+      provider: "biomejs.biome @id:other.setting",
+    },
+  ])
+    assert.throws(() => parseRequest(raw));
+});

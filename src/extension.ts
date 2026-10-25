@@ -16,9 +16,11 @@ import {
   type SettingKey,
   status,
 } from "./model";
+import { Workflows } from "./workflows";
 
 export function activate(context: vscode.ExtensionContext): void {
-  const dashboard = new Dashboard(context.extensionUri);
+  const workflows = new Workflows(context.globalState, context.workspaceState);
+  const dashboard = new Dashboard(context.extensionUri, undefined, workflows);
   const item = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
     100,
@@ -241,6 +243,14 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   };
   context.subscriptions.push(
+    workflows,
+    workflows.onDidChange(refresh),
+    vscode.commands.registerCommand(
+      "formattingControls.restore",
+      guarded(async () => {
+        await vscode.window.showInformationMessage(await workflows.restore());
+      }),
+    ),
     dashboard,
     vscode.commands.registerCommand(
       "formattingControls.dashboard",
@@ -260,6 +270,27 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.onDidChangeActiveTextEditor(refresh),
   );
   refresh();
+  try {
+    const recovery = workflows.recovery();
+    if (
+      recovery &&
+      (recovery.kind === "pause" || recovery.phase !== "applied") &&
+      context.extensionMode !== vscode.ExtensionMode.Test
+    )
+      void vscode.window
+        .showWarningMessage(
+          "Formatting Controls has a saved pause or incomplete recovery record for this workspace.",
+          "Review recovery",
+        )
+        .then((choice) => {
+          if (choice) return dashboard.open();
+          return undefined;
+        });
+  } catch (error) {
+    void vscode.window.showErrorMessage(
+      `Formatting Controls recovery: ${String(error)}`,
+    );
+  }
   if (!context.globalState.get("welcomeShown")) {
     void context.globalState
       .update("welcomeShown", true)

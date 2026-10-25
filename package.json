@@ -1,6 +1,6 @@
 {
   "name": "formatting-controls",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Control formatting, save actions, and language settings from a theme-aware dashboard with explicit configuration scopes.",
   "main": "./dist/extension.js",
   "scripts": {
@@ -64,6 +64,10 @@
       {
         "command": "formattingControls.welcome",
         "title": "Formatting Controls: Getting Started"
+      },
+      {
+        "command": "formattingControls.restore",
+        "title": "Formatting Controls: Restore Previous Settings"
       }
     ]
   },

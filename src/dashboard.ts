@@ -1,8 +1,9 @@
 import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
+import { diagnose } from "../shared/diagnostics";
 import {
   correlationId,
-  type Provider,
+  type LanguageRule,
   parseRequest,
   type Request,
   type Response,
@@ -10,6 +11,7 @@ import {
   type Snapshot,
   settingKeys,
 } from "../shared/protocol";
+import { adapters } from "../shared/providers";
 import {
   configuration,
   own,
@@ -19,51 +21,9 @@ import {
   write,
 } from "./configuration";
 import { flags, status } from "./model";
+import { providersFor } from "./providers";
+import type { Workflows } from "./workflows";
 
-const providers = [
-  {
-    id: "biomejs.biome",
-    name: "Biome",
-    formatting: true,
-    note: "Formatting and provider-specific source actions; requires project configuration.",
-  },
-  {
-    id: "esbenp.prettier-vscode",
-    name: "Prettier",
-    formatting: true,
-    note: "Formatting; does not provide fix-all code actions.",
-  },
-  {
-    id: "dbaeumer.vscode-eslint",
-    name: "ESLint",
-    formatting: true,
-    note: "Source fixes; formatting requires eslint.format.enable.",
-  },
-  {
-    id: "vscode.typescript-language-features",
-    name: "TypeScript / JavaScript",
-    formatting: true,
-    note: "Built-in language formatting and supported import actions.",
-  },
-  {
-    id: "vscode.json-language-features",
-    name: "JSON / JSONC",
-    formatting: true,
-    note: "Built-in JSON formatting.",
-  },
-  {
-    id: "vscode.html-language-features",
-    name: "HTML",
-    formatting: true,
-    note: "Built-in HTML formatting.",
-  },
-  {
-    id: "vscode.css-language-features",
-    name: "CSS / SCSS / Less",
-    formatting: true,
-    note: "Built-in stylesheet formatting.",
-  },
-] satisfies Omit<Provider, "installed">[];
 export class Dashboard implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
   private listeners: vscode.Disposable[] = [];
@@ -76,6 +36,7 @@ export class Dashboard implements vscode.Disposable {
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly onResponse?: (message: Response) => unknown,
+    private readonly workflows?: Workflows,
   ) {}
   private reconcileScope(): void {
     try {
@@ -141,6 +102,14 @@ export class Dashboard implements vscode.Disposable {
           void this.publish();
         }
       }),
+      ...(this.workflows
+        ? [
+            this.workflows.onDidChange(() => {
+              this.revision++;
+              void this.publish();
+            }),
+          ]
+        : []),
       panel.onDidDispose(() => {
         this.panel = undefined;
         for (const listener of this.listeners.splice(0)) listener.dispose();
@@ -194,6 +163,66 @@ export class Dashboard implements vscode.Disposable {
           }
         : {}),
     });
+    const settings = settingKeys.map((key) => ({
+      key,
+      effective: effective.get(key) ?? null,
+      owned: own(selection, key) ?? null,
+      configured: own(selection, key) !== undefined,
+      sources: effective.inspect(key) as unknown as Record<string, unknown>,
+    }));
+    const detected = providersFor(
+      effective,
+      this.scope.language ?? this.active?.languageId ?? "",
+      effective.get("editor.defaultFormatter"),
+    );
+    const ids = new Set(
+      settingKeys.flatMap(
+        (key) => configuration(selection).inspect(key)?.languageIds ?? [],
+      ),
+    );
+    const rules: LanguageRule[] = [...ids]
+      .sort()
+      .map((language) => {
+        const config = configuration({ ...selection, language });
+        const keys: LanguageRule["keys"] = [],
+          sources = new Set<string>();
+        for (const key of settingKeys) {
+          const i = config.inspect(key);
+          if (
+            i &&
+            (i.globalLanguageValue !== undefined ||
+              i.workspaceLanguageValue !== undefined ||
+              i.workspaceFolderLanguageValue !== undefined)
+          ) {
+            keys.push(key);
+            if (i.globalLanguageValue !== undefined) sources.add("User");
+            if (i.workspaceLanguageValue !== undefined)
+              sources.add("Workspace");
+            if (i.workspaceFolderLanguageValue !== undefined)
+              sources.add("Folder");
+          }
+        }
+        return { language, keys, sources: [...sources] };
+      })
+      .filter((rule) => rule.keys.length > 0);
+    let profiles: Snapshot["profiles"] = [],
+      recovery: Snapshot["recovery"] = null,
+      workflowError: string | null = null;
+    try {
+      profiles = this.workflows?.summaries(selection, this.scope) ?? [];
+    } catch (error) {
+      workflowError = error instanceof Error ? error.message : String(error);
+    }
+    try {
+      recovery = this.workflows?.recovery() ?? null;
+    } catch (error) {
+      workflowError = [
+        workflowError,
+        error instanceof Error ? error.message : String(error),
+      ]
+        .filter(Boolean)
+        .join("; ");
+    }
     return {
       revision: this.revision,
       navigation: this.navigation,
@@ -207,17 +236,13 @@ export class Dashboard implements vscode.Disposable {
         uri: f.uri.toString(),
       })),
       languages,
-      settings: settingKeys.map((key) => ({
-        key,
-        effective: effective.get(key) ?? null,
-        owned: own(selection, key) ?? null,
-        configured: own(selection, key) !== undefined,
-        sources: effective.inspect(key) as unknown as Record<string, unknown>,
-      })),
-      providers: providers.map((p) => ({
-        ...p,
-        installed: !!vscode.extensions.getExtension(p.id),
-      })),
+      settings,
+      providers: detected,
+      findings: diagnose(settings, detected),
+      rules,
+      profiles,
+      recovery,
+      workflowError,
       status: status(flags.map((k) => effective.get(k, false))),
       hasWorkspace: !!(
         vscode.workspace.workspaceFile ||
@@ -295,6 +320,22 @@ export class Dashboard implements vscode.Disposable {
         await this.publish(request.id);
         return;
       }
+      if (request.type === "providerSettings") {
+        const providerId = request.provider;
+        if (
+          !adapters.some((p) => p.id === providerId) &&
+          !vscode.extensions.getExtension(providerId)
+        )
+          throw new Error(
+            "No settings adapter is available for this provider.",
+          );
+        await vscode.commands.executeCommand(
+          "workbench.action.openSettings",
+          `@ext:${request.provider}`,
+        );
+        await this.publish(request.id);
+        return;
+      }
       if (
         request.revision !== this.revision ||
         request.scope.target !== this.scope.target ||
@@ -304,6 +345,63 @@ export class Dashboard implements vscode.Disposable {
         throw new Error(
           "Settings changed. Review the refreshed values and try again.",
         );
+      if (request.type === "profile" || request.type === "pause") {
+        if (!this.workflows)
+          throw new Error("Workflow storage is unavailable.");
+        let message: string;
+        if (request.type === "pause") {
+          const language = this.scope.language ?? this.active?.languageId;
+          message = await this.workflows.pause(
+            selection,
+            this.scope,
+            configuration({
+              ...selection,
+              ...(language ? { language } : {}),
+            }).get("editor.codeActionsOnSave"),
+          );
+        } else
+          switch (request.action) {
+            case "save":
+              message = await this.workflows.save(
+                request.name as string,
+                selection,
+                this.scope,
+              );
+              break;
+            case "apply":
+              message = await this.workflows.apply(
+                request.name as string,
+                selection,
+                this.scope,
+              );
+              break;
+            case "delete":
+              message = await this.workflows.remove(
+                request.name as string,
+                this.scope,
+              );
+              break;
+            case "export":
+              message = await this.workflows.export(
+                request.name as string,
+                selection,
+                this.scope,
+              );
+              break;
+            case "import":
+              message = await this.workflows.import(this.scope);
+              break;
+            case "restore":
+              message = await this.workflows.restore();
+              break;
+            case "discard":
+              message = await this.workflows.discard();
+              break;
+          }
+        this.revision++;
+        await this.publish(request.id, message);
+        return;
+      }
       if (request.type === "set")
         await write(selection, request.key, request.value);
       if (request.type === "action")

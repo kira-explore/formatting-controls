@@ -15,13 +15,16 @@ A control center for VS Code formatting, save actions, and language settings. Ma
 - **Configure formatting and saving.** Toggle formatting triggers, select the save formatting mode, choose a default formatter, and configure Auto Save and its delay.
 - **Manage save actions individually.** Set a source action to explicit save, always, or never while preserving unrelated entries at the selected scope.
 - **Inspect overrides.** Compare values at your chosen scope with effective values and inspect the configuration sources exposed by VS Code.
+- **Explain the setup.** Diagnostics distinguishes verified setting facts from possible provider conflicts. Language Rules shows explicit overrides.
+- **Reuse your preferences.** Save named profiles, import/export JSON, and preview changes before applying them. Restore only values that remain unchanged.
+- **Pause at a project scope.** Temporarily disable formatting and configured save actions, with a durable recovery record and an explicit Resume action.
 - **Reset deliberately.** Preview the selected setting before removing its value at that scope. A changed preview is rejected.
 
 No telemetry, remote analytics, or source-code transmission. Settings stay in VS Code. Opening the dashboard or welcome page changes no formatting preferences.
 
 ## Dark theme previews
 
-Screenshots are captured from the running extension in VS Code’s **Dark Modern** theme. Overview is shown above; expand the sections below to see the other four dashboard tabs.
+Screenshots are captured from the running extension in VS Code’s **Dark Modern** theme. Overview is shown above; expand the sections below to see the other seven dashboard tabs.
 
 <details>
 <summary>Formatting controls and scope overrides</summary>
@@ -52,6 +55,27 @@ Screenshots are captured from the running extension in VS Code’s **Dark Modern
 </details>
 
 <details>
+<summary>Language rules and override sources</summary>
+
+![Language rules and override sources in Dark Modern](docs/assets/dashboard-dark-language-rules.png)
+
+</details>
+
+<details>
+<summary>Diagnostics and confidence levels</summary>
+
+![Diagnostics and confidence levels in Dark Modern](docs/assets/dashboard-dark-diagnostics.png)
+
+</details>
+
+<details>
+<summary>Profiles, presets and temporary pause</summary>
+
+![Profiles, presets and temporary pause in Dark Modern](docs/assets/dashboard-dark-profiles.png)
+
+</details>
+
+<details>
 <summary>Narrow layout and high-contrast theme</summary>
 
 ![Formatting Controls in a narrow high-contrast editor](docs/assets/dashboard-narrow-high-contrast.png)
@@ -77,30 +101,34 @@ Open the folder in VS Code and press **F5** to launch the Extension Development 
 bun run package
 ```
 
-In VS Code, run **Extensions: Install from VSIX…** and select `formatting-controls-0.2.0.vsix`. A successful GitHub Actions run also provides the VSIX artifact. No Marketplace credentials are required.
+In VS Code, run **Extensions: Install from VSIX…** and select `formatting-controls-0.3.0.vsix`. A successful GitHub Actions run also provides the VSIX artifact. No Marketplace credentials are required.
 
 ## Find your flow
 
 Click the status-bar item to open native Quick Controls, or use these Command Palette entries:
 
-| Command                                             | Purpose                                                  |
-| --------------------------------------------------- | -------------------------------------------------------- |
-| **Formatting Controls: Open Dashboard**             | Open the full settings dashboard                         |
-| **Formatting Controls: Quick Controls**             | Edit a setting using native pickers                      |
-| **Formatting Controls: Inspect Effective Settings** | Open a JSON report of effective values and scope sources |
-| **Formatting Controls: Getting Started**            | Reopen the welcome page                                  |
+| Command                                             | Purpose                                                          |
+| --------------------------------------------------- | ---------------------------------------------------------------- |
+| **Formatting Controls: Open Dashboard**             | Open the full settings dashboard                                 |
+| **Formatting Controls: Quick Controls**             | Edit a setting using native pickers                              |
+| **Formatting Controls: Inspect Effective Settings** | Open a JSON report of effective values and scope sources         |
+| **Formatting Controls: Restore Previous Settings**  | Restore untouched values from the latest batch in this workspace |
+| **Formatting Controls: Getting Started**            | Reopen the welcome page                                          |
 
 The welcome page appears once on first activation. It introduces the workflow and links to settings, documentation, and GitHub; it does not apply a preset automatically.
 
 ### Dashboard
 
-| Page                | What it shows                                                             |
-| ------------------- | ------------------------------------------------------------------------- |
-| **Overview**        | Effective formatting flags, configured formatter, and save-action summary |
-| **Formatting**      | Searchable typed controls, scope values, overrides, and source inspection |
-| **Code actions**    | Common source-action identifiers, existing custom entries, and run modes  |
-| **Formatters**      | Known installed integrations and built-in language extensions             |
-| **Getting started** | A short setup guide with scope and language selection                     |
+| Page                | What it shows                                                                      |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| **Overview**        | Effective formatting flags, configured formatter, and save-action summary          |
+| **Formatting**      | Searchable typed controls, scope values, overrides, and source inspection          |
+| **Code actions**    | Common source-action identifiers, existing custom entries, and run modes           |
+| **Formatters**      | Known installed integrations and built-in language extensions                      |
+| **Language rules**  | Explicit language overrides and their configured scopes                            |
+| **Diagnostics**     | Verified configuration facts, possible conflicts, and provider limitations         |
+| **Profiles**        | Presets, named profiles, import/export, preview/apply, temporary pause and restore |
+| **Getting started** | A short setup guide with scope and language selection                              |
 
 Choose **Write to** and **Language** before changing a control. Values shown on controls are effective for the selected language, or the last active file’s language when All languages is selected. The value written still belongs only to the scope you selected. An override may therefore keep the effective value unchanged; the Formatting page shows that difference.
 
@@ -119,6 +147,18 @@ The ON/OFF/MIXED indicator summarizes only the three built-in formatting flags. 
 `always` does not promise execution on `afterDelay` Auto Save or a particular action order. Action IDs depend on the provider and language. Legacy action arrays must be migrated through VS Code Settings before editing them here.
 
 The formatter list is a set of known integrations, not a complete provider registry. Extension presence cannot prove that it is enabled, configured, or eligible for your file. You can enter another formatter’s `publisher.extension` ID in Formatting.
+
+## Profiles and temporary pause
+
+Choose a scope and optional language first. **Save profile** captures only explicit values at that scope. Presets include Minimal, Strict, Formatting Only and Project Default; Project Default requires explicit project preferences. **Preview & apply** opens a JSON change preview and a native confirmation picker. Source-action entries merge with the selected scope, preserving unrelated entries.
+
+**Import JSON** saves a validated version 1 profile without applying it. **Export** uses a native file picker. Profile files contain formatting preferences, not workspace paths. Language-specific profiles require selecting the same language before applying.
+
+**Preview temporary pause** is available for Workspace and Workspace Folder. It changes real formatting flags and currently configured actions at that scope. Higher-priority overrides may still run. Pause persists until **Resume / restore**, including after reloads; a recovery reminder appears when needed. User-wide pause is unavailable because it could affect other windows.
+
+Restore preserves externally edited settings and newly added actions. If conflicts remain, review them in Profiles or choose **Keep current values** to discard the remaining restore point. The Command Palette's **Formatting Controls: Restore Previous Settings** works without the dashboard open. Restore points belong to the workspace/window where the batch was applied; saved custom profiles are shared across workspaces.
+
+Settings APIs are not atomic transactions. Concurrent edits between checking and writing cannot be perfectly isolated. See the [Phase 3 design and recovery limits](docs/phase-3.md).
 
 ## Development
 
@@ -141,7 +181,7 @@ Read the [architecture and feature matrix](docs/architecture.md), [validation no
 
 ## Roadmap
 
-Phase 2 adds the dashboard and welcome experience to the native Phase 1 controls. Next are provider adapters, deeper diagnostics, profiles, import/export, and investigation of a safe temporary pause. Broader accessibility, performance, compatibility, and release checks follow. Planned features are not presented as working controls.
+Phases 1–3 are implemented: native controls, the dashboard, provider adapters, diagnostics, language rules, profiles, import/export and recoverable workspace pause. Phase 4 covers broader accessibility, performance and compatibility checks, release assets and Marketplace preparation. No automatic publication is configured.
 
 Have a reproducible problem or a focused idea? [Open an issue](https://github.com/kira-explore/formatting-controls/issues/new/choose).
 

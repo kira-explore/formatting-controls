@@ -3,6 +3,9 @@ export const pages = [
   { id: "formatting", name: "Formatting", glyph: "⌘" },
   { id: "actions", name: "Code actions", glyph: "↗" },
   { id: "formatters", name: "Formatters", glyph: "⊞" },
+  { id: "rules", name: "Language rules", glyph: "⌁" },
+  { id: "diagnostics", name: "Diagnostics", glyph: "◉" },
+  { id: "profiles", name: "Profiles", glyph: "▤" },
   { id: "welcome", name: "Getting started", glyph: "◎" },
 ] as const;
 export const labels: Record<string, string> = {

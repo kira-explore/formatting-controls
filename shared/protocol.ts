@@ -1,3 +1,6 @@
+import type { Finding } from "./diagnostics";
+import type { Adapter } from "./providers";
+import type { ProfileSummary, Recovery } from "./workflows";
 export const settingKeys = [
   "editor.formatOnSave",
   "editor.formatOnPaste",
@@ -26,6 +29,21 @@ export type Operation =
     }
   | { type: "action"; action: string; value: ActionValue; revision: number }
   | { type: "reset"; key: Key; revision: number }
+  | { type: "providerSettings"; provider: string }
+  | { type: "pause"; revision: number }
+  | {
+      type: "profile";
+      action:
+        | "save"
+        | "apply"
+        | "delete"
+        | "export"
+        | "import"
+        | "restore"
+        | "discard";
+      name?: string;
+      revision: number;
+    }
   | {
       type: "open";
       destination: "settings" | "github" | "docs" | "quickControls";
@@ -38,12 +56,17 @@ export interface Setting {
   configured: boolean;
   sources: Record<string, unknown>;
 }
-export interface Provider {
-  id: string;
-  name: string;
+export interface Provider extends Adapter {
   installed: boolean;
-  formatting: boolean;
-  note: string;
+  enabled: boolean | null;
+  formattingEnabled: boolean | null;
+  knownLanguage: boolean;
+  evidence: { key: string; value: unknown }[];
+}
+export interface LanguageRule {
+  language: string;
+  keys: Key[];
+  sources: string[];
 }
 export interface Snapshot {
   revision: number;
@@ -58,6 +81,11 @@ export interface Snapshot {
   providers: Provider[];
   status: "ON" | "OFF" | "MIXED";
   hasWorkspace: boolean;
+  profiles: ProfileSummary[];
+  recovery: Recovery | null;
+  workflowError: string | null;
+  findings: Finding[];
+  rules: LanguageRule[];
 }
 export type Response =
   | { type: "state"; state: Snapshot; id?: string; message?: string }
@@ -123,8 +151,37 @@ export function parseRequest(raw: unknown): Request {
     )
   )
     return raw as Request;
+  if (
+    raw.type === "providerSettings" &&
+    string(raw.provider) &&
+    /^[\w-]+\.[\w.-]+$/.test(raw.provider)
+  )
+    return raw as Request;
   if (!Number.isSafeInteger(raw.revision) || Number(raw.revision) < 0)
     throw new Error("Invalid settings revision.");
+  if (raw.type === "pause") return raw as Request;
+  if (
+    raw.type === "profile" &&
+    typeof raw.action === "string" &&
+    [
+      "save",
+      "apply",
+      "delete",
+      "export",
+      "import",
+      "restore",
+      "discard",
+    ].includes(raw.action)
+  ) {
+    if (
+      ["save", "apply", "delete", "export"].includes(raw.action) &&
+      (!string(raw.name, 80) ||
+        !raw.name.trim() ||
+        [...raw.name].some((c) => c.charCodeAt(0) < 32))
+    )
+      throw new Error("A profile name of up to 80 characters is required.");
+    return raw as Request;
+  }
   if (
     raw.type === "action" &&
     sourceAction(raw.action) &&
