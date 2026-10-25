@@ -196,3 +196,66 @@ test("an edit during journal persistence is preserved before the write starts", 
   assert.ok(!f.events.some((e) => e.startsWith("write:")));
   assert.equal(f.journal, undefined);
 });
+
+test("an interrupted restore remains recoverable on the next attempt", async () => {
+  const f = fixture();
+  await applyBatch(f.batch, f.port);
+  const original = f.journal as Journal;
+  let failed = false;
+  await assert.rejects(
+    restoreBatch(original, {
+      ...f.port,
+      write: async (change, value) => {
+        if (change.key === "editor.formatOnSave" && !failed) {
+          failed = true;
+          throw new Error("Restore interrupted");
+        }
+        await f.port.write(change, value);
+      },
+    }),
+    /Restore interrupted/,
+  );
+  assert.equal(f.journal?.phase, "restoring");
+  await restoreBatch(
+    parseJournal(JSON.parse(JSON.stringify(f.journal))),
+    f.port,
+  );
+  assert.deepEqual(f.values.get("editor.formatOnSave"), slot(true));
+  assert.deepEqual(f.values.get("editor.formatOnPaste"), absent);
+  assert.equal(f.journal, undefined);
+});
+
+test("failure to persist the completed batch rolls back settings", async () => {
+  const f = fixture();
+  await assert.rejects(
+    applyBatch(f.batch, {
+      ...f.port,
+      save: async (journal) => {
+        if (journal?.phase === "applied")
+          throw new Error("Commit storage failed");
+        await f.port.save(journal);
+      },
+    }),
+    /Commit storage failed/,
+  );
+  assert.deepEqual(f.values.get("editor.formatOnSave"), slot(true));
+  assert.deepEqual(f.values.get("editor.formatOnPaste"), absent);
+  assert.equal(f.journal, undefined);
+});
+
+test("profile action maps reject prototype keys and excessive entries", () => {
+  for (const actions of [
+    JSON.parse('{"__proto__":"always"}'),
+    Object.fromEntries(
+      Array.from({ length: 101 }, (_, i) => [`source.test${i}`, "always"]),
+    ),
+  ]) {
+    assert.throws(() =>
+      parseProfile({
+        version: 1,
+        name: "Unsafe",
+        settings: { "editor.codeActionsOnSave": actions },
+      }),
+    );
+  }
+});

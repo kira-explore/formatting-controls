@@ -39,3 +39,10 @@ Interactive Phase 3 verification in Dark Modern passed saving a scoped profile, 
 ### Phase 3 pre-merge recheck
 
 Fixed three recovery edge cases: restore is limited to the entries shown in its confirmed preview; externally edited legacy/unsupported action maps no longer block restoration of unrelated formatting flags; and every application rechecks values after asynchronous journal persistence, excluding writes that never started from rollback. Added real-editor regressions for preview-time edits and legacy action recovery, plus pure regressions for approved-entry restoration and edits during persistence. The suite now has 23 pure tests.
+
+
+## Phase 4
+
+Added 26-test pure suite, real empty-window coverage, minimum-host and cross-platform CI, three-theme real-dashboard accessibility/security scans, test-only CPU profiles and package content/size/checksum checks. Local VS Code 1.140.0 and 1.143.1 tests pass; all 48 page/layout scans pass with zero automated axe violations. The accessibility report also retains incomplete checks for manual review. Warm snapshot p95 was approximately 2–3.3 ms on the local integration fixtures; this does not measure full cold startup or attribute the host's heap to this extension.
+
+Fixed low-contrast setting IDs, light warning text, accessible-name mismatches, initial focus and small-width layout issues. Manual screen-reader, remote and concurrent-window review remains a release gate. The known packaging advisory is reported during PR validation and blocks strict release preparation. See phase-4.md and releasing.md. No public release or Marketplace publication was performed.

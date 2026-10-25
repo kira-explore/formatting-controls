@@ -4,6 +4,7 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  workflow_call:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -21,9 +22,65 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run typecheck && bun run lint && bun run test
-      - run: xvfb-run -a bun run test:integration
+      - run: bun run security:check
       - run: bun run package
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: formatting-controls-vsix
-          path: "*.vsix"
+          path: |
+            *.vsix
+            *.vsix.sha256
+            test-results/audit.json
+  editor:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            vscode: "1.140.0"
+          - os: ubuntu-latest
+            vscode: stable
+          - os: macos-latest
+            vscode: stable
+          - os: windows-latest
+            vscode: stable
+    runs-on: ${{ matrix.os }}
+    env:
+      VSCODE_VERSION: ${{ matrix.vscode }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "24"
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a bun run test:integration && xvfb-run -a bun run test/run-integration.ts --empty
+      - if: runner.os != 'Linux'
+        run: bun run test:integration && bun run test/run-integration.ts --empty
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: editor-${{ matrix.os }}-${{ matrix.vscode }}
+          path: test-results/
+  accessibility:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        theme: [Dark Modern, Light Modern, Default High Contrast]
+    env:
+      FORMATTING_CONTROLS_UI_THEME: ${{ matrix.theme }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "24"
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: xvfb-run -a bun run test:ui
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: accessibility-${{ matrix.theme }}
+          path: test-results/

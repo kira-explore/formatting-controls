@@ -1,0 +1,38 @@
+name: Prepare release draft
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version from package.json (main only)
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/ci.yml
+  draft:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "24"
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run release:check
+      - name: Block release on dependency advisories
+        run: bun audit
+      - run: bun run package
+      - name: Create draft for maintainer review
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v${RELEASE_VERSION}" "formatting-controls-${RELEASE_VERSION}.vsix" "formatting-controls-${RELEASE_VERSION}.vsix.sha256" --target "$GITHUB_SHA" --draft --title "Formatting Controls ${RELEASE_VERSION}" --notes-file release-notes.md

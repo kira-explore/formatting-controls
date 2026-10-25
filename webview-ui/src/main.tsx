@@ -17,9 +17,12 @@ function App() {
     (s) => s.key === "files.autoSaveDelay",
   )?.effective;
   useEffect(() => setDelay(String(effectiveDelay ?? 1000)), [effectiveDelay]);
+  const ready = !!state;
   useEffect(() => {
-    document.getElementById(`page-${page}`)?.focus();
-  }, [page]);
+    if (!ready) return;
+    document.getElementById(`page-${page}`)?.focus({ preventScroll: true });
+    window.scrollTo(0, 0);
+  }, [page, ready]);
   if (!state)
     return (
       <main className="loading">
@@ -173,6 +176,9 @@ function App() {
   const formatter = display(setting("editor.defaultFormatter")?.effective);
   return (
     <div className="app">
+      <a className="skip-link" href="#page-content">
+        Skip to controls
+      </a>
       <aside className="sidebar">
         <button
           type="button"
@@ -230,7 +236,7 @@ function App() {
             Quick Controls ↗
           </button>
         </header>
-        <main>
+        <main id="page-content" tabIndex={-1} aria-busy={disabled}>
           <div className="page-heading">
             <div>
               <p className="eyebrow">FORMATTING CONTROLS</p>
@@ -508,6 +514,7 @@ function App() {
                       <button
                         type="button"
                         className="text-button"
+                        aria-label={`Reset at this scope: ${labels[s.key] ?? s.key}`}
                         disabled={
                           disabled ||
                           !s.configured ||
@@ -525,7 +532,9 @@ function App() {
                       </button>
                     </div>
                     <details>
-                      <summary>Inspect configuration sources</summary>
+                      <summary>
+                        Inspect sources for {labels[s.key] ?? s.key}
+                      </summary>
                       <pre>{JSON.stringify(s.sources, null, 2)}</pre>
                     </details>
                   </article>
@@ -698,6 +707,7 @@ function App() {
                     <button
                       type="button"
                       disabled={disabled || !p.installed}
+                      aria-label={`Open provider settings: ${p.name}`}
                       onClick={() =>
                         send({ type: "providerSettings", provider: p.id })
                       }
@@ -707,6 +717,7 @@ function App() {
                     <button
                       type="button"
                       disabled={disabled || !p.installed || !p.formatting}
+                      aria-label={`${formatter.toLowerCase() === p.id.toLowerCase() ? "Selected formatter" : "Set default formatter"}: ${p.name}`}
                       onClick={() => mutate("editor.defaultFormatter", p.id)}
                     >
                       {formatter.toLowerCase() === p.id.toLowerCase()
@@ -783,7 +794,7 @@ function App() {
             </section>
           )}
           <footer>
-            <span>Formatting Controls · 0.3.0</span>
+            <span>Formatting Controls · 0.4.0</span>
             <button
               type="button"
               disabled={disabled}

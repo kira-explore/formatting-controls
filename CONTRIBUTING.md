@@ -9,3 +9,9 @@ Keep `main` release-ready. Use short-lived `feat/<description>`, `fix/<descripti
 ## Dashboard changes
 
 Keep the host/browser boundary typed and validate every incoming request in `shared/protocol.ts`. Add rejection tests for new message types or values. Run F5 for real settings behavior; the Vite development page does not emulate VS Code. `FORMATTING_CONTROLS_UI_REVIEW=1 bun run test:integration` keeps the isolated dashboard open for three minutes on localhost debug port 9333 for visual review; do not run two visual reviews concurrently. Check light, dark, high-contrast, narrow widths, and keyboard focus. The integration runner always uses temporary user settings and workspace folders.
+
+## Production-readiness checks
+
+Run bun run test:ui for automated real-dashboard accessibility, keyboard, reduced-motion, layout, CSP and text-escaping checks. Theme selection is documented in docs/releasing.md. Reports and CPU profiles are written to ignored test-results/. A browser download is unnecessary: the test driver attaches only to the isolated VS Code instance. Run one UI review at a time on debug port 9333. Test reports can contain temporary local paths; review them before sharing.
+
+Packaging now verifies contents and size budgets and emits a SHA-256 sidecar. Run bun run security:check to report the single documented packaging baseline while rejecting new findings; public release requires a completely clean bun audit. Do not add suppressions to bypass release gates.

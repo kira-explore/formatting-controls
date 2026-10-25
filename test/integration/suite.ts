@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { existsSync, writeFileSync } from "node:fs";
 import * as vscode from "vscode";
 import type { Response } from "../../shared/protocol";
 import {
@@ -10,6 +11,7 @@ import {
 } from "../../src/configuration";
 import { Dashboard } from "../../src/dashboard";
 import { Workflows } from "../../src/workflows";
+import { profileDashboard } from "./performance";
 import { MemoryStore, runWorkflowTests } from "./workflows";
 
 async function changeFolders(
@@ -302,6 +304,21 @@ export async function run(): Promise<void> {
       await changeFolders(1, 0, { uri: other.uri, name: other.name });
     }
     await runWorkflowTests(ext.extensionUri, uri);
+    await profileDashboard(dashboard);
+    if (
+      process.env.FORMATTING_CONTROLS_UI_READY &&
+      process.env.FORMATTING_CONTROLS_UI_DONE
+    ) {
+      await vscode.commands.executeCommand("workbench.action.closeSidebar");
+      await vscode.commands.executeCommand("workbench.action.closePanel");
+      writeFileSync(process.env.FORMATTING_CONTROLS_UI_READY, "ready");
+      const deadline = Date.now() + 180000;
+      while (!existsSync(process.env.FORMATTING_CONTROLS_UI_DONE)) {
+        if (Date.now() > deadline)
+          throw new Error("Dashboard verification timed out");
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
     if (process.env.FORMATTING_CONTROLS_UI_REVIEW)
       await new Promise((resolve) =>
         setTimeout(

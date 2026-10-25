@@ -101,7 +101,7 @@ Open the folder in VS Code and press **F5** to launch the Extension Development 
 bun run package
 ```
 
-In VS Code, run **Extensions: Install from VSIX…** and select `formatting-controls-0.3.0.vsix`. A successful GitHub Actions run also provides the VSIX artifact. No Marketplace credentials are required.
+In VS Code, run **Extensions: Install from VSIX…** and select `formatting-controls-0.4.0.vsix`. A successful GitHub Actions run also provides the VSIX artifact. No Marketplace credentials are required.
 
 ## Find your flow
 
@@ -160,6 +160,10 @@ Restore preserves externally edited settings and newly added actions. If conflic
 
 Settings APIs are not atomic transactions. Concurrent edits between checking and writing cannot be perfectly isolated. See the [Phase 3 design and recovery limits](docs/phase-3.md).
 
+## Release readiness
+
+The development VSIX can be installed locally. Release preparation is gated by the known development packaging advisory; the release workflow stops until a compatible upstream fix is available. See [security](SECURITY.md), [release preparation](docs/releasing.md) and [support](SUPPORT.md).
+
 ## Development
 
 **Package manager:** Bun 1.4.4 with a committed `bun.lock`. **Node.js:** 24 or newer; Node 24 LTS is recommended. Tool versions are declared in `package.json`.
@@ -181,7 +185,7 @@ Read the [architecture and feature matrix](docs/architecture.md), [validation no
 
 ## Roadmap
 
-Phases 1–3 are implemented: native controls, the dashboard, provider adapters, diagnostics, language rules, profiles, import/export and recoverable workspace pause. Phase 4 covers broader accessibility, performance and compatibility checks, release assets and Marketplace preparation. No automatic publication is configured.
+Phases 1–3 are implemented: native controls, the dashboard, provider adapters, diagnostics, language rules, profiles, import/export and recoverable workspace pause. Phase 4 adds automated accessibility/security checks, CPU profiling and bundle budgets, cross-platform/minimum-host CI, Marketplace metadata/assets and guarded release-draft preparation. Public release still requires the packaging advisory fix and hands-on screen-reader, remote and concurrent-window reviews. See [release preparation](docs/releasing.md). No automatic Marketplace publication is configured.
 
 Have a reproducible problem or a focused idea? [Open an issue](https://github.com/kira-explore/formatting-controls/issues/new/choose).
 

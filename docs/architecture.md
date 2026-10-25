@@ -35,7 +35,7 @@ ON means all three built-in formatting flags enabled; OFF means none; MIXED mean
 | Provider adapters and diagnostics                             | Phase 3 implemented | Installed extension metadata is evidence of installation, not actual registered capabilities or enabled server state   |
 | Profiles/import/export                                        | Phase 3 implemented | Validate schema, preview per-key changes, snapshot only owned values, conflict-aware restore                           |
 | Pause                                                         | Phase 3 implemented | Requires real setting writes; persist journal before writes, restore only unchanged values, offer recovery after crash |
-| Release assets and publication                                | Phase 4 planned     | No automatic publication or credentials in local development                                                           |
+| Release validation/assets                                     | Phase 4 implemented | Guarded draft preparation; public release remains gated by dependency and hands-on reviews                             |
 
 ## Interaction and dashboard design
 
@@ -45,6 +45,8 @@ Current navigation: Overview (effective summary and recovery), Formatting (typed
 
 ## Tooling and validation
 
-All authored scripts use TypeScript and ES imports. Bun runs `build.ts` and `test/run-integration.ts`; emitted bundles use `.js`. A generated `dist/package.json` marks the VS Code host/test bundle as CommonJS while the source package remains ESM. Strict TypeScript, Biome, esbuild CommonJS host bundle; Node test runner for pure regression tests. Isolated Electron extension-host tests exercise activation and real configuration precedence, language reset and action preservation. The integration runner uses temporary user data and extensions; never the developer's settings. CI runs checks and packaging; release workflow is manual and produces a VSIX only. Implemented regression tests also cover protocol validation, adapter evidence, profile rollback and diagnostic false positives.
+All authored scripts use TypeScript and ES imports. Bun runs `build.ts` and `test/run-integration.ts`; emitted bundles use `.js`. A generated `dist/package.json` marks the VS Code host/test bundle as CommonJS while the source package remains ESM. Strict TypeScript, Biome, esbuild CommonJS host bundle; Node test runner for pure regression tests. Isolated Electron extension-host tests exercise activation and real configuration precedence, language reset and action preservation. The integration runner uses temporary user data and extensions; never the developer's settings. CI runs checks and packaging; release workflow is manual and prepares a reviewed draft only after strict audit and validation. Implemented regression tests also cover protocol validation, adapter evidence, profile rollback and diagnostic false positives.
 
 Phase 3 implementation and recovery/file-format constraints are documented in [phase-3.md](phase-3.md).
+
+Phase 4 validation, budgets and release gates are documented in [phase-4.md](phase-4.md).

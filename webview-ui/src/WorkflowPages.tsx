@@ -235,6 +235,7 @@ export function WorkflowPages({
                   state.recovery?.kind === "pause" ||
                   (!!state.recovery && state.recovery.phase !== "applied")
                 }
+                aria-label={`Preview & apply ${p.name}`}
                 onClick={() => profile("apply", p.name)}
               >
                 Preview & apply
@@ -242,6 +243,7 @@ export function WorkflowPages({
               <button
                 type="button"
                 disabled={disabled || !p.count}
+                aria-label={`Export ${p.name}`}
                 onClick={() => profile("export", p.name)}
               >
                 Export
@@ -251,6 +253,7 @@ export function WorkflowPages({
                   type="button"
                   className="text-button"
                   disabled={disabled}
+                  aria-label={`Delete ${p.name}`}
                   onClick={() => profile("delete", p.name)}
                 >
                   Delete

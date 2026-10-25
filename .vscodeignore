@@ -12,3 +12,8 @@ dist/**/*.map
 bun.lock
 biome.json
 webview-ui/**
+scripts/**
+test-results/**
+assets/*.svg
+*.vsix.sha256
+release-notes.md

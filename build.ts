@@ -1,4 +1,5 @@
 import { globSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { build } from "esbuild";
 import { build as buildWebview } from "vite";
 import webviewConfig from "./webview-ui/vite.config";
@@ -21,7 +22,7 @@ await build({
 for (const file of globSync("test/{unit,integration}/**/*.ts"))
   await build({
     entryPoints: [file],
-    outfile: file.replace("test/", "dist/test/").replace(".ts", ".js"),
+    outfile: join("dist", file).replace(/\.ts$/, ".js"),
     bundle: true,
     platform: "node",
     target: "node22",
