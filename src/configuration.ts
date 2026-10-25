@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import * as vscode from "vscode";
 import { type ActionValue, type SettingKey, updateAction } from "./model";
 export interface Selection {
@@ -56,4 +57,18 @@ export async function setAction(
     "editor.codeActionsOnSave",
     updateAction(own(s, "editor.codeActionsOnSave"), id, value),
   );
+}
+
+/** Refuse a reset if its confirmed preview no longer matches the selected scope. */
+export async function resetIfUnchanged(
+  s: Selection,
+  key: SettingKey,
+  expected: unknown,
+): Promise<void> {
+  if (!isDeepStrictEqual(own(s, key), expected)) {
+    throw new Error(
+      "This setting changed while the reset preview was open. Reopen Reset to review its current value.",
+    );
+  }
+  await write(s, key, undefined);
 }

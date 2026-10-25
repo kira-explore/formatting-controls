@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import {
   configuration,
   own,
+  resetIfUnchanged,
   type Selection,
   setAction,
   write,
@@ -135,13 +136,15 @@ export function activate(context: vscode.ExtensionContext): void {
         })),
         { title: "Reset · select a setting" },
       );
-      if (!key || own(s, key.key) === undefined) return;
+      if (!key) return;
+      const preview = structuredClone(own(s, key.key));
+      if (preview === undefined) return;
       const confirm = await vscode.window.showWarningMessage(
-        `Remove ${key.key} = ${JSON.stringify(own(s, key.key))} from ${target.label}${s.language ? ` / ${s.language}` : ""}? Inherited settings will apply.`,
+        `Remove ${key.key} = ${JSON.stringify(preview)} from ${target.label}${s.language ? ` / ${s.language}` : ""}? Inherited settings will apply.`,
         { modal: true },
         "Reset",
       );
-      if (confirm) await write(s, key.key, undefined);
+      if (confirm) await resetIfUnchanged(s, key.key, preview);
       return;
     }
     const key = selected.key as SettingKey;
@@ -164,7 +167,8 @@ export function activate(context: vscode.ExtensionContext): void {
             "Run action · always includes focus/window Auto Save, not afterDelay",
         },
       );
-      if (value) await setAction(s, id, value as ActionValue);
+      if (!value) return;
+      await setAction(s, id, value as ActionValue);
     } else {
       let value: unknown;
       if (flags.includes(key as (typeof flags)[number])) {

@@ -7,13 +7,19 @@ import { runTests } from "@vscode/test-electron";
   const temp = fs.mkdtempSync(
     path.join(os.tmpdir(), "formatting-controls-test-"),
   );
-  fs.mkdirSync(path.join(temp, "workspace"));
+  fs.mkdirSync(path.join(temp, "first"));
+  fs.mkdirSync(path.join(temp, "second"));
+  const workspace = path.join(temp, "test.code-workspace");
+  fs.writeFileSync(
+    workspace,
+    JSON.stringify({ folders: [{ path: "first" }, { path: "second" }] }),
+  );
   try {
     await runTests({
       extensionDevelopmentPath: path.resolve("."),
       extensionTestsPath: path.resolve("dist/test/integration/suite.js"),
       launchArgs: [
-        path.join(temp, "workspace"),
+        workspace,
         "--user-data-dir",
         path.join(temp, "user"),
         "--extensions-dir",
