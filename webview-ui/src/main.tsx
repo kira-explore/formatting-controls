@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import type { Key, Scope } from "../../shared/protocol";
 import { actionNames, descriptions, display, labels, pages } from "./catalog";
 import { useEditor } from "./useEditor";
+import { WorkflowPages } from "./WorkflowPages";
 import "./styles.css";
 
 function App() {
@@ -336,6 +337,42 @@ function App() {
               </button>
             </div>
           )}
+          {state.recovery && (
+            <div className="callout">
+              <span aria-hidden="true">↶</span>
+              <div>
+                <strong>
+                  {state.recovery.kind === "pause"
+                    ? "A workspace pause / recovery record is saved"
+                    : "A profile restore point is available"}
+                </strong>
+                <p>
+                  {state.recovery.count} values · {state.recovery.scope.target}{" "}
+                  · {state.recovery.phase}. External changes are preserved on
+                  restore.
+                </p>
+                <button
+                  type="button"
+                  className="text-button"
+                  onClick={() => setPage("profiles")}
+                >
+                  Review in Profiles →
+                </button>
+              </div>
+            </div>
+          )}
+          {["rules", "diagnostics", "profiles"].includes(page) && (
+            <WorkflowPages
+              page={page}
+              state={state}
+              disabled={disabled}
+              send={send}
+              selectLanguage={(language) => {
+                send({ type: "read" }, { ...state.scope, language });
+                setPage("formatting");
+              }}
+            />
+          )}
           {page === "overview" && (
             <>
               <section className="hero">
@@ -636,12 +673,43 @@ function App() {
                     </div>
                     <code>{p.id}</code>
                     <p>{p.note}</p>
+                    <small>
+                      Enable setting:{" "}
+                      {p.enabled === null
+                        ? "Unknown"
+                        : p.enabled
+                          ? "Yes"
+                          : "No"}{" "}
+                      · Format setting:{" "}
+                      {p.formattingEnabled === null
+                        ? "Unknown"
+                        : p.formattingEnabled
+                          ? "Yes"
+                          : "No"}
+                    </small>
+                    <small>
+                      Candidate actions:{" "}
+                      {p.actions.join(", ") || "None declared by this adapter"}
+                    </small>
+                    <details>
+                      <summary>Provider setting evidence</summary>
+                      <pre>{JSON.stringify(p.evidence, null, 2)}</pre>
+                    </details>
                     <button
                       type="button"
                       disabled={disabled || !p.installed}
+                      onClick={() =>
+                        send({ type: "providerSettings", provider: p.id })
+                      }
+                    >
+                      Open provider settings
+                    </button>
+                    <button
+                      type="button"
+                      disabled={disabled || !p.installed || !p.formatting}
                       onClick={() => mutate("editor.defaultFormatter", p.id)}
                     >
-                      {formatter === p.id
+                      {formatter.toLowerCase() === p.id.toLowerCase()
                         ? "Selected formatter"
                         : "Set default formatter"}
                     </button>
@@ -715,7 +783,7 @@ function App() {
             </section>
           )}
           <footer>
-            <span>Formatting Controls · 0.2.0</span>
+            <span>Formatting Controls · 0.3.0</span>
             <button
               type="button"
               disabled={disabled}

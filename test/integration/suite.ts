@@ -9,6 +9,8 @@ import {
   write,
 } from "../../src/configuration";
 import { Dashboard } from "../../src/dashboard";
+import { Workflows } from "../../src/workflows";
+import { MemoryStore, runWorkflowTests } from "./workflows";
 
 async function changeFolders(
   start: number,
@@ -52,9 +54,17 @@ export async function run(): Promise<void> {
     uri: vscode.Uri.joinPath(other.uri, "sample.ts"),
   };
   const replies: Response[] = [];
-  const dashboard = new Dashboard(ext.extensionUri, (message) => {
-    replies.push(message);
-  });
+  const dashboardWorkflows = new Workflows(
+    new MemoryStore(),
+    new MemoryStore(),
+  );
+  const dashboard = new Dashboard(
+    ext.extensionUri,
+    (message) => {
+      replies.push(message);
+    },
+    dashboardWorkflows,
+  );
   const user = { target: vscode.ConfigurationTarget.Global, uri };
   const workspace = { target: vscode.ConfigurationTarget.Workspace, uri };
   const language = { ...workspace, language: "typescript" };
@@ -291,6 +301,7 @@ export async function run(): Promise<void> {
     } finally {
       await changeFolders(1, 0, { uri: other.uri, name: other.name });
     }
+    await runWorkflowTests(ext.extensionUri, uri);
     if (process.env.FORMATTING_CONTROLS_UI_REVIEW)
       await new Promise((resolve) =>
         setTimeout(
@@ -303,6 +314,7 @@ export async function run(): Promise<void> {
     );
   } finally {
     dashboard.dispose();
+    dashboardWorkflows.dispose();
     for (const s of [
       language,
       { ...first, language: "typescript" },
