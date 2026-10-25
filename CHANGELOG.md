@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+Fixed saved-profile loss between simultaneous windows with coordinated private-file storage, stale overwrite/delete checks, live profile refresh and real two-window regression coverage. Existing profile storage migrates on first successful mutation.
+
 ## 0.4.0 — Unreleased
 
 Resolved the packaging MSAL advisory with a scoped, compatibility-tested override to 7.1.1. Removed the audit exception so PR and release checks require no vulnerabilities.
