@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "skipLibCheck": true,
+    "types": ["node", "vscode"],
+    "lib": ["ESNext"],
+    "verbatimModuleSyntax": true
+  },
+  "include": ["src", "shared", "test/**/*.ts", "build.ts"]
+}

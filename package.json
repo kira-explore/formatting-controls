@@ -1,0 +1,66 @@
+{
+  "name": "formatting-controls",
+  "version": "0.1.0",
+  "description": "Scope-aware native controls for formatting and save actions.",
+  "main": "./dist/extension.js",
+  "scripts": {
+    "build": "bun run build.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "test": "bun run build && node --test dist/test/unit/*.js",
+    "test:integration": "bun run build && bun run test/run-integration.ts",
+    "package": "vsce package --no-dependencies",
+    "vscode:prepublish": "bun run build",
+    "format": "biome check --write ."
+  },
+  "author": {
+    "name": "Raju Dhami",
+    "email": "imrajudhami@gmail.com",
+    "url": "https://github.com/Raju"
+  },
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/vscode": "^1.140.0",
+    "@vscode/test-electron": "^3.1.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2",
+    "typescript": "7.0.2",
+    "@biomejs/biome": "2.6.3"
+  },
+  "displayName": "Formatting Controls",
+  "publisher": "rajudhami",
+  "engines": {
+    "vscode": "^1.140.0",
+    "node": ">=24"
+  },
+  "categories": [
+    "Formatters",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "formattingControls.open",
+        "title": "Formatting Controls: Quick Controls"
+      },
+      {
+        "command": "formattingControls.inspect",
+        "title": "Formatting Controls: Inspect Effective Settings"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kira-explore/formatting-controls.git"
+  },
+  "homepage": "https://github.com/kira-explore/formatting-controls#readme",
+  "bugs": {
+    "url": "https://github.com/kira-explore/formatting-controls/issues"
+  },
+  "packageManager": "bun@1.4.4"
+}

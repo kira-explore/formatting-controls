@@ -1,0 +1,13 @@
+src/**
+shared/**
+test/**
+node_modules/**
+.vscode/**
+.github/**
+build.ts
+tsconfig.json
+dist/test/**
+dist/**/*.map
+.gitignore
+bun.lock
+biome.json
