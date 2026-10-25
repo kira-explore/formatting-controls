@@ -8,7 +8,7 @@
 [![No telemetry](https://img.shields.io/badge/telemetry-none-2ea44f.svg)](#what-you-can-do)
 
 [![Node.js 24 or newer](https://img.shields.io/badge/Node.js-24%2B-5FA04E.svg?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![Package manager: Bun 1.4.4](https://img.shields.io/badge/package_manager-Bun_1.4.4-f9f1e1.svg?logo=bun&logoColor=white)](https://bun.sh/)
+[![Bun 1.4.4](https://img.shields.io/badge/Bun-1.4.4-f9f1e1.svg?logo=bun&logoColor=white)](https://bun.sh/)
 [![TypeScript 7.0.2](https://img.shields.io/badge/TypeScript-7.0.2-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Biome 2.6.3](https://img.shields.io/badge/Biome-2.6.3-60A5FA.svg?logo=biome&logoColor=white)](https://biomejs.dev/)
 
