@@ -29,7 +29,7 @@ No telemetry, remote analytics, or source-code transmission. Settings stay in VS
 
 ## Dark theme previews
 
-Screenshots are captured from the running extension in VS Code’s **Dark Modern** theme.
+Screenshots are captured from the running extension in VS Code’s **Dark Modern** theme. Overview is shown above; expand the sections below to see the other four dashboard tabs.
 
 <details>
 <summary>Formatting controls and scope overrides</summary>
@@ -42,6 +42,20 @@ Screenshots are captured from the running extension in VS Code’s **Dark Modern
 <summary>Code actions on save</summary>
 
 ![Code Actions page with individual run modes in Dark Modern](docs/assets/dashboard-dark-code-actions.png)
+
+</details>
+
+<details>
+<summary>Formatters and known integrations</summary>
+
+![Formatters page showing known integrations and availability in Dark Modern](docs/assets/dashboard-dark-formatters.png)
+
+</details>
+
+<details>
+<summary>Getting Started and welcome</summary>
+
+![Getting Started page explaining scope selection and setup in Dark Modern](docs/assets/dashboard-dark-getting-started.png)
 
 </details>
 
