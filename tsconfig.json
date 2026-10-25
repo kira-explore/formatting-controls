@@ -9,7 +9,14 @@
     "skipLibCheck": true,
     "types": ["node", "vscode"],
     "lib": ["ESNext"],
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": true,
+    "jsx": "react-jsx"
   },
-  "include": ["src", "shared", "test/**/*.ts", "build.ts"]
+  "include": [
+    "src",
+    "shared",
+    "test/**/*.ts",
+    "build.ts",
+    "webview-ui/vite.config.ts"
+  ]
 }

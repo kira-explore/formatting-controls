@@ -18,7 +18,18 @@ import { runTests } from "@vscode/test-electron";
     await runTests({
       extensionDevelopmentPath: path.resolve("."),
       extensionTestsPath: path.resolve("dist/test/integration/suite.js"),
+      extensionTestsEnv: {
+        FORMATTING_CONTROLS_UI_THEME:
+          process.env.FORMATTING_CONTROLS_UI_THEME ?? "",
+        FORMATTING_CONTROLS_UI_DURATION:
+          process.env.FORMATTING_CONTROLS_UI_DURATION ?? "180000",
+        FORMATTING_CONTROLS_UI_REVIEW:
+          process.env.FORMATTING_CONTROLS_UI_REVIEW ?? "",
+      },
       launchArgs: [
+        ...(process.env.FORMATTING_CONTROLS_UI_REVIEW
+          ? ["--remote-debugging-port=9333"]
+          : []),
         workspace,
         "--user-data-dir",
         path.join(temp, "user"),

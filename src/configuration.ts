@@ -36,6 +36,7 @@ export async function write(
 ): Promise<void> {
   if (
     s.target !== vscode.ConfigurationTarget.Global &&
+    !vscode.workspace.workspaceFile &&
     !vscode.workspace.workspaceFolders?.length
   )
     throw new Error("Open a workspace before editing workspace settings.");
@@ -44,6 +45,8 @@ export async function write(
     (!s.uri || !vscode.workspace.getWorkspaceFolder(s.uri))
   )
     throw new Error("Select a file inside the intended workspace folder.");
+  if (s.language && key.startsWith("files."))
+    throw new Error("Auto Save settings are not language-overridable.");
   await configuration(s).update(key, value, s.target, Boolean(s.language));
 }
 export async function setAction(
