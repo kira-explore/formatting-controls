@@ -3,3 +3,6 @@ dist/
 *.vsix
 .vscode-test/
 .DS_Store
+test-results/
+*.vsix.sha256
+release-notes.md

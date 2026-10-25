@@ -17,6 +17,7 @@
     "shared",
     "test/**/*.ts",
     "build.ts",
-    "webview-ui/vite.config.ts"
+    "webview-ui/vite.config.ts",
+    "scripts/**/*.ts"
   ]
 }

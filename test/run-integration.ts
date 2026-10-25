@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { runTests } from "@vscode/test-electron";
+import { reviewDashboard } from "./dashboard";
 
 (async () => {
   const temp = fs.mkdtempSync(
@@ -14,23 +15,38 @@ import { runTests } from "@vscode/test-electron";
     workspace,
     JSON.stringify({ folders: [{ path: "first" }, { path: "second" }] }),
   );
+  const ui = process.argv.includes("--ui");
+  const empty = process.argv.includes("--empty");
+  const ready = path.join(temp, "ui-ready"),
+    done = path.join(temp, "ui-done");
+  const report = path.resolve(
+    "test-results",
+    `${process.platform}-${process.env.VSCODE_VERSION ?? "stable"}-${(process.env.FORMATTING_CONTROLS_UI_THEME ?? "Dark Modern").replaceAll(" ", "-")}`,
+  );
+  let hostFinished = false;
   try {
-    await runTests({
+    const host = runTests({
+      version: process.env.VSCODE_VERSION ?? "stable",
       extensionDevelopmentPath: path.resolve("."),
-      extensionTestsPath: path.resolve("dist/test/integration/suite.js"),
+      extensionTestsPath: path.resolve(
+        `dist/test/integration/${empty ? "empty" : "suite"}.js`,
+      ),
       extensionTestsEnv: {
         FORMATTING_CONTROLS_UI_THEME:
-          process.env.FORMATTING_CONTROLS_UI_THEME ?? "",
+          process.env.FORMATTING_CONTROLS_UI_THEME ?? (ui ? "Dark Modern" : ""),
+        FORMATTING_CONTROLS_REPORT_DIR: report,
+        FORMATTING_CONTROLS_UI_READY: ui ? ready : "",
+        FORMATTING_CONTROLS_UI_DONE: ui ? done : "",
         FORMATTING_CONTROLS_UI_DURATION:
           process.env.FORMATTING_CONTROLS_UI_DURATION ?? "180000",
         FORMATTING_CONTROLS_UI_REVIEW:
           process.env.FORMATTING_CONTROLS_UI_REVIEW ?? "",
       },
       launchArgs: [
-        ...(process.env.FORMATTING_CONTROLS_UI_REVIEW
+        ...(ui || process.env.FORMATTING_CONTROLS_UI_REVIEW
           ? ["--remote-debugging-port=9333"]
           : []),
-        workspace,
+        ...(empty ? ["--new-window"] : [workspace]),
         "--user-data-dir",
         path.join(temp, "user"),
         "--extensions-dir",
@@ -39,7 +55,33 @@ import { runTests } from "@vscode/test-electron";
         "--skip-welcome",
         "--skip-release-notes",
       ],
+    }).finally(() => {
+      hostFinished = true;
     });
+    const browser = ui
+      ? (async () => {
+          try {
+            const deadline = Date.now() + 120000;
+            while (!fs.existsSync(ready)) {
+              if (hostFinished)
+                throw new Error(
+                  "Extension host exited before dashboard verification",
+                );
+              if (Date.now() > deadline)
+                throw new Error(
+                  "Extension host did not become ready for dashboard tests",
+                );
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+            await reviewDashboard(report);
+          } finally {
+            fs.writeFileSync(done, "done");
+          }
+        })()
+      : Promise.resolve();
+    const results = await Promise.allSettled([host, browser]);
+    for (const result of results)
+      if (result.status === "rejected") throw result.reason;
   } finally {
     fs.rmSync(temp, { recursive: true, force: true });
   }
