@@ -331,11 +331,17 @@ export class Workflows implements vscode.Disposable {
       read: (c) => {
         ensure();
         const current = own(s, c.key);
-        return c.action
-          ? slot(
-              current === undefined ? undefined : actionMap(current)[c.action],
-            )
-          : slot(current);
+        if (!c.action) return slot(current);
+        try {
+          const actions = current === undefined ? {} : actionMap(current);
+          return slot(
+            Object.hasOwn(actions, c.action) ? actions[c.action] : undefined,
+          );
+        } catch {
+          // An externally edited/legacy action map is a conflict, not a reason
+          // to block restoration of unrelated formatting preferences.
+          return slot({});
+        }
       },
       write: async (c, value) => {
         ensure();
@@ -517,21 +523,23 @@ export class Workflows implements vscode.Disposable {
       const journal = this.journal();
       if (!journal) return "No restore point is saved for this workspace.";
       const port = this.port(journal);
+      const reviewed = new Set<Change>();
+      const preview = journal.changes.flatMap((c) => {
+        if (!c.attempted) return [];
+        const current = port.read(c);
+        if (!same(current, c.after) || same(current, c.before)) return [];
+        reviewed.add(c);
+        return [{ ...c, before: current, after: c.before }];
+      });
       if (
         !(await this.confirm(
           "Restore unchanged preferences? Externally edited values will be preserved.",
-          journal.changes.flatMap((c) => {
-            if (!c.attempted) return [];
-            const current = port.read(c);
-            return same(current, c.after) && !same(current, c.before)
-              ? [{ ...c, before: current, after: c.before }]
-              : [];
-          }),
+          preview,
           journal.scope,
         ))
       )
         return "Restore cancelled. Current preferences were kept.";
-      const conflicts = await restoreBatch(journal, port);
+      const conflicts = await restoreBatch(journal, port, reviewed);
       return conflicts
         ? `${conflicts} externally edited values were preserved. Review the record in Profiles or keep current values.`
         : "Restored previous preferences. Unrelated values were preserved.";

@@ -162,3 +162,37 @@ test("a stale value equal to the requested value is not rolled back before any w
   assert.ok(!f.events.some((e) => e.startsWith("write:")));
   assert.equal(f.journal, undefined);
 });
+
+test("restore never expands the approved preview after external edits", async () => {
+  const f = fixture();
+  await applyBatch(f.batch, f.port);
+  const journal = f.journal as Journal;
+  const reviewed = new Set([journal.changes[1] as Change]);
+  // The first value was a conflict during preview, then changed to the batch's
+  // value while confirmation was open. It still was not approved for restore.
+  assert.equal(await restoreBatch(journal, f.port, reviewed), 1);
+  assert.deepEqual(f.values.get("editor.formatOnSave"), slot(false));
+  assert.deepEqual(f.values.get("editor.formatOnPaste"), absent);
+  assert.equal(f.journal?.changes[0]?.key, "editor.formatOnSave");
+});
+
+test("an edit during journal persistence is preserved before the write starts", async () => {
+  const f = fixture();
+  let edited = false;
+  await assert.rejects(
+    applyBatch(f.batch, {
+      ...f.port,
+      save: async (journal) => {
+        await f.port.save(journal);
+        if (!edited && journal?.changes[0]?.attempted) {
+          edited = true;
+          f.values.set("editor.formatOnSave", slot(false));
+        }
+      },
+    }),
+    /Settings changed/,
+  );
+  assert.deepEqual(f.values.get("editor.formatOnSave"), slot(false));
+  assert.ok(!f.events.some((e) => e.startsWith("write:")));
+  assert.equal(f.journal, undefined);
+});

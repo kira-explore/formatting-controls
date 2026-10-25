@@ -164,6 +164,7 @@ export interface BatchPort {
 export async function restoreBatch(
   journal: Journal,
   port: BatchPort,
+  reviewed?: ReadonlySet<Change>,
 ): Promise<number> {
   await port.save({ ...journal, phase: "restoring" });
   const conflicts: Change[] = [];
@@ -171,7 +172,7 @@ export async function restoreBatch(
     if (!change.attempted) continue;
     const current = port.read(change);
     if (same(current, change.before)) continue;
-    if (!same(current, change.after)) {
+    if ((reviewed && !reviewed.has(change)) || !same(current, change.after)) {
       conflicts.push(change);
       continue;
     }
@@ -206,6 +207,22 @@ export async function applyBatch(
       };
       await port.save(next);
       progress = next;
+      try {
+        if (!same(port.read(change), change.before))
+          throw new Error(
+            "Settings changed since the preview. Review the new values.",
+          );
+      } catch (error) {
+        // Persistence can yield to external edits. This write has not started,
+        // so conditional rollback must not undo a matching external value.
+        progress = {
+          ...progress,
+          changes: progress.changes.map((entry, i) =>
+            i === index ? { ...entry, attempted: false } : entry,
+          ),
+        };
+        throw error;
+      }
       await port.write(change, change.after);
     }
     await port.save({ ...progress, phase: "applied" });

@@ -34,3 +34,8 @@ Strict host/browser types, Biome, 21 pure tests and isolated VS Code host tests 
 Pause uses real Workspace/Folder settings, persists until Resume, and can remain overridden by higher-priority preferences. There is no atomic configuration transaction or guaranteed crash-time deactivation hook. These limits and the single most recent restore-point behavior are explicit in the product and design documentation.
 
 Interactive Phase 3 verification in Dark Modern passed saving a scoped profile, native preview cancellation and application, folder pause, editing a preference during pause, conflict-preserving resume, and explicit retention of current values. All eight dashboard tabs have current dark-theme screenshots in the README. The 0.3.0 VSIX packages successfully with local bundled assets. The same development-only packaging advisory remains; no dependencies were added.
+
+
+### Phase 3 pre-merge recheck
+
+Fixed three recovery edge cases: restore is limited to the entries shown in its confirmed preview; externally edited legacy/unsupported action maps no longer block restoration of unrelated formatting flags; and every application rechecks values after asynchronous journal persistence, excluding writes that never started from rollback. Added real-editor regressions for preview-time edits and legacy action recovery, plus pure regressions for approved-entry restoration and edits during persistence. The suite now has 23 pure tests.

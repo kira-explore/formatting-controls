@@ -190,6 +190,57 @@ export async function runWorkflowTests(
       /requires Workspace/,
     );
     assert.equal(reloaded.recovery(), null);
+    const editedDuringPreview = new Workflows(
+      global,
+      workspace,
+      async (title, preview) => {
+        if (title.startsWith("Restore")) {
+          assert.ok(preview.every((c) => c.key !== "editor.formatOnSave"));
+          await write(selection, "editor.formatOnSave", true);
+        }
+        return true;
+      },
+    );
+    await write(selection, "editor.formatOnSave", false);
+    await editedDuringPreview.apply("TSX Project", selection, scope);
+    await write(selection, "editor.formatOnSave", undefined);
+    await editedDuringPreview.restore();
+    assert.equal(
+      own(selection, "editor.formatOnSave"),
+      true,
+      "A value omitted from the preview must not be restored after confirmation",
+    );
+    assert.equal(editedDuringPreview.recovery()?.phase, "conflicts");
+    await editedDuringPreview.discard();
+    editedDuringPreview.dispose();
+
+    await write(selection, "editor.formatOnSave", true);
+    await write(selection, "editor.codeActionsOnSave", {
+      "source.fixAll.biome": "explicit",
+    });
+    await reloaded.pause(
+      selection,
+      scope,
+      configuration(selection).get("editor.codeActionsOnSave"),
+    );
+    const legacy = ["source.organizeImports"];
+    await write(selection, "editor.codeActionsOnSave", legacy);
+    await reloaded.restore();
+    assert.equal(
+      own(selection, "editor.formatOnSave"),
+      true,
+      "Legacy externally edited actions must not block restoring formatting flags",
+    );
+    assert.deepEqual(
+      own(selection, "editor.codeActionsOnSave"),
+      legacy,
+      "The external action list must remain untouched",
+    );
+    assert.equal(reloaded.recovery()?.phase, "conflicts");
+    await reloaded.discard();
+    await write(selection, "editor.codeActionsOnSave", {
+      "source.fixAll.biome": "explicit",
+    });
     const providerConfig = vscode.workspace.getConfiguration(
       undefined,
       folder.uri,
