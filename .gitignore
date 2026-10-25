@@ -1,7 +1,7 @@
 node_modules/
 dist/
 *.vsix
-.vscode-test/
+.vscode-test
 .DS_Store
 test-results/
 *.vsix.sha256

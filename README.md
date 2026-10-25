@@ -162,7 +162,7 @@ Settings APIs are not atomic transactions. Concurrent edits between checking and
 
 ## Release readiness
 
-The development VSIX can be installed locally. Release preparation is gated by the known development packaging advisory; the release workflow stops until a compatible upstream fix is available. See [security](SECURITY.md), [release preparation](docs/releasing.md) and [support](SUPPORT.md).
+The development VSIX can be installed locally. The packaging advisory is resolved with a scoped, compatibility-tested dependency override. PR and release checks require a clean audit; hands-on release reviews remain outstanding. See [security](SECURITY.md), [release preparation](docs/releasing.md) and [support](SUPPORT.md).
 
 ## Development
 
@@ -185,7 +185,7 @@ Read the [architecture and feature matrix](docs/architecture.md), [validation no
 
 ## Roadmap
 
-Phases 1–3 are implemented: native controls, the dashboard, provider adapters, diagnostics, language rules, profiles, import/export and recoverable workspace pause. Phase 4 adds automated accessibility/security checks, CPU profiling and bundle budgets, cross-platform/minimum-host CI, Marketplace metadata/assets and guarded release-draft preparation. Public release still requires the packaging advisory fix and hands-on screen-reader, remote and concurrent-window reviews. See [release preparation](docs/releasing.md). No automatic Marketplace publication is configured.
+Phases 1–3 are implemented: native controls, the dashboard, provider adapters, diagnostics, language rules, profiles, import/export and recoverable workspace pause. Phase 4 adds automated accessibility/security checks, CPU profiling and bundle budgets, cross-platform/minimum-host CI, Marketplace metadata/assets and guarded release-draft preparation. Public release still requires hands-on screen-reader, remote and concurrent-window reviews. See [release preparation](docs/releasing.md). No automatic Marketplace publication is configured.
 
 Have a reproducible problem or a focused idea? [Open an issue](https://github.com/kira-explore/formatting-controls/issues/new/choose).
 

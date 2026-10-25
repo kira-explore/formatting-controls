@@ -51,3 +51,8 @@ Fixed low-contrast setting IDs, light warning text, accessible-name mismatches, 
 ### Phase 4 pre-merge recheck
 
 Added eight regression tests for final VSIX contents, embedded package and installer identity, runtime presence, archived bundle sizes, malformed icons/host markers, and absent/matching/mismatched/malformed remote tag responses. The suite now has 34 tests. Packaging validates the final ZIP after the prepublish build and creates its checksum only after validation. Release preparation verifies checkout identity and existing lightweight/annotated tag targets without creating or changing tags. Local final-archive validation and a live read-only remote-tag lookup pass; release publication remains gated as documented.
+
+
+## Packaging advisory resolution
+
+The earlier packaging advisory is now resolved through a parent/version-scoped override from Identity 4.14.0 to MSAL 7.1.1. The unfiltered Bun audit reports no vulnerabilities and the old exception has been removed. Six new regression tests exercise the actual SDK/MSAL dependency pair with an in-memory HTTP transport: resolved patched version, client-secret token acquisition/cache, client assertions, plain authorization codes, environment credentials with chain fallback, and rejected authentication. The suite now has 40 tests. No Azure account credentials or publication are used in these tests. Scope, compatibility limits and the override removal condition are documented in packaging-security.md.

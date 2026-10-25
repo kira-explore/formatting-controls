@@ -60,6 +60,8 @@ jobs:
         run: xvfb-run -a bun run test:integration && xvfb-run -a bun run test/run-integration.ts --empty
       - if: runner.os != 'Linux'
         run: bun run test:integration && bun run test/run-integration.ts --empty
+      - name: Verify packaging credential compatibility
+        run: node --test dist/test/unit/packaging-auth.js
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
