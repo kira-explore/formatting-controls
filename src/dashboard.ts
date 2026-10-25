@@ -1,9 +1,11 @@
 import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
 import {
+  correlationId,
   type Provider,
   parseRequest,
   type Request,
+  type Response,
   type Scope,
   type Snapshot,
   settingKeys,
@@ -71,8 +73,24 @@ export class Dashboard implements vscode.Disposable {
   private active = vscode.window.activeTextEditor?.document;
   private page: "overview" | "welcome" = "overview";
   private queue = Promise.resolve();
-  constructor(private readonly extensionUri: vscode.Uri) {}
+  constructor(
+    private readonly extensionUri: vscode.Uri,
+    private readonly onResponse?: (message: Response) => unknown,
+  ) {}
+  private reconcileScope(): void {
+    try {
+      this.selection(this.scope);
+    } catch {
+      this.scope = { target: "user" };
+      this.revision++;
+    }
+  }
+  private async post(message: Response): Promise<void> {
+    if (this.onResponse) await this.onResponse(message);
+    await this.panel?.webview.postMessage(message);
+  }
   async open(welcome = false): Promise<void> {
+    this.reconcileScope();
     this.page = welcome ? "welcome" : "overview";
     this.navigation++;
     this.active = vscode.window.activeTextEditor?.document ?? this.active;
@@ -100,7 +118,7 @@ export class Dashboard implements vscode.Disposable {
     this.listeners = [
       panel.webview.onDidReceiveMessage((raw: unknown) => {
         this.queue = this.queue
-          .then(() => this.handle(raw))
+          .then(() => (this.panel === panel ? this.handle(raw) : undefined))
           .catch(() => undefined);
       }),
       vscode.workspace.onDidChangeConfiguration(() => {
@@ -145,7 +163,14 @@ export class Dashboard implements vscode.Disposable {
       !vscode.workspace.workspaceFolders?.length
     )
       throw new Error("Open a workspace before editing workspace settings.");
-    const uri = folder?.uri ?? this.active?.uri;
+    const activeUri = this.active?.uri;
+    const activeFolder =
+      activeUri && vscode.workspace.getWorkspaceFolder(activeUri);
+    const uri = folder
+      ? activeFolder?.uri.toString() === folder.uri.toString()
+        ? activeUri
+        : folder.uri
+      : activeUri;
     return {
       target:
         scope.target === "user"
@@ -176,7 +201,7 @@ export class Dashboard implements vscode.Disposable {
       page: this.page,
       activeLanguage:
         this.scope.language ?? this.active?.languageId ?? "All languages",
-      resource: this.active?.uri.toString() ?? "No active file",
+      resource: selection.uri?.toString() ?? "No active file",
       folders: (vscode.workspace.workspaceFolders ?? []).map((f) => ({
         name: f.name,
         uri: f.uri.toString(),
@@ -201,16 +226,19 @@ export class Dashboard implements vscode.Disposable {
     };
   }
   private async publish(id?: string, message?: string): Promise<void> {
-    if (!this.panel) return;
+    if (!this.panel && !this.onResponse) return;
+    const panel = this.panel;
     try {
-      await this.panel.webview.postMessage({
+      const state = await this.snapshot();
+      if (panel !== this.panel) return;
+      await this.post({
         type: "state",
-        state: await this.snapshot(),
+        state,
         ...(id ? { id } : {}),
         ...(message ? { message } : {}),
       });
     } catch (error) {
-      await this.panel?.webview.postMessage({
+      await this.post({
         type: "error",
         id: id ?? "sync",
         error: error instanceof Error ? error.message : String(error),
@@ -221,6 +249,19 @@ export class Dashboard implements vscode.Disposable {
     let request: Request | undefined;
     try {
       request = parseRequest(raw);
+      if (request.type === "ready") {
+        this.reconcileScope();
+        if (
+          this.scope.language &&
+          !(await vscode.languages.getLanguages()).includes(this.scope.language)
+        ) {
+          this.scope = { ...this.scope };
+          delete this.scope.language;
+          this.revision++;
+        }
+        await this.publish(request.id);
+        return;
+      }
       if (
         request.scope.language &&
         !(await vscode.languages.getLanguages()).includes(
@@ -285,9 +326,9 @@ export class Dashboard implements vscode.Disposable {
       this.revision++;
       await this.publish(request.id, "Saved to the selected scope.");
     } catch (error) {
-      await this.panel?.webview.postMessage({
+      await this.post({
         type: "error",
-        id: request?.id ?? "invalid",
+        id: request?.id ?? correlationId(raw) ?? "invalid",
         error: error instanceof Error ? error.message : String(error),
       });
       await this.publish();

@@ -13,8 +13,15 @@ Code-action value cancellation now returns before the success notification. Rese
 
 ## Phase 2
 
-Host and dashboard type checks, Biome, and seven pure unit tests pass. Protocol regression coverage rejects unsupported commands/settings, malformed scopes/revisions, oversized messages, invalid enums, formatter IDs and numeric values. Extended isolated VS Code 1.143.1 tests cover dashboard folder/language writes, stale revision rejection, folder URI allowlisting, source-action preservation, language-scope restrictions, command registration and real WebviewPanel creation.
+Host and dashboard type checks, Biome, and nine pure unit tests pass. Protocol regression coverage rejects unsupported commands/settings, malformed scopes/revisions, oversized messages, invalid enums, formatter IDs and numeric values. Extended isolated VS Code 1.143.1 tests cover dashboard folder/language writes, stale revision rejection, folder URI allowlisting, source-action preservation, language-scope restrictions, command registration and real WebviewPanel creation.
 
 Interactive verification used a temporary VS Code profile: Workspace format-on-save and source-action changes saved and synchronized, all main pages rendered, and provider availability caveats were visible. User-level writes correctly remained overridden by the fixture's Workspace setting. Desktop rendering was inspected in dark and light themes; high-contrast and narrow layouts were captured from the built-in high-contrast theme, and switch keyboard focus was checked. Full screen-reader testing remains outstanding. The light-theme review caught and corrected switch-track specificity so the enabled thumb remains visible.
 
 The production React dashboard bundle is approximately 325 KB uncompressed (83 KB gzip) and loads only when opened. This is a bundle-size check, not an extension-host performance profile. No production runtime dependencies are installed from the network; React is included in the local dashboard assets. The previously documented packaging advisory remains unresolved upstream. Remote CI must be checked separately because the account billing restriction previously prevented job startup.
+
+
+### Phase 2 recheck
+
+Fixed response correlation for rejected input (which could leave controls disabled), out-of-order configuration/navigation snapshots, scope loss when a webview reloads, and resource captions that could identify a different folder from the settings being displayed. The host now restores a valid scope if a selected folder disappears while the panel is closed, and drops queued messages from disposed panels. Native formatter-ID and delay validation uses the same boundaries as the dashboard.
+
+Nine unit tests and the extended isolated editor suite pass. Additional regressions cover error correlation, stale navigation, scope-preserving readiness, removed-folder recovery, correct resource captions and language-mode changes. An interactive test submitted an invalid action and then a valid action in the real dashboard, confirming that the error re-enabled controls and the next action saved normally. Language-mode changes already refreshed correctly; that behavior now has regression coverage.

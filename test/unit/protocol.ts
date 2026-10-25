@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { parseRequest, validValue } from "../../shared/protocol";
+import { correlationId, parseRequest, validValue } from "../../shared/protocol";
 
 const envelope = { id: "test-1", scope: { target: "user" }, revision: 0 };
 test("only allowlisted messages and typed values pass", () => {
@@ -71,4 +71,17 @@ test("enum, formatter ID and delay boundaries are validated", () => {
   assert.ok(!validValue("editor.defaultFormatter", "<script>"));
   assert.ok(!validValue("files.autoSave", ["off"]));
   assert.ok(!validValue("editor.formatOnSaveMode", "unknown"));
+});
+
+test("rejected requests retain a bounded correlation ID for UI recovery", () => {
+  const request = {
+    ...envelope,
+    type: "action",
+    action: `source.${"a".repeat(201)}`,
+    value: "explicit",
+  };
+  assert.throws(() => parseRequest(request));
+  assert.equal(correlationId(request), envelope.id);
+  assert.equal(correlationId({ id: "x".repeat(81) }), undefined);
+  assert.equal(parseRequest({ ...envelope, type: "ready" }).type, "ready");
 });

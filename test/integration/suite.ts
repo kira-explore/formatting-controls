@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import * as vscode from "vscode";
+import type { Response } from "../../shared/protocol";
 import {
   configuration,
   own,
@@ -8,6 +9,31 @@ import {
   write,
 } from "../../src/configuration";
 import { Dashboard } from "../../src/dashboard";
+
+async function changeFolders(
+  start: number,
+  deleteCount: number,
+  ...folders: { uri: vscode.Uri; name: string }[]
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      listener.dispose();
+      reject(new Error("Workspace folder update timed out"));
+    }, 10000);
+    const listener = vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      clearTimeout(timeout);
+      listener.dispose();
+      resolve();
+    });
+    if (
+      !vscode.workspace.updateWorkspaceFolders(start, deleteCount, ...folders)
+    ) {
+      clearTimeout(timeout);
+      listener.dispose();
+      reject(new Error("Workspace folder update rejected"));
+    }
+  });
+}
 export async function run(): Promise<void> {
   const ext = vscode.extensions.getExtension("rajudhami.formatting-controls");
   assert.ok(ext);
@@ -25,7 +51,10 @@ export async function run(): Promise<void> {
     target: vscode.ConfigurationTarget.WorkspaceFolder,
     uri: vscode.Uri.joinPath(other.uri, "sample.ts"),
   };
-  const dashboard = new Dashboard(ext.extensionUri);
+  const replies: Response[] = [];
+  const dashboard = new Dashboard(ext.extensionUri, (message) => {
+    replies.push(message);
+  });
   const user = { target: vscode.ConfigurationTarget.Global, uri };
   const workspace = { target: vscode.ConfigurationTarget.Workspace, uri };
   const language = { ...workspace, language: "typescript" };
@@ -138,6 +167,29 @@ export async function run(): Promise<void> {
       own({ ...second, language: "typescript" }, "editor.formatOnPaste"),
       undefined,
     );
+    await dashboard.handle({
+      id: "invalid-action",
+      type: "action",
+      scope: dashboardScope,
+      revision: (await dashboard.snapshot()).revision,
+      action: `source.${"a".repeat(201)}`,
+      value: "explicit",
+    });
+    assert.ok(
+      replies.some(
+        (reply) => reply.type === "error" && reply.id === "invalid-action",
+      ),
+    );
+    await dashboard.handle({
+      id: "reload-handshake",
+      type: "ready",
+      scope: { target: "user" },
+    });
+    assert.deepEqual(
+      (await dashboard.snapshot()).scope,
+      dashboardScope,
+      "Webview reload must preserve the selected scope",
+    );
     const current = await dashboard.snapshot();
     await dashboard.handle({
       id: "dashboard-action",
@@ -184,8 +236,36 @@ export async function run(): Promise<void> {
           process.env.FORMATTING_CONTROLS_UI_THEME,
           vscode.ConfigurationTarget.Global,
         );
+    await vscode.workspace.fs.writeFile(uri, new Uint8Array());
+    const activeDocument = await vscode.workspace.openTextDocument(uri);
+    await vscode.window.showTextDocument(activeDocument);
     await dashboard.open(true);
     assert.equal((await dashboard.snapshot()).page, "welcome");
+    await dashboard.handle({
+      id: "other-folder",
+      type: "read",
+      scope: { target: "folder", folder: other.uri.toString() },
+    });
+    assert.equal(
+      (await dashboard.snapshot()).resource,
+      other.uri.toString(),
+      "Caption must identify the folder whose settings are displayed",
+    );
+    await dashboard.handle({
+      id: "active-file",
+      type: "read",
+      scope: { target: "user" },
+    });
+    await vscode.languages.setTextDocumentLanguage(
+      activeDocument,
+      "javascript",
+    );
+    assert.equal(
+      (await dashboard.snapshot()).activeLanguage,
+      "javascript",
+      "Changing language mode must refresh the dashboard context",
+    );
+
     const navigation = (await dashboard.snapshot()).navigation;
     await dashboard.open();
     assert.equal((await dashboard.snapshot()).page, "overview");
@@ -194,6 +274,23 @@ export async function run(): Promise<void> {
       write({ ...first, language: "typescript" }, "files.autoSave", "off"),
       /not language-overridable/,
     );
+    await dashboard.handle({
+      id: "closed-folder",
+      type: "read",
+      scope: { target: "folder", folder: other.uri.toString() },
+    });
+    dashboard.dispose();
+    await changeFolders(1, 1);
+    try {
+      await dashboard.open();
+      assert.equal(
+        (await dashboard.snapshot()).scope.target,
+        "user",
+        "Reopening after a folder was removed must recover to a valid scope",
+      );
+    } finally {
+      await changeFolders(1, 0, { uri: other.uri, name: other.name });
+    }
     if (process.env.FORMATTING_CONTROLS_UI_REVIEW)
       await new Promise((resolve) =>
         setTimeout(

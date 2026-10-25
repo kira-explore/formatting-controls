@@ -6,6 +6,7 @@ import type {
   Scope,
   Snapshot,
 } from "../../shared/protocol";
+import { isCurrentSnapshot } from "../../shared/state";
 
 declare const acquireVsCodeApi:
   | undefined
@@ -21,6 +22,7 @@ export function useEditor() {
   const [notice, setNotice] = useState("");
   const requestId = useRef(0);
   const pendingRef = useRef<string | undefined>(undefined);
+  const latest = useRef<Snapshot | undefined>(undefined);
   const initial = useRef(true);
   const navigation = useRef(0);
   const send = (
@@ -48,24 +50,25 @@ export function useEditor() {
       if (event.data.type === "state") {
         window.clearTimeout(timeout);
         const next = event.data.state;
-        setState((previous) =>
-          previous && previous.revision > next.revision ? previous : next,
-        );
+        // Complete an acknowledged request even if a newer event already won.
+        if (event.data.id === pendingRef.current) {
+          pendingRef.current = undefined;
+          setPending(undefined);
+        }
+        if (!isCurrentSnapshot(latest.current, next)) return;
+        latest.current = next;
+        setState(next);
         if (initial.current || navigation.current !== next.navigation) {
           navigation.current = next.navigation;
           setPage(next.page);
           initial.current = false;
-        }
-        if (event.data.id === pendingRef.current) {
-          pendingRef.current = undefined;
-          setPending(undefined);
         }
         if (event.data.message) setNotice(event.data.message);
       }
     };
     window.addEventListener("message", receive);
     const id = `request-${++requestId.current}`;
-    api?.postMessage({ type: "read", id, scope: { target: "user" } });
+    api?.postMessage({ type: "ready", id, scope: { target: "user" } });
     timeout = window.setTimeout(
       () =>
         setError(

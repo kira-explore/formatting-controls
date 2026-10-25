@@ -16,6 +16,7 @@ export type Scope = {
 };
 export type ActionValue = "explicit" | "always" | "never";
 export type Operation =
+  | { type: "ready" }
   | { type: "read" }
   | {
       type: "set";
@@ -97,6 +98,9 @@ export function validValue(key: Key, value: unknown): boolean {
     );
   return false;
 }
+export function correlationId(raw: unknown): string | undefined {
+  return object(raw) && string(raw.id, 80) ? raw.id : undefined;
+}
 export function parseRequest(raw: unknown): Request {
   if (JSON.stringify(raw)?.length > 16384)
     throw new Error("Request is too large.");
@@ -110,7 +114,7 @@ export function parseRequest(raw: unknown): Request {
     (scope.folder !== undefined && !string(scope.folder, 4096))
   )
     throw new Error("Invalid settings scope.");
-  if (raw.type === "read") return raw as Request;
+  if (raw.type === "ready" || raw.type === "read") return raw as Request;
   if (
     raw.type === "open" &&
     typeof raw.destination === "string" &&

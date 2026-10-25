@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import { validValue } from "../shared/protocol";
 import {
   configuration,
   own,
@@ -198,11 +199,20 @@ export function activate(context: vscode.ExtensionContext): void {
         const input = await vscode.window.showInputBox({
           title: key,
           value: String(c.get(key) ?? ""),
-          validateInput: (text) =>
-            key === "files.autoSaveDelay" &&
-            (!/^\d+$/.test(text) || !Number.isSafeInteger(Number(text)))
-              ? "Enter a non-negative whole number of milliseconds."
-              : undefined,
+          validateInput: (text) => {
+            if (
+              key === "files.autoSaveDelay" &&
+              (!/^\d+$/.test(text) || !validValue(key, Number(text)))
+            )
+              return "Enter a whole number between 0 and 2147483647 milliseconds.";
+            if (
+              key === "editor.defaultFormatter" &&
+              text &&
+              !validValue(key, text)
+            )
+              return "Enter an extension ID such as publisher.extension (maximum 200 characters).";
+            return undefined;
+          },
         });
         if (input === undefined) return;
         value =

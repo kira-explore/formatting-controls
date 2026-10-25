@@ -132,6 +132,7 @@ function App() {
           >
             <input
               aria-label="Custom formatter extension ID"
+              maxLength={200}
               placeholder="publisher.extension"
               value={customFormatter}
               onChange={(e) => setCustomFormatter(e.target.value)}
@@ -590,6 +591,7 @@ function App() {
                     value={customAction}
                     onChange={(e) => setCustomAction(e.target.value)}
                     placeholder="source.fixAll.provider"
+                    maxLength={200}
                     required
                     pattern="source(\.[a-zA-Z0-9_\-]+)+"
                     disabled={disabled}
