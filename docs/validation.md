@@ -46,3 +46,8 @@ Fixed three recovery edge cases: restore is limited to the entries shown in its 
 Added 26-test pure suite, real empty-window coverage, minimum-host and cross-platform CI, three-theme real-dashboard accessibility/security scans, test-only CPU profiles and package content/size/checksum checks. Local VS Code 1.140.0 and 1.143.1 tests pass; all 48 page/layout scans pass with zero automated axe violations. The accessibility report also retains incomplete checks for manual review. Warm snapshot p95 was approximately 2–3.3 ms on the local integration fixtures; this does not measure full cold startup or attribute the host's heap to this extension.
 
 Fixed low-contrast setting IDs, light warning text, accessible-name mismatches, initial focus and small-width layout issues. Manual screen-reader, remote and concurrent-window review remains a release gate. The known packaging advisory is reported during PR validation and blocks strict release preparation. See phase-4.md and releasing.md. No public release or Marketplace publication was performed.
+
+
+### Phase 4 pre-merge recheck
+
+Added eight regression tests for final VSIX contents, embedded package and installer identity, runtime presence, archived bundle sizes, malformed icons/host markers, and absent/matching/mismatched/malformed remote tag responses. The suite now has 34 tests. Packaging validates the final ZIP after the prepublish build and creates its checksum only after validation. Release preparation verifies checkout identity and existing lightweight/annotated tag targets without creating or changing tags. Local final-archive validation and a live read-only remote-tag lookup pass; release publication remains gated as documented.

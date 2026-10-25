@@ -10,6 +10,7 @@
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
         "@types/vscode": "^1.140.0",
+        "@types/yauzl": "3.4.0",
         "@vscode/test-electron": "^3.1.0",
         "@vscode/vsce": "^4.0.0",
         "axe-core": "4.14.0",
@@ -19,6 +20,7 @@
         "react-dom": "^19.3.1",
         "typescript": "7.0.2",
         "vite": "^8.3.5",
+        "yauzl": "3.4.0",
       },
     },
   },
@@ -200,6 +202,8 @@
     "@types/react-dom": ["@types/react-dom@19.3.0", "", { "peerDependencies": { "@types/react": "^19.3.0" } }, "sha512-ZI7bU42mZXXKHn/qNLEw2IrbiINU7X5+vfgdixBHkCNpYWXjKgfQ/P+uyGb5CjOLB9UcnTeg3rylQtV2hym44Q=="],
 
     "@types/vscode": ["@types/vscode@1.140.0", "", {}, "sha512-KAB5RBZIgnUhpp4mKsVJPPHLOQKu6WtGy2xpfWjaajEXO4xIIC+UESAXLiQ9ewx6QD1uBmvC/S8BJzkbvv4bRA=="],
+
+    "@types/yauzl": ["@types/yauzl@3.4.0", "", { "dependencies": { "@types/node": "*" } }, "sha512-NRPn5w6h8dhcnmx3YIRQcqMywY/+nND/uOkJessedcrowO3C0AssHp3tMJpxKAwOhFOo0OV1y9VtsC5hbKKBAw=="],
 
     "@typescript/typescript-aix-ppc64": ["@typescript/typescript-aix-ppc64@7.0.2", "", { "os": "aix", "cpu": "ppc64" }, "sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ=="],
 
