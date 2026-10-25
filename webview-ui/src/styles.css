@@ -922,3 +922,17 @@ fieldset.save-stack {
     flex-wrap: wrap;
   }
 }
+
+.brand > span:last-child,
+.custom-action label,
+.row-controls,
+.formatter-control {
+  min-width: 0;
+}
+.brand > span:last-child {
+  overflow-wrap: anywhere;
+}
+.custom-action input {
+  width: 100%;
+  min-width: 0;
+}

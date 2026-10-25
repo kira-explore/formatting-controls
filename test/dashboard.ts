@@ -138,7 +138,10 @@ export async function reviewDashboard(directory: string): Promise<void> {
         }>(
           `axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa','best-practice']}}).then(r=>({violations:r.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>({target:n.target}))})),incomplete:r.incomplete.map(v=>v.id)}))`,
         );
-        reports.push({ name, narrow, ...result });
+        const layout = await evaluate<{ width: number; scrollWidth: number }>(
+          "({width:innerWidth,scrollWidth:document.documentElement.scrollWidth})",
+        );
+        reports.push({ name, narrow, layout, ...result });
         writeFileSync(
           join(directory, "accessibility.json"),
           JSON.stringify(reports, null, 2),
@@ -163,10 +166,8 @@ export async function reviewDashboard(directory: string): Promise<void> {
           `${name} (${narrow ? "narrow" : "wide"}) accessibility violations`,
         );
         assert.ok(
-          await evaluate<boolean>(
-            "document.documentElement.scrollWidth<=innerWidth+1",
-          ),
-          `${name} overflows horizontally`,
+          layout.scrollWidth <= layout.width + 1,
+          `${name} overflows horizontally: ${JSON.stringify(layout)}`,
         );
       }
     }

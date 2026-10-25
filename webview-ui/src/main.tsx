@@ -191,8 +191,7 @@ function App() {
           <span className="brand-mark">≋</span>
           <span>
             Formatting
-            <br />
-            <strong>Controls</strong>
+            <br /> <strong>Controls</strong>
           </span>
         </button>
         <div className="nav-caption">WORKSPACE TOOLS</div>
