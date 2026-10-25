@@ -14,4 +14,4 @@ Keep the host/browser boundary typed and validate every incoming request in `sha
 
 Run bun run test:ui for automated real-dashboard accessibility, keyboard, reduced-motion, layout, CSP and text-escaping checks. Theme selection is documented in docs/releasing.md. Reports and CPU profiles are written to ignored test-results/. A browser download is unnecessary: the test driver attaches only to the isolated VS Code instance. Run one UI review at a time on debug port 9333. Test reports can contain temporary local paths; review them before sharing.
 
-Packaging now verifies contents and size budgets and emits a SHA-256 sidecar. Run bun run security:check to report the single documented packaging baseline while rejecting new findings; public release requires a completely clean bun audit. Do not add suppressions to bypass release gates.
+Packaging now verifies contents and size budgets and emits a SHA-256 sidecar. Run bun run security:check for a completely clean dependency audit; both PR validation and release preparation reject advisories without exceptions. Do not add suppressions to bypass release gates.

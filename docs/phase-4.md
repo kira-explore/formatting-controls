@@ -2,7 +2,7 @@
 
 ## Delivered
 
-- Node 24/Bun validation and 34 pure regression tests, including interrupted restoration, failed batch persistence and unsafe profile action maps.
+- Node 24/Bun validation and 40 pure regression tests, including interrupted restoration, failed batch persistence and unsafe profile action maps.
 - Real editor integration matrix for Linux stable/1.140.0, macOS stable and Windows stable. Empty-window tests cover activation, all commands, User profile apply/restore, workspace-write rejection and dashboard creation.
 - Automated axe-core scans of all eight actual dashboard tabs at wide/narrow layouts in Dark Modern, Light Modern and Default High Contrast. Tests also exercise keyboard Tab navigation, heading focus, reduced motion, CSP restrictions and HTML-like profile names rendered as text. Reports retain rules needing manual assessment; zero automated violations is not complete WCAG conformance.
 - Fixed setting-ID contrast, light-theme warning-text contrast, visible/accessibility label mismatches, initial heading focus and small-width layout overflow. Added a keyboard skip link and contextual control names.
@@ -13,9 +13,9 @@
 
 ## Security and release status
 
-The current development packaging advisory GHSA-xcx6-jx8p-x3h5 still has no compatible stable upstream upgrade. PR checks report this one documented baseline and reject new findings. The public-release path uses unfiltered bun audit and currently stops. No unsafe major-version override, Marketplace token or publisher-account change was introduced. See SECURITY.md.
+The Phase 4 packaging advisory GHSA-xcx6-jx8p-x3h5 was subsequently resolved using a scoped, compatibility-tested override; see packaging-security.md. Both PR and release validation now require a clean, unfiltered audit. No Marketplace token or publisher-account change was introduced.
 
-Automated preparation is implemented, but public-release approval is still pending the compatible packaging fix and hands-on screen-reader, real remote-workspace and concurrent-window reviews. No Marketplace publication, public release or release-workflow dispatch was performed during implementation. These are release gates, not a new feature phase.
+Automated preparation is implemented, but public-release approval is still pending hands-on screen-reader, real remote-workspace and concurrent-window reviews. No Marketplace publication, public release or release-workflow dispatch was performed during implementation. These are release gates, not a new feature phase.
 
 ## Local evidence
 

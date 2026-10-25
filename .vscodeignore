@@ -17,3 +17,6 @@ test-results/**
 assets/*.svg
 *.vsix.sha256
 release-notes.md
+
+.vscode-test
+.vscode-test/**
