@@ -1,5 +1,7 @@
 import { globSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { build } from "esbuild";
+import { build as buildWebview } from "vite";
+import webviewConfig from "./webview-ui/vite.config";
 
 rmSync("dist", { recursive: true, force: true });
 mkdirSync("dist", { recursive: true });
@@ -26,3 +28,5 @@ for (const file of globSync("test/{unit,integration}/**/*.ts"))
     format: "cjs",
     external: ["vscode"],
   });
+
+await buildWebview({ ...webviewConfig, configFile: false });

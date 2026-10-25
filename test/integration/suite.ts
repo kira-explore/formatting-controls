@@ -7,6 +7,7 @@ import {
   setAction,
   write,
 } from "../../src/configuration";
+import { Dashboard } from "../../src/dashboard";
 export async function run(): Promise<void> {
   const ext = vscode.extensions.getExtension("rajudhami.formatting-controls");
   assert.ok(ext);
@@ -24,6 +25,7 @@ export async function run(): Promise<void> {
     target: vscode.ConfigurationTarget.WorkspaceFolder,
     uri: vscode.Uri.joinPath(other.uri, "sample.ts"),
   };
+  const dashboard = new Dashboard(ext.extensionUri);
   const user = { target: vscode.ConfigurationTarget.Global, uri };
   const workspace = { target: vscode.ConfigurationTarget.Workspace, uri };
   const language = { ...workspace, language: "typescript" };
@@ -87,14 +89,135 @@ export async function run(): Promise<void> {
       "source.fixAll.biome": "explicit",
       "source.organizeImports": "always",
     });
+    const dashboardScope = {
+      target: "folder" as const,
+      folder: folder.uri.toString(),
+      language: "typescript",
+    };
+    await dashboard.handle({
+      id: "dashboard-read",
+      type: "read",
+      scope: dashboardScope,
+    });
+    const snapshot = await dashboard.snapshot();
+    await dashboard.handle({
+      id: "dashboard-set",
+      type: "set",
+      scope: dashboardScope,
+      revision: snapshot.revision,
+      key: "editor.formatOnPaste",
+      value: true,
+    });
+    assert.equal(
+      own({ ...first, language: "typescript" }, "editor.formatOnPaste"),
+      true,
+    );
+    await dashboard.handle({
+      id: "stale",
+      type: "set",
+      scope: dashboardScope,
+      revision: snapshot.revision,
+      key: "editor.formatOnPaste",
+      value: false,
+    });
+    assert.equal(
+      own({ ...first, language: "typescript" }, "editor.formatOnPaste"),
+      true,
+      "Stale dashboard requests must not write",
+    );
+    await dashboard.handle({
+      id: "untrusted-folder",
+      type: "read",
+      scope: { target: "folder", folder: "file:///untrusted" },
+    });
+    assert.equal(
+      (await dashboard.snapshot()).scope.folder,
+      folder.uri.toString(),
+    );
+    assert.equal(
+      own({ ...second, language: "typescript" }, "editor.formatOnPaste"),
+      undefined,
+    );
+    const current = await dashboard.snapshot();
+    await dashboard.handle({
+      id: "dashboard-action",
+      type: "action",
+      scope: dashboardScope,
+      revision: current.revision,
+      action: "source.fixAll.biome",
+      value: "explicit",
+    });
+    assert.deepEqual(
+      own({ ...first, language: "typescript" }, "editor.codeActionsOnSave"),
+      { "source.fixAll.biome": "explicit" },
+    );
+    assert.ok(
+      (await vscode.commands.getCommands()).includes(
+        "formattingControls.dashboard",
+      ),
+    );
+    assert.ok(
+      (await vscode.commands.getCommands()).includes(
+        "formattingControls.welcome",
+      ),
+    );
+    await write(
+      { ...first, language: "typescript" },
+      "editor.formatOnPaste",
+      undefined,
+    );
+    await write(
+      { ...first, language: "typescript" },
+      "editor.codeActionsOnSave",
+      undefined,
+    );
+    await dashboard.handle({
+      id: "ui-read",
+      type: "read",
+      scope: { target: "user" },
+    });
+    if (process.env.FORMATTING_CONTROLS_UI_THEME)
+      await vscode.workspace
+        .getConfiguration("workbench")
+        .update(
+          "colorTheme",
+          process.env.FORMATTING_CONTROLS_UI_THEME,
+          vscode.ConfigurationTarget.Global,
+        );
+    await dashboard.open(true);
+    assert.equal((await dashboard.snapshot()).page, "welcome");
+    const navigation = (await dashboard.snapshot()).navigation;
+    await dashboard.open();
+    assert.equal((await dashboard.snapshot()).page, "overview");
+    assert.ok((await dashboard.snapshot()).navigation > navigation);
+    await assert.rejects(
+      write({ ...first, language: "typescript" }, "files.autoSave", "off"),
+      /not language-overridable/,
+    );
+    if (process.env.FORMATTING_CONTROLS_UI_REVIEW)
+      await new Promise((resolve) =>
+        setTimeout(
+          resolve,
+          Number(process.env.FORMATTING_CONTROLS_UI_DURATION ?? 180000),
+        ),
+      );
     console.log(
-      "Extension-host assertions passed: activation, scope precedence, language override, multi-root isolation, inherited action preservation, reset and stale preview protection.",
+      "Extension-host assertions passed: activation, scope precedence, language override, multi-root isolation, inherited action preservation, reset, stale preview protection, dashboard messages, folder allowlisting and real panel creation.",
     );
   } finally {
-    for (const s of [language, first, second, workspace, user])
+    dashboard.dispose();
+    for (const s of [
+      language,
+      { ...first, language: "typescript" },
+      first,
+      second,
+      workspace,
+      user,
+    ])
       for (const k of [
         "editor.formatOnSave",
         "editor.codeActionsOnSave",
+        "editor.formatOnPaste",
       ] as const)
         await write(s, k, undefined);
   }

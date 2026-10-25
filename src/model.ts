@@ -1,16 +1,10 @@
+import { settingKeys } from "../shared/protocol";
 export const flags = [
   "editor.formatOnSave",
   "editor.formatOnPaste",
   "editor.formatOnType",
 ] as const;
-export const keys = [
-  ...flags,
-  "editor.formatOnSaveMode",
-  "editor.defaultFormatter",
-  "files.autoSave",
-  "files.autoSaveDelay",
-  "editor.codeActionsOnSave",
-] as const;
+export const keys = settingKeys;
 export type SettingKey = (typeof keys)[number];
 export type ActionValue = "explicit" | "always" | "never";
 export type Actions = Record<string, ActionValue | boolean>;

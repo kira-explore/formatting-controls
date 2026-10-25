@@ -11,3 +11,4 @@ dist/**/*.map
 .gitignore
 bun.lock
 biome.json
+webview-ui/**

@@ -7,6 +7,7 @@ import {
   setAction,
   write,
 } from "./configuration";
+import { Dashboard } from "./dashboard";
 import {
   type ActionValue,
   flags,
@@ -16,6 +17,7 @@ import {
 } from "./model";
 
 export function activate(context: vscode.ExtensionContext): void {
+  const dashboard = new Dashboard(context.extensionUri);
   const item = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
     100,
@@ -74,6 +76,10 @@ export function activate(context: vscode.ExtensionContext): void {
   const open = async () => {
     const target = await vscode.window.showQuickPick(
       [
+        {
+          label: "$(layout) Open Dashboard",
+          target: vscode.ConfigurationTarget.Global,
+        },
         { label: "User", target: vscode.ConfigurationTarget.Global },
         ...(vscode.workspace.workspaceFolders?.length
           ? [
@@ -88,9 +94,10 @@ export function activate(context: vscode.ExtensionContext): void {
             ]
           : []),
       ],
-      { title: "Formatting Controls · Choose where to write" },
+      { title: "Formatting Controls · Choose a scope or open Dashboard" },
     );
     if (!target) return;
+    if (target.label === "$(layout) Open Dashboard") return dashboard.open();
     const s: Selection = { ...scope(), target: target.target };
     const d = vscode.window.activeTextEditor?.document;
     const language =
@@ -224,6 +231,15 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   };
   context.subscriptions.push(
+    dashboard,
+    vscode.commands.registerCommand(
+      "formattingControls.dashboard",
+      guarded(() => dashboard.open()),
+    ),
+    vscode.commands.registerCommand(
+      "formattingControls.welcome",
+      guarded(() => dashboard.open(true)),
+    ),
     item,
     vscode.commands.registerCommand("formattingControls.open", guarded(open)),
     vscode.commands.registerCommand(
@@ -234,4 +250,16 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.onDidChangeActiveTextEditor(refresh),
   );
   refresh();
+  if (!context.globalState.get("welcomeShown")) {
+    void context.globalState
+      .update("welcomeShown", true)
+      .then(() => {
+        if (context.extensionMode !== vscode.ExtensionMode.Test)
+          return dashboard.open(true);
+        return undefined;
+      })
+      .then(undefined, (error) =>
+        vscode.window.showErrorMessage(`Formatting Controls: ${String(error)}`),
+      );
+  }
 }

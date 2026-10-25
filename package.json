@@ -1,11 +1,11 @@
 {
   "name": "formatting-controls",
-  "version": "0.1.0",
-  "description": "Scope-aware native controls for formatting and save actions.",
+  "version": "0.2.0",
+  "description": "Control formatting, save actions, and language settings from a theme-aware dashboard with explicit configuration scopes.",
   "main": "./dist/extension.js",
   "scripts": {
     "build": "bun run build.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p webview-ui/tsconfig.json",
     "lint": "biome check .",
     "test": "bun run build && node --test dist/test/unit/*.js",
     "test:integration": "bun run build && bun run test/run-integration.ts",
@@ -21,13 +21,18 @@
   "license": "MIT",
   "type": "module",
   "devDependencies": {
+    "@biomejs/biome": "2.6.3",
     "@types/node": "^24.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@types/vscode": "^1.140.0",
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "typescript": "7.0.2",
-    "@biomejs/biome": "2.6.3"
+    "vite": "^8.3.5"
   },
   "displayName": "Formatting Controls",
   "publisher": "rajudhami",
@@ -51,6 +56,14 @@
       {
         "command": "formattingControls.inspect",
         "title": "Formatting Controls: Inspect Effective Settings"
+      },
+      {
+        "command": "formattingControls.dashboard",
+        "title": "Formatting Controls: Open Dashboard"
+      },
+      {
+        "command": "formattingControls.welcome",
+        "title": "Formatting Controls: Getting Started"
       }
     ]
   },

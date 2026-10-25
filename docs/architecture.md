@@ -20,7 +20,7 @@ Selection = target + active resource URI + optional language ID. No persisted ta
 
 ON means all three built-in formatting flags enabled; OFF means none; MIXED means a combination. These labels deliberately exclude code actions and Auto Save and do not assert a formatter will execute.
 
-`shared/protocol.ts` defines an initial future request/response contract. Before wiring it, implement runtime discriminated-union validation, bounded strings/payloads, allowlisted setting values and resource URIs, request IDs, revisions, response errors and panel disposal. Never accept arbitrary commands, paths or URLs. CSP default-src none; nonce scripts; local resource roots only; VS Code theme tokens.
+`shared/protocol.ts` defines the implemented Phase 2 request/response contract with runtime validation, bounded payloads, allowlisted setting values/destinations, workspace URI validation, request IDs, revisions, response errors and panel disposal. See [Phase 2 architecture](phase-2.md) for the implemented boundary and lifecycle. CSP default-src none; nonce scripts; local resource roots only; VS Code theme tokens.
 
 ## Feature matrix
 
@@ -31,7 +31,7 @@ ON means all three built-in formatting flags enabled; OFF means none; MIXED mean
 | Individual source actions                                     | Phase 1 implemented | User supplies candidate ID; provider availability not asserted                                                         |
 | User/workspace/folder/language selection                      | Phase 1 implemented | Folder requires active resource; files.autoSave is not language overridable                                            |
 | Scope inspection and one-setting reset                        | Phase 1 implemented | Raw inspection plus effective values, confirmed deletion                                                               |
-| React dashboard and welcome                                   | Phase 2 planned     | Native first-run invitation persisted once; reopen command; no forced startup panel                                    |
+| React dashboard and welcome                                   | Phase 2 implemented | First-run welcome persisted once; reopen command; typed controls and scope-aware dashboard                             |
 | Provider adapters and diagnostics                             | Phase 3 planned     | Installed extension metadata is evidence of installation, not actual registered capabilities or enabled server state   |
 | Profiles/import/export                                        | Phase 3 planned     | Validate schema, preview per-key changes, snapshot only owned values, conflict-aware restore                           |
 | Pause                                                         | Phase 3 exploration | Requires real setting writes; persist journal before writes, restore only unchanged values, offer recovery after crash |
