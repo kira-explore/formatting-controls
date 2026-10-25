@@ -1,0 +1,23 @@
+name: Validate
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck && bun run lint && bun run test
+      - run: xvfb-run -a bun run test:integration
+      - run: bun run package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: formatting-controls-vsix
+          path: "*.vsix"

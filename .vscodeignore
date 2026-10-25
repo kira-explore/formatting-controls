@@ -1,0 +1,17 @@
+src/**
+shared/**
+test/**
+node_modules/**
+.vscode/**
+.github/**
+*.mjs
+tsconfig.json
+package-lock.json
+dist/test/**
+dist/**/*.map
+.gitignore
+bun.lock
+biome.json
+.node-version
+.nvmrc
+.bun-version
