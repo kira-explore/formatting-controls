@@ -2,17 +2,17 @@
   "name": "formatting-controls",
   "version": "0.1.0",
   "description": "Scope-aware native controls for formatting and save actions.",
-  "main": "./dist/extension.cjs",
+  "main": "./dist/extension.js",
   "directories": {
     "doc": "docs",
     "test": "test"
   },
   "scripts": {
-    "build": "node build.mjs",
+    "build": "bun run build.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
-    "test": "bun run build && node --test dist/test/unit/*.cjs",
-    "test:integration": "bun run build && node test/run-integration.cjs",
+    "test": "bun run build && node --test dist/test/unit/*.js",
+    "test:integration": "bun run build && bun run test/run-integration.ts",
     "package": "bun run build && vsce package --no-dependencies",
     "vscode:prepublish": "bun run build",
     "format": "biome check --write ."

@@ -1,7 +1,8 @@
-const { runTests } = require("@vscode/test-electron");
-const path = require("node:path");
-const fs = require("node:fs");
-const os = require("node:os");
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { runTests } from "@vscode/test-electron";
+
 (async () => {
   const temp = fs.mkdtempSync(
     path.join(os.tmpdir(), "formatting-controls-test-"),
@@ -10,7 +11,7 @@ const os = require("node:os");
   try {
     await runTests({
       extensionDevelopmentPath: path.resolve("."),
-      extensionTestsPath: path.resolve("dist/test/integration/suite.cjs"),
+      extensionTestsPath: path.resolve("dist/test/integration/suite.js"),
       launchArgs: [
         path.join(temp, "workspace"),
         "--user-data-dir",
