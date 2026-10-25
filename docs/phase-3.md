@@ -10,7 +10,7 @@ Language Rules enumerates explicit language override sources for the current res
 
 Profiles include Minimal, Strict, Formatting Only, Project Default and saved custom profiles. Minimal/Formatting Only disable currently configured save actions; higher-priority overrides can still win. Strict enables generic explicit fix-all and import organization without inventing provider availability. Project Default copies explicit project settings (ordinary workspace/folder values followed by language-specific workspace/folder values) into the chosen scope; an empty project preset has no invented defaults.
 
-Custom profiles capture only values explicitly stored at the selected scope, not copied effective inherited preferences. Profiles are shared through global extension state. Applying a language-specific profile requires selecting that language. Applying a profile merges source-action entries and preserves unrelated configuration.
+Custom profiles capture only values explicitly stored at the selected scope, not copied effective inherited preferences. Profiles are shared through extension-owned storage. See [two-window validation and storage migration](multi-window.md). Applying a language-specific profile requires selecting that language. Applying a profile merges source-action entries and preserves unrelated configuration.
 
 ## Preview and restoration
 

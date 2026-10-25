@@ -51,3 +51,8 @@ Fixed low-contrast setting IDs, light warning text, accessible-name mismatches, 
 ### Phase 4 pre-merge recheck
 
 Added eight regression tests for final VSIX contents, embedded package and installer identity, runtime presence, archived bundle sizes, malformed icons/host markers, and absent/matching/mismatched/malformed remote tag responses. The suite now has 34 tests. Packaging validates the final ZIP after the prepublish build and creates its checksum only after validation. Release preparation verifies checkout identity and existing lightweight/annotated tag targets without creating or changing tags. Local final-archive validation and a live read-only remote-tag lookup pass; release publication remains gated as documented.
+
+
+## Two-window review — 26 October 2026
+
+Reproduced two saved-profile data-loss cases in real concurrent macOS VS Code windows: stale whole-array updates after a confirmation, and simultaneous different-name saves. Added a locked private-file repository with target comparisons, legacy migration, live file notifications, focus refresh and an explicit Refresh profiles button. Six pure storage regressions cover migration, concurrent creation, stale target rejection, corrupt data preservation, storage limits/schemes and cross-instance notifications. The complete 40-test unit suite, host/browser type checks and Biome pass. Eight two-window scenarios pass locally on macOS arm64 in both VS Code 1.140.0 and stable 1.143.1. The stable real-editor suite, empty-window suite and 16 dark-theme page/layout accessibility scans also pass. See [the test scenarios and storage limitations](multi-window.md). The separate packaging advisory PR remains independent of these changes.

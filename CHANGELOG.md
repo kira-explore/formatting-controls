@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+Fixed saved-profile loss between simultaneous windows with coordinated private-file storage, stale overwrite/delete checks, live profile refresh and real two-window regression coverage. Existing profile storage migrates on first successful mutation.
+
 ## 0.4.0 — Unreleased
 
 Final VSIX validation now runs after the prepublish build and checks archived contents, installer/package identity and bundle sizes. Release preparation rejects existing version tags pointing to another commit.

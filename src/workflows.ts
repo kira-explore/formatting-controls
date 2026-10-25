@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import * as vscode from "vscode";
 import { type Scope, settingKeys } from "../shared/protocol";
 import {
@@ -18,6 +19,7 @@ import {
   type Value,
 } from "../shared/workflows";
 import { configuration, own, type Selection, write } from "./configuration";
+import type { ProfileRepository } from "./profile-store";
 export interface Store {
   get<T>(key: string): T | undefined;
   update(key: string, value: unknown): PromiseLike<void>;
@@ -103,12 +105,16 @@ export class Workflows implements vscode.Disposable {
   private readonly changed = new vscode.EventEmitter<void>();
   readonly onDidChange = this.changed.event;
   private busy = false;
+  private readonly profileListener: { dispose(): void } | undefined;
   constructor(
     private readonly global: Store,
     private readonly workspace: Store,
     private readonly confirm: Confirm = confirmChanges,
     private readonly files: ProfileFiles = nativeFiles,
-  ) {}
+    private readonly profiles?: ProfileRepository,
+  ) {
+    this.profileListener = profiles?.onDidChange(() => this.changed.fire());
+  }
   private async exclusive<T>(run: () => Promise<T>): Promise<T> {
     if (this.busy)
       throw new Error(
@@ -122,6 +128,7 @@ export class Workflows implements vscode.Disposable {
     }
   }
   private saved(): Profile[] {
+    if (this.profiles) return this.profiles.read();
     const raw = this.global.get<unknown>(profileKey);
     if (raw === undefined) return [];
     if (!Array.isArray(raw) || raw.length > 50)
@@ -461,8 +468,10 @@ export class Workflows implements vscode.Disposable {
     });
   }
   private async storeProfile(profile: Profile, scope: Scope): Promise<string> {
-    const previous = this.saved(),
-      existing = previous.some((p) => p.name === profile.name);
+    const expected = structuredClone(
+      this.saved().find((p) => p.name === profile.name),
+    );
+    const existing = expected !== undefined;
     if (
       existing &&
       !(await this.confirm(
@@ -472,12 +481,25 @@ export class Workflows implements vscode.Disposable {
       ))
     )
       return "Profile save cancelled.";
-    if (!existing && previous.length >= 50)
+    const current = this.saved();
+    if (
+      !isDeepStrictEqual(
+        current.find((p) => p.name === profile.name),
+        expected,
+      )
+    )
+      throw new Error(
+        "This saved profile changed while confirmation was open. Review the profiles and try again.",
+      );
+    if (!existing && current.length >= 50)
       throw new Error("At most 50 custom profiles can be saved.");
-    await this.global.update(profileKey, [
-      ...previous.filter((p) => p.name !== profile.name),
-      profile,
-    ]);
+    if (this.profiles)
+      await this.profiles.commit(profile.name, expected, profile);
+    else
+      await this.global.update(profileKey, [
+        ...current.filter((p) => p.name !== profile.name),
+        profile,
+      ]);
     this.changed.fire();
     return `Saved profile ${profile.name}. No formatting settings were changed.`;
   }
@@ -564,15 +586,29 @@ export class Workflows implements vscode.Disposable {
   }
   async remove(name: string, scope: Scope): Promise<string> {
     return this.exclusive(async () => {
-      const profiles = this.saved();
-      if (!profiles.some((p) => p.name === name))
+      const expected = structuredClone(
+        this.saved().find((p) => p.name === name),
+      );
+      if (!expected)
         throw new Error("Only saved custom profiles can be deleted.");
       if (!(await this.confirm(`Delete saved profile ${name}?`, [], scope)))
         return "Profile deletion cancelled.";
-      await this.global.update(
-        profileKey,
-        profiles.filter((p) => p.name !== name),
-      );
+      const current = this.saved();
+      if (
+        !isDeepStrictEqual(
+          current.find((p) => p.name === name),
+          expected,
+        )
+      )
+        throw new Error(
+          "This saved profile changed while confirmation was open. Review the profiles and try again.",
+        );
+      if (this.profiles) await this.profiles.commit(name, expected, undefined);
+      else
+        await this.global.update(
+          profileKey,
+          current.filter((p) => p.name !== name),
+        );
       this.changed.fire();
       return `Deleted saved profile ${name}.`;
     });
@@ -607,6 +643,7 @@ export class Workflows implements vscode.Disposable {
     });
   }
   dispose(): void {
+    this.profileListener?.dispose();
     this.changed.dispose();
   }
 }

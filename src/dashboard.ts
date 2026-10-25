@@ -91,6 +91,12 @@ export class Dashboard implements vscode.Disposable {
         this.revision++;
         void this.publish();
       }),
+      vscode.window.onDidChangeWindowState(({ focused }) => {
+        if (focused) {
+          this.revision++;
+          void this.publish();
+        }
+      }),
       vscode.extensions.onDidChange(() => {
         this.revision++;
         void this.publish();

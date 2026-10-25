@@ -16,10 +16,21 @@ import {
   type SettingKey,
   status,
 } from "./model";
+import { FileProfiles } from "./profile-store";
 import { Workflows } from "./workflows";
 
 export function activate(context: vscode.ExtensionContext): void {
-  const workflows = new Workflows(context.globalState, context.workspaceState);
+  const profiles = new FileProfiles(
+    context.globalStorageUri,
+    context.globalState,
+  );
+  const workflows = new Workflows(
+    context.globalState,
+    context.workspaceState,
+    undefined,
+    undefined,
+    profiles,
+  );
   const dashboard = new Dashboard(context.extensionUri, undefined, workflows);
   const item = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
@@ -243,6 +254,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   };
   context.subscriptions.push(
+    profiles,
     workflows,
     workflows.onDidChange(refresh),
     vscode.commands.registerCommand(

@@ -185,7 +185,7 @@ Read the [architecture and feature matrix](docs/architecture.md), [validation no
 
 ## Roadmap
 
-Phases 1–3 are implemented: native controls, the dashboard, provider adapters, diagnostics, language rules, profiles, import/export and recoverable workspace pause. Phase 4 adds automated accessibility/security checks, CPU profiling and bundle budgets, cross-platform/minimum-host CI, Marketplace metadata/assets and guarded release-draft preparation. Public release still requires the packaging advisory fix and hands-on screen-reader, remote and concurrent-window reviews. See [release preparation](docs/releasing.md). No automatic Marketplace publication is configured.
+Phases 1–3 are implemented: native controls, the dashboard, provider adapters, diagnostics, language rules, profiles, import/export and recoverable workspace pause. Phase 4 adds automated accessibility/security checks, CPU profiling and bundle budgets, cross-platform/minimum-host CI, Marketplace metadata/assets and guarded release-draft preparation. Public release still requires the packaging advisory fix and hands-on screen-reader and remote reviews. [Real two-window regression coverage](docs/multi-window.md) checks shared settings, profile saves and pause/recovery; editor settings still lack atomic updates. See [release preparation](docs/releasing.md). No automatic Marketplace publication is configured.
 
 Have a reproducible problem or a focused idea? [Open an issue](https://github.com/kira-explore/formatting-controls/issues/new/choose).
 

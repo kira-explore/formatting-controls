@@ -139,13 +139,22 @@ export function WorkflowPages({
           <h2>Reusable preferences</h2>
           <p>Save explicit values, preview changes, and restore safely.</p>
         </div>
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => profile("import")}
-        >
-          Import JSON
-        </button>
+        <div className="button-row">
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => send({ type: "read" })}
+          >
+            Refresh profiles
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => profile("import")}
+          >
+            Import JSON
+          </button>
+        </div>
       </div>
       {state.recovery && (
         <section className="recovery-card">
