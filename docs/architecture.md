@@ -1,6 +1,6 @@
 # Architecture and implementation plan
 
-Research baseline: 25 October 2026. Empty repository; macOS arm64, Node 26.12.1, npm 11.20.0, installed VS Code 1.143.1. Target stable API 1.140+. TypeScript 7.0.2 uses ESNext language/library settings. Biome 2.6.3 is the sole formatter and linter. Bun 1.4.4 manages dependencies and scripts; Node 24.22.1 runs development tools. The extension bundle targets Node 22 syntax for the VS Code host, whose runtime is supplied by VS Code.
+Research baseline: 25 October 2026. Empty repository; macOS arm64, Node 26.12.1, npm 11.20.0, installed VS Code 1.143.1. Target stable API 1.140+. TypeScript 7.0.2 uses ESNext language/library settings. Biome 2.6.3 is the sole formatter and linter. Bun 1.4.4 manages dependencies and scripts, with its version declared once in packageManager. Node >=24 is the development compatibility range; CI selects the latest Node 24 LTS patch. Local verification used Node 24.22.1. The extension bundle targets Node 22 syntax for the VS Code host, whose runtime is supplied by VS Code.
 
 ## Verified APIs and constraints
 

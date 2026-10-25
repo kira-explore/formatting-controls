@@ -6,7 +6,6 @@
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "esModuleInterop": true,
     "skipLibCheck": true,
     "types": ["node", "vscode"],
     "lib": ["ESNext"],

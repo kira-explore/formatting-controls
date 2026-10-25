@@ -3,23 +3,22 @@
   "version": "0.1.0",
   "description": "Scope-aware native controls for formatting and save actions.",
   "main": "./dist/extension.js",
-  "directories": {
-    "doc": "docs",
-    "test": "test"
-  },
   "scripts": {
     "build": "bun run build.ts",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "test": "bun run build && node --test dist/test/unit/*.js",
     "test:integration": "bun run build && bun run test/run-integration.ts",
-    "package": "bun run build && vsce package --no-dependencies",
+    "package": "vsce package --no-dependencies",
     "vscode:prepublish": "bun run build",
     "format": "biome check --write ."
   },
-  "keywords": [],
-  "author": "",
-  "license": "UNLICENSED",
+  "author": {
+    "name": "Raju Dhami",
+    "email": "imrajudhami@gmail.com",
+    "url": "https://github.com/Raju"
+  },
+  "license": "MIT",
   "type": "module",
   "devDependencies": {
     "@types/node": "^24.0.0",
@@ -34,8 +33,7 @@
   "publisher": "rajudhami",
   "engines": {
     "vscode": "^1.140.0",
-    "node": ">=24.22.1 <25",
-    "bun": ">=1.4.4"
+    "node": ">=24"
   },
   "categories": [
     "Formatters",

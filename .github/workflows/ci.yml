@@ -9,10 +9,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version-file: .node-version
+          node-version: "24"
+          check-latest: true
       - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version-file: .bun-version
       - run: bun install --frozen-lockfile
       - run: bun run typecheck && bun run lint && bun run test
       - run: xvfb-run -a bun run test:integration

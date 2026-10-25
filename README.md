@@ -10,6 +10,6 @@ The status summarizes the three formatting flags for the active editor, not whet
 
 No telemetry, runtime network access or source-code transmission. No bundled formatter or linter. React dashboard, provider detection, profiles and pause are planned, not implemented. See architecture and feature matrix in `docs/architecture.md`.
 
-Validation: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run test:integration`. Integration launches an isolated VS Code instance. Package with `bun run package`; install the resulting VSIX through Extensions → Install from VSIX. Node 24 LTS (24.22.1) and Bun 1.4.4 is required for development.
+Validation: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run test:integration`. Integration launches an isolated VS Code instance. Package with `bun run package`; install the resulting VSIX through Extensions → Install from VSIX. Node 24 or newer is required; Node 24 LTS is recommended and used in CI. The Bun version is recorded in `package.json` under `packageManager`.
 
-License: MIT proposed; pending owner approval. No license grant or public release is made in this foundation.
+Licensed under MIT. Author: [Raju Dhami](https://github.com/Raju) · imrajudhami@gmail.com.
