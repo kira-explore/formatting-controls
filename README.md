@@ -5,10 +5,16 @@
 [![Validate](https://github.com/kira-explore/formatting-controls/actions/workflows/ci.yml/badge.svg)](https://github.com/kira-explore/formatting-controls/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/kira-explore/formatting-controls/blob/main/LICENSE)
 [![VS Code 1.140+](https://img.shields.io/badge/VS_Code-1.140%2B-007ACC.svg)](https://code.visualstudio.com/)
+[![No telemetry](https://img.shields.io/badge/telemetry-none-2ea44f.svg)](#what-you-can-do)
+
+[![Node.js 24 or newer](https://img.shields.io/badge/Node.js-24%2B-5FA04E.svg?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Package manager: Bun 1.4.4](https://img.shields.io/badge/package_manager-Bun_1.4.4-f9f1e1.svg?logo=bun&logoColor=white)](https://bun.sh/)
+[![TypeScript 7.0.2](https://img.shields.io/badge/TypeScript-7.0.2-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Biome 2.6.3](https://img.shields.io/badge/Biome-2.6.3-60A5FA.svg?logo=biome&logoColor=white)](https://biomejs.dev/)
 
 A control center for VS Code formatting, save actions, and language settings. Make quick adjustments from the status bar, or open the dashboard to choose a formatter, manage source actions, and understand which settings apply.
 
-![Formatting Controls dashboard in VS Code](docs/assets/dashboard.png)
+![Formatting Controls Overview in VS Code Dark Modern](docs/assets/dashboard.png)
 
 ## What you can do
 
@@ -20,6 +26,31 @@ A control center for VS Code formatting, save actions, and language settings. Ma
 - **Reset deliberately.** Preview the selected setting before removing its value at that scope. A changed preview is rejected.
 
 No telemetry, remote analytics, or source-code transmission. Settings stay in VS Code. Opening the dashboard or welcome page changes no formatting preferences.
+
+## Dark theme previews
+
+Screenshots are captured from the running extension in VS Code’s **Dark Modern** theme.
+
+<details>
+<summary>Formatting controls and scope overrides</summary>
+
+![Formatting controls and an effective-value override in Dark Modern](docs/assets/dashboard-dark-formatting.png)
+
+</details>
+
+<details>
+<summary>Code actions on save</summary>
+
+![Code Actions page with individual run modes in Dark Modern](docs/assets/dashboard-dark-code-actions.png)
+
+</details>
+
+<details>
+<summary>Narrow layout and high-contrast theme</summary>
+
+![Formatting Controls in a narrow high-contrast editor](docs/assets/dashboard-narrow-high-contrast.png)
+
+</details>
 
 ## Try the development build
 
@@ -81,16 +112,11 @@ The ON/OFF/MIXED indicator summarizes only the three built-in formatting flags. 
 
 `always` does not promise execution on `afterDelay` Auto Save or a particular action order. Action IDs depend on the provider and language. Legacy action arrays must be migrated through VS Code Settings before editing them here.
 
-<details>
-<summary>Narrow layout and high-contrast theme</summary>
-
-![Formatting Controls in a narrow high-contrast editor](docs/assets/dashboard-narrow-high-contrast.png)
-
-</details>
-
 The formatter list is a set of known integrations, not a complete provider registry. Extension presence cannot prove that it is enabled, configured, or eligible for your file. You can enter another formatter’s `publisher.extension` ID in Formatting.
 
 ## Development
+
+**Package manager:** Bun 1.4.4 with a committed `bun.lock`. **Node.js:** 24 or newer; Node 24 LTS is recommended. Tool versions are declared in `package.json`.
 
 All authored scripts use TypeScript and ES imports. The dashboard uses React and Vite; Biome handles formatting, linting, and import organization. The extension host is bundled separately, and dashboard assets load only when requested.
 
