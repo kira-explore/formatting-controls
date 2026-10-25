@@ -9,3 +9,12 @@ Bun audit reports one high finding through development packaging dependencies @v
 Toolchain revalidated with Node 24.22.1, Bun 1.4.4, TypeScript 7.0.2 (ESNext) and Biome 2.6.3. ESLint and its configuration/dependencies were removed. Bun owns the committed lockfile; CI uses frozen installation, the latest Node 24 LTS patch and the Bun version declared in packageManager.
 
 Code-action value cancellation now returns before the success notification. Reset captures the displayed value and rechecks it immediately before writing; VS Code does not provide an atomic compare-and-delete API for settings. External changes after that final check remain a configuration API limitation. GitHub-hosted checks remain blocked by the account billing/spending-limit restriction.
+
+
+## Phase 2
+
+Host and dashboard type checks, Biome, and seven pure unit tests pass. Protocol regression coverage rejects unsupported commands/settings, malformed scopes/revisions, oversized messages, invalid enums, formatter IDs and numeric values. Extended isolated VS Code 1.143.1 tests cover dashboard folder/language writes, stale revision rejection, folder URI allowlisting, source-action preservation, language-scope restrictions, command registration and real WebviewPanel creation.
+
+Interactive verification used a temporary VS Code profile: Workspace format-on-save and source-action changes saved and synchronized, all main pages rendered, and provider availability caveats were visible. User-level writes correctly remained overridden by the fixture's Workspace setting. Desktop rendering was inspected in dark and light themes; high-contrast and narrow layouts were captured from the built-in high-contrast theme, and switch keyboard focus was checked. Full screen-reader testing remains outstanding. The light-theme review caught and corrected switch-track specificity so the enabled thumb remains visible.
+
+The production React dashboard bundle is approximately 325 KB uncompressed (83 KB gzip) and loads only when opened. This is a bundle-size check, not an extension-host performance profile. No production runtime dependencies are installed from the network; React is included in the local dashboard assets. The previously documented packaging advisory remains unresolved upstream. Remote CI must be checked separately because the account billing restriction previously prevented job startup.

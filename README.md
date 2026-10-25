@@ -1,15 +1,118 @@
 # Formatting Controls
 
-Native, scope-aware controls for VS Code formatting and save actions. Publisher: `rajudhami`. Early development, version 0.1.0; no Marketplace publication yet.
+**Make every save work your way.**
 
-Run `bun install --frozen-lockfile`, `bun run build`, then press F5 in VS Code. Click **Formatting: ON/OFF/MIXED** or run **Formatting Controls: Quick Controls**. Choose User, Workspace or Workspace Folder, then all languages or the active language. Each setting uses a suitable value picker. Use a file inside the intended folder for multi-root projects.
+[![Validate](https://github.com/kira-explore/formatting-controls/actions/workflows/ci.yml/badge.svg)](https://github.com/kira-explore/formatting-controls/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/kira-explore/formatting-controls/blob/main/LICENSE)
+[![VS Code 1.140+](https://img.shields.io/badge/VS_Code-1.140%2B-007ACC.svg)](https://code.visualstudio.com/)
 
-Controls include Format on Save/Paste/Type, save mode, default formatter ID, Auto Save and delay, and individual source actions. Action values are `explicit`, `always`, `never`; availability depends on the language and provider. `always` covers focus/window Auto Save, not a promise of delay-based actions. Existing action entries are preserved. Legacy action arrays require manual migration.
+A control center for VS Code formatting, save actions, and language settings. Make quick adjustments from the status bar, or open the dashboard to choose a formatter, manage source actions, and understand which settings apply.
 
-The status summarizes the three formatting flags for the active editor, not whether a provider will format successfully. Code actions are separate. **Inspect Effective Settings** opens a JSON report of effective values and all API-exposed scopes. Reset removes only a selected setting at the chosen target after confirmation. Language-specific Auto Save edits are rejected.
+![Formatting Controls dashboard in VS Code](docs/assets/dashboard.png)
 
-No telemetry, runtime network access or source-code transmission. No bundled formatter or linter. React dashboard, provider detection, profiles and pause are planned, not implemented. See architecture and feature matrix in `docs/architecture.md`.
+## What you can do
 
-Validation: `bun run typecheck`, `bun run lint`, `bun run test`, `bun run test:integration`. Integration launches an isolated VS Code instance. Package with `bun run package`; install the resulting VSIX through Extensions → Install from VSIX. Node 24 or newer is required; Node 24 LTS is recommended and used in CI. The Bun version is recorded in `package.json` under `packageManager`.
+- **See the effective state.** The status bar shows ON, OFF, or MIXED for Format on Save, Paste, and Type in the active editor.
+- **Choose where changes belong.** Write to User, Workspace, or a specific workspace folder. Select a VS Code language ID for language overrides.
+- **Configure formatting and saving.** Toggle formatting triggers, select the save formatting mode, choose a default formatter, and configure Auto Save and its delay.
+- **Manage save actions individually.** Set a source action to explicit save, always, or never while preserving unrelated entries at the selected scope.
+- **Inspect overrides.** Compare values at your chosen scope with effective values and inspect the configuration sources exposed by VS Code.
+- **Reset deliberately.** Preview the selected setting before removing its value at that scope. A changed preview is rejected.
 
-Licensed under MIT. Author: [Raju Dhami](https://github.com/Raju) · imrajudhami@gmail.com.
+No telemetry, remote analytics, or source-code transmission. Settings stay in VS Code. Opening the dashboard or welcome page changes no formatting preferences.
+
+## Try the development build
+
+Formatting Controls is in active development and has not been published to the Marketplace. The publisher is [`rajudhami`](https://marketplace.visualstudio.com/publishers/rajudhami); the extension identifier is `rajudhami.formatting-controls`.
+
+Requires **VS Code 1.140 or newer**. For local development, use **Node 24 LTS** and the Bun version declared in `package.json`.
+
+```sh
+git clone https://github.com/kira-explore/formatting-controls.git
+cd formatting-controls
+bun install --frozen-lockfile
+bun run build
+```
+
+Open the folder in VS Code and press **F5** to launch the Extension Development Host. Or create an installable preview:
+
+```sh
+bun run package
+```
+
+In VS Code, run **Extensions: Install from VSIX…** and select `formatting-controls-0.2.0.vsix`. A successful GitHub Actions run also provides the VSIX artifact. No Marketplace credentials are required.
+
+## Find your flow
+
+Click the status-bar item to open native Quick Controls, or use these Command Palette entries:
+
+| Command                                             | Purpose                                                  |
+| --------------------------------------------------- | -------------------------------------------------------- |
+| **Formatting Controls: Open Dashboard**             | Open the full settings dashboard                         |
+| **Formatting Controls: Quick Controls**             | Edit a setting using native pickers                      |
+| **Formatting Controls: Inspect Effective Settings** | Open a JSON report of effective values and scope sources |
+| **Formatting Controls: Getting Started**            | Reopen the welcome page                                  |
+
+The welcome page appears once on first activation. It introduces the workflow and links to settings, documentation, and GitHub; it does not apply a preset automatically.
+
+### Dashboard
+
+| Page                | What it shows                                                             |
+| ------------------- | ------------------------------------------------------------------------- |
+| **Overview**        | Effective formatting flags, configured formatter, and save-action summary |
+| **Formatting**      | Searchable typed controls, scope values, overrides, and source inspection |
+| **Code actions**    | Common source-action identifiers, existing custom entries, and run modes  |
+| **Formatters**      | Known installed integrations and built-in language extensions             |
+| **Getting started** | A short setup guide with scope and language selection                     |
+
+Choose **Write to** and **Language** before changing a control. Values shown on controls are effective for the selected language, or the last active file’s language when All languages is selected. The value written still belongs only to the scope you selected. An override may therefore keep the effective value unchanged; the Formatting page shows that difference.
+
+For a multi-root project, choose **Workspace folder** and select the intended folder explicitly. Auto Save settings apply across languages and are disabled when editing language-specific settings.
+
+### Formatting and source actions are separate
+
+The ON/OFF/MIXED indicator summarizes only the three built-in formatting flags. It does not promise that a formatter is available or that code actions will execute.
+
+| Source-action value | Behavior                                  |
+| ------------------- | ----------------------------------------- |
+| `explicit`          | Run on explicit saves                     |
+| `always`            | Also run on focus/window-change Auto Save |
+| `never`             | Do not run on save                        |
+
+`always` does not promise execution on `afterDelay` Auto Save or a particular action order. Action IDs depend on the provider and language. Legacy action arrays must be migrated through VS Code Settings before editing them here.
+
+<details>
+<summary>Narrow layout and high-contrast theme</summary>
+
+![Formatting Controls in a narrow high-contrast editor](docs/assets/dashboard-narrow-high-contrast.png)
+
+</details>
+
+The formatter list is a set of known integrations, not a complete provider registry. Extension presence cannot prove that it is enabled, configured, or eligible for your file. You can enter another formatter’s `publisher.extension` ID in Formatting.
+
+## Development
+
+All authored scripts use TypeScript and ES imports. The dashboard uses React and Vite; Biome handles formatting, linting, and import organization. The extension host is bundled separately, and dashboard assets load only when requested.
+
+```sh
+bun run typecheck       # Host and dashboard types
+bun run lint            # Biome checks
+bun run format          # Apply formatting and safe fixes
+bun run test            # Pure configuration and protocol tests
+bun run test:integration # Real VS Code, isolated user data and two workspace folders
+bun run package         # Build and package the VSIX
+```
+
+For dashboard changes, edit `webview-ui/src`, run `bun run build`, and run **Developer: Reload Window** in the Extension Development Host. The dashboard uses VS Code’s real message bridge; no development server is embedded in the extension.
+
+Read the [architecture and feature matrix](docs/architecture.md), [validation notes](docs/validation.md), and [contribution guide](CONTRIBUTING.md). We use Conventional Commits and short-lived branches with pull requests into `main`.
+
+## Roadmap
+
+Phase 2 adds the dashboard and welcome experience to the native Phase 1 controls. Next are provider adapters, deeper diagnostics, profiles, import/export, and investigation of a safe temporary pause. Broader accessibility, performance, compatibility, and release checks follow. Planned features are not presented as working controls.
+
+Have a reproducible problem or a focused idea? [Open an issue](https://github.com/kira-explore/formatting-controls/issues/new/choose).
+
+## License
+
+[MIT](LICENSE) © 2026 [Raju Dhami](https://github.com/Raju). Bundled UI dependencies retain their [third-party notices](THIRD_PARTY_NOTICES.md).

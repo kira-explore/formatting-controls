@@ -5,3 +5,7 @@ Use Node 24 or newer (Node 24 LTS recommended), the Bun version in `package.json
 ## Branches and commits
 
 Keep `main` release-ready. Use short-lived `feat/<description>`, `fix/<description>`, `docs/<description>`, or `chore/<description>` branches and merge through pull requests. Avoid a long-lived develop branch. Use Conventional Commits: `type(scope): description`, for example `feat(controls): add scope-aware quick controls` or `fix(configuration): preserve unrelated save actions`. Use `!` and a BREAKING CHANGE footer for breaking changes. Prefer squash merges with a Conventional Commit pull request title. These are project conventions; remote branch protection is configured separately.
+
+## Dashboard changes
+
+Keep the host/browser boundary typed and validate every incoming request in `shared/protocol.ts`. Add rejection tests for new message types or values. Run F5 for real settings behavior; the Vite development page does not emulate VS Code. `FORMATTING_CONTROLS_UI_REVIEW=1 bun run test:integration` keeps the isolated dashboard open for three minutes on localhost debug port 9333 for visual review; do not run two visual reviews concurrently. Check light, dark, high-contrast, narrow widths, and keyboard focus. The integration runner always uses temporary user settings and workspace folders.
