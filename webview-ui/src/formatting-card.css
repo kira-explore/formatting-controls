@@ -1,0 +1,216 @@
+html[data-presentation="sidebar"] {
+  background: var(--vscode-sideBar-background);
+}
+.formatting-card {
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 20px;
+  color: var(--vscode-foreground);
+  font-size: 13px;
+  line-height: 1.5;
+  --card-border: var(--vscode-widget-border, var(--vscode-panel-border));
+}
+.card-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: space-between;
+}
+.card-heading h1 {
+  font-size: 17px;
+  line-height: 1.4;
+  margin: 0;
+  font-weight: 600;
+}
+.card-state {
+  padding: 2px 9px;
+  border-radius: 4px;
+  border: 1px solid var(--card-border);
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+}
+.card-context {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--vscode-descriptionForeground);
+  margin: 12px 0 18px;
+}
+.card-context span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.card-section {
+  border-top: 1px solid var(--card-border);
+  padding: 18px 0;
+}
+.card-section h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 14px;
+}
+.card-scopes {
+  display: grid;
+  grid-template-columns: minmax(65px, 1fr) minmax(0, 2fr);
+  gap: 12px;
+  align-items: center;
+}
+.formatting-card select,
+.formatting-card input:not([type="checkbox"]) {
+  width: 100%;
+  min-width: 0;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, var(--card-border));
+  border-radius: 4px;
+  padding: 7px 9px;
+}
+.formatting-card button {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border: 1px solid var(--vscode-button-border, var(--card-border));
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-weight: 400;
+}
+.formatting-card button:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+.formatting-card fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.card-trigger {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 8px;
+  margin-bottom: 16px;
+  align-items: start;
+}
+.card-checkbox {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 14px;
+  cursor: pointer;
+  min-height: 28px;
+}
+.card-checkbox input[type="checkbox"] {
+  appearance: auto;
+  accent-color: var(--vscode-focusBorder);
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin: 0;
+}
+.card-trigger-description,
+.card-source {
+  margin: 0;
+  color: var(--vscode-descriptionForeground);
+  line-height: 1.5;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.card-trigger-description,
+.card-trigger > .card-source {
+  grid-column: 1 / -1;
+  margin-left: 28px;
+}
+.formatting-card .card-reset {
+  padding: 4px 7px;
+  font-size: 11px;
+}
+.card-field {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+}
+.card-source-row {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 9px 0;
+}
+.card-custom {
+  margin: 14px 0;
+}
+.card-custom summary {
+  color: var(--vscode-textLink-foreground);
+  cursor: pointer;
+}
+.card-custom form {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+.card-input-row {
+  display: flex;
+  gap: 8px;
+}
+.card-note {
+  margin: 12px 0 0;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.card-feedback {
+  min-height: 28px;
+}
+.card-feedback p {
+  font-size: 12px;
+  margin: 0 0 8px;
+  overflow-wrap: anywhere;
+}
+.card-feedback .card-error {
+  color: var(--vscode-errorForeground);
+}
+.card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  border-top: 1px solid var(--card-border);
+  padding-top: 16px;
+}
+.card-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 320px) {
+  .formatting-card {
+    padding: 14px;
+  }
+  .card-context {
+    flex-wrap: wrap;
+  }
+  .card-heading {
+    gap: 8px;
+  }
+  .card-heading h1 {
+    font-size: 15px;
+  }
+  .card-scopes {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .card-scopes select {
+    margin-bottom: 7px;
+  }
+}
+
+body.vscode-dark,
+body.vscode-high-contrast {
+  color-scheme: dark;
+}
+body.vscode-light,
+body.vscode-high-contrast-light {
+  color-scheme: light;
+}

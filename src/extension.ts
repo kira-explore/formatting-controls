@@ -9,9 +9,15 @@ import {
   write,
 } from "./configuration";
 import { Dashboard } from "./dashboard";
-import { type ActionValue, flags, keys, type SettingKey } from "./model";
+import {
+  type ActionValue,
+  flags,
+  keys,
+  type SettingKey,
+  status,
+} from "./model";
 import { FileProfiles } from "./profile-store";
-import { StatusControls } from "./status-controls";
+import { statusTooltip } from "./status-hover";
 import { Workflows } from "./workflows";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -32,7 +38,9 @@ export function activate(context: vscode.ExtensionContext): void {
     100,
   );
   let activeDocument = vscode.window.activeTextEditor?.document;
-  const controls = new StatusControls(item, () => activeDocument);
+  const sidebar = new Dashboard(context.extensionUri, undefined, workflows);
+  item.name = "Formatting Controls";
+  item.command = "formattingControls.quickControls";
   const scope = (): Selection => {
     const document = vscode.window.activeTextEditor?.document ?? activeDocument;
     return {
@@ -42,7 +50,27 @@ export function activate(context: vscode.ExtensionContext): void {
   };
   const refresh = () => {
     activeDocument = vscode.window.activeTextEditor?.document ?? activeDocument;
-    controls.refresh();
+    const effective = vscode.workspace.getConfiguration(
+      undefined,
+      activeDocument
+        ? { uri: activeDocument.uri, languageId: activeDocument.languageId }
+        : undefined,
+    );
+    const values = flags.map((key) => effective.get<boolean>(key, false));
+    const formatter = effective.get<unknown>("editor.defaultFormatter");
+    item.text = `$(settings-gear) Formatting: ${status(values)}`;
+    item.tooltip = statusTooltip({
+      file: activeDocument
+        ? vscode.workspace.asRelativePath(activeDocument.uri)
+        : "No active editor",
+      ...(activeDocument ? { language: activeDocument.languageId } : {}),
+      flags: values,
+      ...(typeof formatter === "string" ? { formatter } : {}),
+    });
+    item.accessibilityInformation = {
+      label: item.text.replace("$(settings-gear) ", ""),
+    };
+    item.show();
   };
   const inspect = async () => {
     const d = vscode.window.activeTextEditor?.document ?? activeDocument;
@@ -246,14 +274,19 @@ export function activate(context: vscode.ExtensionContext): void {
       }),
     ),
     dashboard,
-    vscode.commands.registerCommand(
-      "formattingControls.quickControls",
-      guarded(() => controls.open()),
+    sidebar,
+    vscode.window.registerWebviewViewProvider(
+      "formattingControls.sidebar",
+      sidebar,
     ),
     vscode.commands.registerCommand(
-      "formattingControls.statusControl",
-      (revision: unknown, action: unknown) =>
-        guarded(() => controls.control(revision, action))(),
+      "formattingControls.quickControls",
+      guarded(async () => {
+        sidebar.captureContext(activeDocument);
+        await vscode.commands.executeCommand(
+          "formattingControls.sidebar.focus",
+        );
+      }),
     ),
     vscode.commands.registerCommand(
       "formattingControls.dashboard",

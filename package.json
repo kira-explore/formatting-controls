@@ -82,9 +82,28 @@
       },
       {
         "command": "formattingControls.quickControls",
-        "title": "Formatting Controls: Quick Controls"
+        "title": "Formatting Controls: Open Sidebar Controls"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "formatting-controls",
+          "title": "Formatting Controls",
+          "icon": "assets/sidebar.svg"
+        }
+      ]
+    },
+    "views": {
+      "formatting-controls": [
+        {
+          "type": "webview",
+          "id": "formattingControls.sidebar",
+          "name": "Formatting",
+          "contextualTitle": "Formatting Controls"
+        }
+      ]
+    }
   },
   "repository": {
     "type": "git",

@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import axe from "axe-core";
 import { chromium } from "playwright-core";
+import { reviewSidebar } from "./sidebar";
 import { reviewStatus } from "./status";
 
 interface Context {
@@ -20,8 +21,11 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export async function reviewDashboard(
   directory: string,
   statusUi = false,
+  normalDialogs = false,
 ): Promise<void> {
-  const browser = await chromium.connectOverCDP("http://127.0.0.1:9333");
+  const browser = await chromium.connectOverCDP(
+    `http://127.0.0.1:${normalDialogs ? 9334 : 9333}`,
+  );
   try {
     const page = browser.contexts()[0]?.pages()[0];
     assert.ok(page);
@@ -29,7 +33,6 @@ export async function reviewDashboard(
     await page.setViewportSize({ width: 1600, height: 1100 });
     if (statusUi) {
       await reviewStatus(page, directory);
-      return;
     }
     const session = await browser.newBrowserCDPSession();
     let target: { targetId: string } | undefined;
@@ -84,7 +87,7 @@ export async function reviewDashboard(
       for (const context of contexts.filter((c) => c.auxData?.isDefault)) {
         const reply = await send("Runtime.evaluate", {
           contextId: context.id,
-          expression: '!!document.querySelector(".app")',
+          expression: '!!document.querySelector(".app,.formatting-card")',
           returnByValue: true,
         });
         if (reply.result?.result?.value) contextId = context.id;
@@ -123,6 +126,10 @@ export async function reviewDashboard(
       .find((s) => s.startsWith("script-src "));
     assert.match(scripts ?? "", /^script-src 'nonce-[^']+'$/);
     await evaluate(axe.source);
+    if (statusUi) {
+      await reviewSidebar(page, evaluate, wait, directory, normalDialogs);
+      return;
+    }
     const names = [
       "Overview",
       "Formatting",

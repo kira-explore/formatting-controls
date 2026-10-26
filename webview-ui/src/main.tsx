@@ -2,6 +2,7 @@ import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { Key, Scope } from "../../shared/protocol";
 import { actionNames, descriptions, display, labels, pages } from "./catalog";
+import { FormattingCard } from "./FormattingCard";
 import { useEditor } from "./useEditor";
 import { WorkflowPages } from "./WorkflowPages";
 import "./styles.css";
@@ -232,7 +233,7 @@ function App() {
             disabled={disabled}
             onClick={() => open("quickControls")}
           >
-            Quick Controls ↗
+            Sidebar controls ↗
           </button>
         </header>
         <main id="page-content" tabIndex={-1} aria-busy={disabled}>
@@ -823,6 +824,10 @@ const root = document.getElementById("root");
 if (root)
   createRoot(root).render(
     <StrictMode>
-      <App />
+      {document.documentElement.dataset.presentation === "sidebar" ? (
+        <FormattingCard />
+      ) : (
+        <App />
+      )}
     </StrictMode>,
   );

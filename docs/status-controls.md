@@ -1,29 +1,35 @@
-# Formatting status card
+# Formatting sidebar
 
-Hover and click use the same native Markdown card above the status-bar item. Clicking runs VS Code's built-in `workbench.action.showHover` command, which focuses and keeps the item's hover open. Escape dismisses it; Enter or Space on the focused status item opens it. Clicking does not create an editor tab. The previous Quick Controls webview has been removed.
+Clicking the Formatting status item opens a real interactive card in the sidebar without adding an editor tab. The Activity Bar icon and **Formatting Controls: Open Sidebar Controls** command open the same view. This replaces the earlier compact editor panel and native-hover editing links.
 
-The card contains the active file and language, formatting status, explicit write scope/language choices, Save/Paste/Type toggles, configured formatter, and dashboard/settings links. Save actions and pause/recovery controls remain in the full dashboard.
+![Interactive formatting sidebar in Dark Modern](assets/formatting-sidebar-dark.png)
 
-![Native formatting card above the status bar](assets/status-card-dark.png)
+The card contains:
 
-## Editing
+- User/Workspace/Folder write scope, explicit folder selection and language dropdowns.
+- Save/Paste/Type checkboxes with owned, effective and inherited-value notes.
+- Save formatting mode, installed formatter selection and a custom formatter-ID input with an Apply button.
+- Per-setting Reset buttons using the existing native confirmation and stale-preview protection.
+- Dashboard and VS Code Settings buttons, inline errors and saving feedback.
 
-The default write target follows the active file's folder, otherwise Workspace, or User without a workspace. Choosing a scope keeps that target within the window; Folder follows the active editor's folder. Unavailable targets fall back to the visibly labelled User scope. Language defaults to All languages and can be restricted to the active editor's language using the native picker.
+Save actions, provider management, profiles and pause/recovery remain in the full dashboard. Installed formatter choices do not guarantee language support or provider execution.
 
-A row shows its selected scope's owned value when present, otherwise the effective inherited value. Clicking the row's On/Off link toggles that value at the displayed scope. An `effective On/Off` note identifies a higher-priority override that differs from the owned value. The header and status item summarize effective formatting for the active language regardless of the write scope.
+## Scope and context
 
-Links carry the current revision and accept only the three formatting flags or scope/language choices. Configuration, editor, folder and window-focus changes invalidate earlier links. Pending controls cannot overlap. File names, languages, folder names and formatter labels are escaped; HTML is disabled and only the two extension control/navigation commands and the built-in Settings navigation command are trusted. Hovering does not write settings or run a formatter. Reopen the card after a picker or edit if VS Code dismisses it.
+The first opening selects the active file’s workspace folder, otherwise Workspace, or User in an empty window. Later openings preserve the selected scope. The editor’s context is captured before focusing the sidebar and follows editor/language changes while the view is connected. Folder and language remain explicit; removing a folder reconciles the selection to User. Closing a document no longer leaves its closed context in snapshots, and changing language mode refreshes the live context.
 
-## Native appearance and timing
+Controls show their selected scope’s owned value when present, otherwise the effective inherited value. A differing effective value is displayed separately. Each edit writes only to the selected scope; a higher-priority language override can continue to control the editor. Reset removes the owned value after confirmation, allowing inherited values to apply. User settings in remote windows follow VS Code’s remote configuration behavior; the card explains that Workspace/Folder settings keep changes in the project.
 
-This is VS Code's native Markdown hover, not the custom HTML card from the earlier mockup. The extension API does not provide an anchored webview or custom form controls inside a status hover. Native theme styling, dimensions and pointer behavior apply equally on hover and click. Scope/language links open native pickers rather than inline dropdowns.
+## Appearance and placement
 
-Mouse hover follows VS Code's `workbench.hover.delay` preference. There is no per-item delay property in `StatusBarItem`, so the extension cannot make only this hover instantaneous. It does not alter the user's global hover preference. Clicking opens the card immediately. The implementation uses the registered workbench hover command, not the internal object-only status tooltip sentinels or injected workbench DOM. This behavior is regression-tested on the minimum supported host and stable host; built-in command behavior remains a compatibility dependency.
+The sidebar uses native HTML checkboxes, selects, inputs and buttons styled with VS Code theme tokens. Its width follows the resizable VS Code sidebar; drag the divider to widen it. The card fills that width up to 520px and adapts to narrower layouts. VS Code’s view controls can move it to another sidebar location.
 
-## Commands and verification
+Hovering the status item shows a read-only native Markdown summary with sidebar/dashboard links. It does not edit settings or run a formatter. VS Code controls hover appearance and delay. Real form inputs require a webview, so the interactive card lives in the sidebar rather than the anchored hover. The extension does not patch VS Code or inject workbench UI.
 
-- Formatting Controls: Quick Controls opens formatting-only native toggles and scope/language pickers from the Command Palette or dashboard.
-- Formatting Controls: Native Quick Controls retains the original settings picker workflow and command ID `formattingControls.open`.
-- Formatting Controls: Open Dashboard contains save actions, formatter management, profiles and pause/recovery.
+## Implementation and verification
 
-After building, run `bun run test/run-integration.ts --status-ui` for the actual native hover/click test and `bun run test:ui` for the full dashboard. The status test verifies a cold click with editor focus, identical hover/click bounds and content, pinning after moving the pointer away, Escape/Enter, real scoped writes, scope/language pickers, no new tabs and a focused automated accessibility scan. CI runs the status test across the three existing themes. Backend tests cover stale/invalid links, owned-versus-effective values, save-action preservation and empty-window User scope. Automated checks do not replace the outstanding screen-reader review.
+The dashboard controller now mounts its existing validated protocol into either a panel or a WebviewView. Each surface has an independent scope/revision state and the same serialized requests, folder allowlists, language validation, stale-write checks and conditional reset behavior. The sidebar uses locally bundled assets, nonce-only script CSP and restricted resource roots. Hidden view reconstruction keeps the host’s scope instead of replacing it with the webview’s initial User request. Disposal clears listeners and prevents pending snapshots from posting into another surface.
+
+After building, run `bun run test/run-integration.ts --status-ui` for actual status-click/sidebar UI checks. It uses a fresh test profile and real sidebar resizing for wide/narrow scans. VS Code refuses modal dialogs in extension-test mode; Reset cancellation/confirmation was additionally verified in a normal development window, with unrelated save-action settings preserved. `bun run test:ui` continues to cover the full dashboard. CI runs both surfaces in Dark Modern, Light Modern and Default High Contrast, in addition to the existing editor/platform and remote checks. Automated scans do not replace the outstanding screen-reader review.
+
+The command ID `formattingControls.quickControls` remains compatible and now opens the sidebar. `formattingControls.open` retains the original Native Quick Controls pickers.

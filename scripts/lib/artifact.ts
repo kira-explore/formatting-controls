@@ -18,6 +18,7 @@ const required = [
   "extension/dist/webview/dashboard.js",
   "extension/dist/webview/dashboard.css",
   "extension/assets/icon.png",
+  "extension/assets/sidebar.svg",
 ];
 const rootFiles = new Set([
   "extension.vsixmanifest",
@@ -35,6 +36,7 @@ const rootFiles = new Set([
   "extension/dist/webview/dashboard.js",
   "extension/dist/webview/dashboard.css",
   "extension/assets/icon.png",
+  "extension/assets/sidebar.svg",
 ]);
 export function validateArtifact(
   files: ReadonlyMap<string, Buffer>,

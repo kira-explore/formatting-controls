@@ -34,6 +34,7 @@ function artifact() {
     ["extension/dist/webview/dashboard.js", Buffer.from("ui")],
     ["extension/dist/webview/dashboard.css", Buffer.from("css")],
     ["extension/assets/icon.png", icon],
+    ["extension/assets/sidebar.svg", Buffer.from("<svg/>")],
   ]);
 }
 test("final VSIX rejects unexpected files and traversal paths", () => {

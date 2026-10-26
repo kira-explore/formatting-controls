@@ -21,6 +21,7 @@ export function useEditor() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const requestId = useRef(0);
+  const [session] = useState(() => crypto.randomUUID());
   const pendingRef = useRef<string | undefined>(undefined);
   const latest = useRef<Snapshot | undefined>(undefined);
   const initial = useRef(true);
@@ -30,7 +31,7 @@ export function useEditor() {
     scope: Scope = state?.scope ?? { target: "user" },
   ) => {
     if (!api || pendingRef.current) return;
-    const id = `request-${++requestId.current}`;
+    const id = `request-${session}-${++requestId.current}`;
     pendingRef.current = id;
     setPending(id);
     setError("");
@@ -67,12 +68,12 @@ export function useEditor() {
       }
     };
     window.addEventListener("message", receive);
-    const id = `request-${++requestId.current}`;
+    const id = `request-${session}-${++requestId.current}`;
     api?.postMessage({ type: "ready", id, scope: { target: "user" } });
     timeout = window.setTimeout(
       () =>
         setError(
-          "The editor has not responded. Reopen the dashboard or use Quick Controls.",
+          "The editor has not responded. Reopen the view or use Native Quick Controls.",
         ),
       15000,
     );
@@ -80,7 +81,7 @@ export function useEditor() {
       window.removeEventListener("message", receive);
       window.clearTimeout(timeout);
     };
-  }, []);
+  }, [session]);
   // Clear the connection warning once the host has delivered state.
   useEffect(() => {
     if (state && error.startsWith("The editor")) setError("");

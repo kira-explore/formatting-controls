@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-Added a formatting-only status card: hovering and clicking show the same native card above the status bar, and clicking keeps it focused without opening an editor tab. Save/Paste/Type toggles have explicit scope/language choices and stale-state protection. Save actions, pause/recovery and advanced controls remain in the dashboard. Quick Controls uses native formatting pickers; Native Quick Controls retains the original settings workflow.
+Added an interactive formatting sidebar with real Save/Paste/Type checkboxes, scope/folder/language dropdowns, save formatting mode, installed formatter selection, custom formatter IDs and confirmed per-setting resets. Clicking the status item opens the sidebar without adding an editor tab; hovering shows an effective-formatting summary. The card reuses the dashboard’s validated settings bridge, revision checks, serialized requests and CSP. Save actions, profiles and pause/recovery remain in the full dashboard. Retained the original native picker workflow as Native Quick Controls.
 
 Added real Remote SSH regression coverage for scopes, host-owned profiles, import/export and persisted pause recovery after client reconnect, plus native UI review notes and remote User-scope guidance. Updated Node type declarations to ^26.6.5 while retaining Node 24 compatibility.
 
