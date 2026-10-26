@@ -105,12 +105,12 @@ In VS Code, run **Extensions: Install from VSIX…** and select `formatting-cont
 
 ## Find your flow
 
-Hover the status-bar item for effective formatting and save-action details. Click it to open compact tabbed Quick Controls beside your editor, or use these Command Palette entries:
+Hover the status-bar item for formatting controls. Click it to focus and keep the same card open above the status bar. Toggle Save/Paste/Type, choose the write scope and language, or open the full dashboard for save actions and advanced controls. Command Palette entries:
 
 | Command                                             | Purpose                                                          |
 | --------------------------------------------------- | ---------------------------------------------------------------- |
 | **Formatting Controls: Open Dashboard**             | Open the full settings dashboard                                 |
-| **Formatting Controls: Quick Controls**             | Open compact Formatting and Save actions tabs                    |
+| **Formatting Controls: Quick Controls**             | Use native formatting toggles and scope pickers                  |
 | **Formatting Controls: Native Quick Controls**      | Edit a setting using the original native pickers                 |
 | **Formatting Controls: Inspect Effective Settings** | Open a JSON report of effective values and scope sources         |
 | **Formatting Controls: Restore Previous Settings**  | Restore untouched values from the latest batch in this workspace |
@@ -118,9 +118,9 @@ Hover the status-bar item for effective formatting and save-action details. Clic
 
 The welcome page appears once on first activation. It introduces the workflow and links to settings, documentation, and GitHub; it does not apply a preset automatically.
 
-The hover and compact panel share a clear settings summary. VS Code controls the native hover; the clicked controls use a supported editor panel, rather than an anchored Copilot-style popup. See [status controls and scope behavior](docs/status-controls.md).
+Hover and click use one native formatting card in the same location. VS Code controls its appearance, pointer and hover delay; scope and language choices use native pickers. See [status controls and scope behavior](docs/status-controls.md).
 
-![Compact tabbed Quick Controls beside the editor in Dark Modern](docs/assets/status-quick-controls-dark.png)
+![Formatting controls anchored above the status bar in Dark Modern](docs/assets/status-card-dark.png)
 
 ### Dashboard
 

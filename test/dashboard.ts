@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import axe from "axe-core";
 import { chromium } from "playwright-core";
+import { reviewStatus } from "./status";
 
 interface Context {
   id: number;
@@ -16,13 +17,20 @@ interface Reply {
   error?: unknown;
 }
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-export async function reviewDashboard(directory: string): Promise<void> {
+export async function reviewDashboard(
+  directory: string,
+  statusUi = false,
+): Promise<void> {
   const browser = await chromium.connectOverCDP("http://127.0.0.1:9333");
   try {
     const page = browser.contexts()[0]?.pages()[0];
     assert.ok(page);
     await page.bringToFront();
     await page.setViewportSize({ width: 1600, height: 1100 });
+    if (statusUi) {
+      await reviewStatus(page, directory);
+      return;
+    }
     const session = await browser.newBrowserCDPSession();
     let target: { targetId: string } | undefined;
     const targetDeadline = Date.now() + 15000;
@@ -76,7 +84,7 @@ export async function reviewDashboard(directory: string): Promise<void> {
       for (const context of contexts.filter((c) => c.auxData?.isDefault)) {
         const reply = await send("Runtime.evaluate", {
           contextId: context.id,
-          expression: '!!document.querySelector(".app,.quick-card")',
+          expression: '!!document.querySelector(".app")',
           returnByValue: true,
         });
         if (reply.result?.result?.value) contextId = context.id;
@@ -115,136 +123,6 @@ export async function reviewDashboard(directory: string): Promise<void> {
       .find((s) => s.startsWith("script-src "));
     assert.match(scripts ?? "", /^script-src 'nonce-[^']+'$/);
     await evaluate(axe.source);
-    if (await evaluate<boolean>('!!document.querySelector(".quick-card")')) {
-      mkdirSync(directory, { recursive: true });
-      const reports: object[] = [];
-      for (const narrow of [false, true]) {
-        await page.setViewportSize({
-          width: narrow ? 460 : 1600,
-          height: 1100,
-        });
-        for (const tab of ["formatting", "actions"]) {
-          await evaluate(`document.getElementById('quick-${tab}-tab').click()`);
-          await wait(
-            `document.getElementById('quick-${tab}-tab').getAttribute('aria-selected')==='true'`,
-          );
-          const result = await evaluate<{
-            violations: unknown[];
-            incomplete: unknown[];
-          }>(
-            `axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa','best-practice']}}).then(r=>({violations:r.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>({target:n.target}))})),incomplete:r.incomplete.map(v=>v.id)}))`,
-          );
-          const layout = await evaluate<{ width: number; scrollWidth: number }>(
-            "({width:innerWidth,scrollWidth:document.documentElement.scrollWidth})",
-          );
-          reports.push({ tab, narrow, layout, ...result });
-          writeFileSync(
-            join(directory, "accessibility.json"),
-            JSON.stringify(reports, null, 2),
-          );
-          assert.deepEqual(
-            result.violations,
-            [],
-            `${tab} quick-controls accessibility`,
-          );
-          assert.ok(
-            layout.scrollWidth <= layout.width + 1,
-            "Quick controls overflow horizontally",
-          );
-          const clip = await page.locator("iframe").first().boundingBox();
-          assert.ok(clip);
-          await page.screenshot({
-            path: join(directory, `${narrow ? "narrow-" : ""}${tab}.png`),
-            clip,
-          });
-        }
-      }
-      await evaluate("document.getElementById('quick-formatting-tab').click()");
-      await wait(
-        "!!document.querySelector('input[aria-label=\"Format on save\"]')&&!document.querySelector('input[aria-label=\"Format on save\"]').disabled",
-      );
-      const before = await evaluate<boolean>(
-        `document.querySelector('input[aria-label="Format on save"]').checked`,
-      );
-      await evaluate(
-        `document.querySelector('input[aria-label="Format on save"]').click()`,
-      );
-      await wait(
-        `document.querySelector('input[aria-label="Format on save"]').checked===${!before}&&!document.querySelector('input[aria-label="Format on save"]').disabled`,
-      );
-      await evaluate("document.getElementById('quick-actions-tab').click()");
-      assert.equal(
-        await evaluate<string>(
-          `document.querySelector('select[aria-label="Organize imports"]').value`,
-        ),
-        "explicit",
-        "The selected folder's value must remain editable when a language override wins",
-      );
-      assert.ok(
-        await evaluate<boolean>(
-          `document.querySelector('select[aria-label="Organize imports"]').closest('label').textContent.includes('Effective: Never')`,
-        ),
-      );
-      await evaluate(
-        `(()=>{const select=document.querySelector('select[aria-label="Organize imports"]');select.value='always';select.dispatchEvent(new Event('change',{bubbles:true}));})()`,
-      );
-      await wait(
-        `document.querySelector('select[aria-label="Organize imports"]').value==='always'&&!document.querySelector('select[aria-label="Organize imports"]').disabled`,
-      );
-      assert.ok(
-        await evaluate<boolean>(
-          `document.querySelector('select[aria-label="Settings scope"]').value==='folder'`,
-        ),
-        "Quick controls must default to active workspace folder",
-      );
-      await evaluate("document.getElementById('quick-formatting-tab').click()");
-      await wait(
-        "document.getElementById('quick-formatting-tab').getAttribute('aria-selected')==='true'",
-      );
-      await evaluate("document.getElementById('quick-formatting-tab').focus()");
-      await send("Input.dispatchKeyEvent", {
-        type: "keyDown",
-        key: "ArrowRight",
-        code: "ArrowRight",
-        windowsVirtualKeyCode: 39,
-      });
-      await send("Input.dispatchKeyEvent", {
-        type: "keyUp",
-        key: "ArrowRight",
-        code: "ArrowRight",
-        windowsVirtualKeyCode: 39,
-      });
-      assert.equal(
-        await evaluate<string>("document.activeElement.id"),
-        "quick-actions-tab",
-      );
-      await page.setViewportSize({ width: 1600, height: 1100 });
-      await page.screenshot({
-        path: join(directory, "quick-controls-window.png"),
-      });
-      const statusButton = page.getByRole("button", {
-        name: /^Formatting: (ON|OFF|MIXED)$/,
-      });
-      await statusButton.hover();
-      const hover = page
-        .locator(".monaco-hover")
-        .filter({ hasText: "Formatting Controls" });
-      await hover.waitFor({ state: "visible" });
-      const hoverText = (await hover.textContent()) ?? "";
-      assert.ok(
-        hoverText.includes("Format on save") &&
-          hoverText.includes("Format on paste") &&
-          hoverText.includes("Format on type"),
-      );
-      assert.ok(hoverText.includes("Separate from formatting"));
-      await page.screenshot({
-        path: join(directory, "status-hover-window.png"),
-      });
-      console.log(
-        "Quick controls verified: four accessibility/layout scans, real scoped checkbox/action writes, keyboard tabs and native status hover.",
-      );
-      return;
-    }
     const names = [
       "Overview",
       "Formatting",

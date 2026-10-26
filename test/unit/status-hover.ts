@@ -1,65 +1,65 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { quickTab, saveActions, statusHover } from "../../shared/status-hover";
+import { type HoverContext, statusHover } from "../../shared/status-hover";
 
-test("hover reports effective triggers and counts save actions independently", () => {
-  const hover = statusHover({
-    file: "app.tsx",
-    language: "typescriptreact",
-    flags: [false, false, false],
-    formatter: "biomejs.biome",
-    actions: {
-      "source.fixAll.biome": "explicit",
-      "source.organizeImports": "never",
-      "source.fixAll.eslint": true,
-      invalid: "always",
-    },
-  });
-  assert.match(hover, /Formatting Controls · Off/);
-  assert.match(hover, /Format on save \| Off/);
-  assert.match(hover, /2 configured to run/);
-  assert.match(hover, /Separate from formatting/);
-  assert.equal(saveActions(["source.fixAll"]).length, 0);
+const context: HoverContext = {
+  file: "app.tsx",
+  language: "typescriptreact",
+  flags: [false, true, false],
+  owned: [true, undefined, false],
+  formatter: "Biome",
+  scope: "Folder: project",
+  languageScope: "All languages",
+  revision: 7,
+};
+test("formatting-only hover distinguishes owned, effective and inherited values", () => {
+  const hover = statusHover(context);
+  assert.match(hover, /Formatting Controls · Mixed/);
+  assert.match(hover, /On\].*Effective Off/);
+  assert.match(hover, /On\].*Inherited/);
+  assert.ok(!/save actions|codeActions|quickControls/i.test(hover));
   assert.match(
-    statusHover({
-      file: "No editor",
-      flags: [true, false, false],
-      actions: [],
-    }),
-    /Formatting Controls · Mixed/,
+    statusHover({ ...context, flags: [true, true, true] }),
+    /Controls · On/,
+  );
+  assert.match(
+    statusHover({ ...context, flags: [false, false, false] }),
+    /Controls · Off/,
   );
 });
-test("untrusted file and formatter text cannot introduce markdown commands or HTML", () => {
+test("untrusted context text cannot introduce markdown commands, HTML or codicons", () => {
   const hover = statusHover({
+    ...context,
     file: "[Run](command:evil)\n<img src=x>",
-    flags: [false, false, false],
     formatter: "$(zap)[Other](command:evil)",
-    actions: undefined,
+    scope: "[evil]",
   });
   assert.ok(hover.includes("\\[Run\\]\\(command:evil\\)"));
   assert.ok(hover.includes("\\<img src=x\\>"));
   assert.ok(hover.includes("\\$\\(zap\\)"));
   assert.ok(!hover.includes("[Run](command:evil)"));
-  assert.ok(!hover.includes("<img src=x>"));
   const commands = [...hover.matchAll(/\]\(command:([\w.]+)/g)].map(
     (match) => match[1],
   );
   assert.deepEqual(
     new Set(commands),
     new Set([
-      "formattingControls.quickControls",
+      "formattingControls.statusControl",
       "formattingControls.dashboard",
+      "workbench.action.openSettings",
     ]),
   );
 });
-test("quick controls navigation accepts only known tabs", () => {
-  assert.equal(quickTab("actions"), "actions");
-  for (const value of [
-    null,
-    undefined,
-    "file:///tmp/settings",
-    { tab: "actions" },
-    ["actions"],
-  ])
-    assert.equal(quickTab(value), "formatting");
+test("each control carries the current revision and a constrained action", () => {
+  const hover = statusHover(context);
+  const actions = [...hover.matchAll(/statusControl\?([^)]*)/g)].map((match) =>
+    JSON.parse(decodeURIComponent(match[1] ?? "")),
+  );
+  assert.deepEqual(actions, [
+    [7, "scope"],
+    [7, "language"],
+    [7, 0],
+    [7, 1],
+    [7, 2],
+  ]);
 });

@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-Added a rich status-bar hover and compact tabbed Quick Controls beside the editor, with explicit scope/language selection, formatting flags, independent save-action editing and existing pause/recovery previews. Retained native pickers as Native Quick Controls.
+Added a formatting-only status card: hovering and clicking show the same native card above the status bar, and clicking keeps it focused without opening an editor tab. Save/Paste/Type toggles have explicit scope/language choices and stale-state protection. Save actions, pause/recovery and advanced controls remain in the dashboard. Quick Controls uses native formatting pickers; Native Quick Controls retains the original settings workflow.
 
 Added real Remote SSH regression coverage for scopes, host-owned profiles, import/export and persisted pause recovery after client reconnect, plus native UI review notes and remote User-scope guidance. Updated Node type declarations to ^26.6.5 while retaining Node 24 compatibility.
 

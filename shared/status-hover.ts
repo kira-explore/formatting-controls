@@ -1,12 +1,12 @@
-export type QuickTab = "formatting" | "actions";
-export const quickTab = (value: unknown): QuickTab =>
-  value === "actions" ? "actions" : "formatting";
 export interface HoverContext {
   file: string;
   language?: string;
   flags: readonly boolean[];
+  owned: readonly (boolean | undefined)[];
   formatter?: string;
-  actions: unknown;
+  scope: string;
+  languageScope: string;
+  revision: number;
 }
 const text = (value: string) =>
   value
@@ -15,20 +15,9 @@ const text = (value: string) =>
     .map((character) => (character.charCodeAt(0) < 32 ? " " : character))
     .join("")
     .replace(/[\\`*_{}[\]()<>#+.!|$]/g, "\\$&");
-export function saveActions(value: unknown): [string, unknown][] {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? Object.entries(value)
-        .filter(([id]) => /^source(?:\.[\w-]+)+$/.test(id))
-        .sort(([a], [b]) => a.localeCompare(b))
-    : [];
-}
-export const actionEnabled = (value: unknown): boolean =>
-  value === true || value === "explicit" || value === "always";
 export function statusHover(context: HoverContext): string {
-  const configured = saveActions(context.actions);
-  const active = configured.filter(([, value]) => actionEnabled(value)).length;
-  const link = (tab: QuickTab) =>
-    `command:formattingControls.quickControls?${encodeURIComponent(JSON.stringify([tab]))}`;
+  const link = (action: number | string) =>
+    `command:formattingControls.statusControl?${encodeURIComponent(JSON.stringify([context.revision, action]))}`;
   const state = context.flags.every(Boolean)
     ? "On"
     : context.flags.some(Boolean)
@@ -37,21 +26,25 @@ export function statusHover(context: HoverContext): string {
   return [
     `### $(settings-gear) Formatting Controls · ${state}`,
     `${text(context.file)}${context.language ? ` · ${text(context.language)}` : ""}`,
-    `[Formatting](${link("formatting")})  ·  [Save actions (${active})](${link("actions")})`,
-    "| Formatting trigger | Effective value |\n|:---|---:|\n" +
+    "---",
+    `Write to: [${text(context.scope)} $(chevron-down)](${link("scope")})  \nLanguage: [${text(context.languageScope)} $(chevron-down)](${link("language")})`,
+    "| Formatting | Value | &nbsp;&nbsp; Source |\n|:---|---:|:---|\n" +
       ["Save", "Paste", "Type"]
-        .map(
-          (label, i) =>
-            `| Format on ${label.toLowerCase()} | ${context.flags[i] ? "On" : "Off"} |`,
-        )
+        .map((label, i) => {
+          const owned = context.owned[i];
+          const checked = owned ?? context.flags[i];
+          const control = `[$(${checked ? "check" : "circle-large-outline"}) ${checked ? "On" : "Off"}](${link(i)})`;
+          const note =
+            owned === undefined
+              ? "Inherited"
+              : owned !== context.flags[i]
+                ? `Effective ${context.flags[i] ? "On" : "Off"}`
+                : "Set here";
+          return `| Format on ${label.toLowerCase()} | ${control} | &nbsp;&nbsp; ${note} |`;
+        })
         .join("\n"),
     `**Default formatter:** ${text(context.formatter || "Not configured")}`,
-    `**Save actions:** ${active} configured to run. Separate from formatting; providers determine execution.`,
-    Array.isArray(context.actions)
-      ? "Legacy save-action list: migrate it in VS Code Settings before editing."
-      : "",
-    `[Open quick controls](${link("formatting")})  ·  [Open dashboard](command:formattingControls.dashboard)`,
-  ]
-    .filter(Boolean)
-    .join("\n\n");
+    "---",
+    `[Open dashboard $(link-external)](command:formattingControls.dashboard)  ·  [VS Code Settings](command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))})`,
+  ].join("\n\n");
 }

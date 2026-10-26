@@ -15,14 +15,14 @@ import { reviewDashboard } from "./dashboard";
     workspace,
     JSON.stringify({ folders: [{ path: "first" }, { path: "second" }] }),
   );
-  const quickUi = process.argv.includes("--quick-ui");
-  const ui = process.argv.includes("--ui") || quickUi;
+  const statusUi = process.argv.includes("--status-ui");
+  const ui = process.argv.includes("--ui") || statusUi;
   const empty = process.argv.includes("--empty");
   const ready = path.join(temp, "ui-ready"),
     done = path.join(temp, "ui-done");
   const report = path.resolve(
     "test-results",
-    `${process.platform}-${process.env.VSCODE_VERSION ?? "stable"}-${(process.env.FORMATTING_CONTROLS_UI_THEME ?? "Dark Modern").replaceAll(" ", "-")}${quickUi ? "-quick" : ""}`,
+    `${process.platform}-${process.env.VSCODE_VERSION ?? "stable"}-${(process.env.FORMATTING_CONTROLS_UI_THEME ?? "Dark Modern").replaceAll(" ", "-")}${statusUi ? "-status" : ""}`,
   );
   let hostFinished = false;
   try {
@@ -33,7 +33,7 @@ import { reviewDashboard } from "./dashboard";
         `dist/test/integration/${empty ? "empty" : "suite"}.js`,
       ),
       extensionTestsEnv: {
-        FORMATTING_CONTROLS_QUICK_UI: quickUi ? "1" : "",
+        FORMATTING_CONTROLS_STATUS_UI: statusUi ? "1" : "",
         FORMATTING_CONTROLS_UI_THEME:
           process.env.FORMATTING_CONTROLS_UI_THEME ?? (ui ? "Dark Modern" : ""),
         FORMATTING_CONTROLS_REPORT_DIR: report,
@@ -75,7 +75,7 @@ import { reviewDashboard } from "./dashboard";
                 );
               await new Promise((resolve) => setTimeout(resolve, 100));
             }
-            await reviewDashboard(report);
+            await reviewDashboard(report, statusUi);
           } finally {
             fs.writeFileSync(done, "done");
           }

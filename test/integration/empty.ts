@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import * as vscode from "vscode";
 import { own, write } from "../../src/configuration";
 import { Dashboard } from "../../src/dashboard";
+import { StatusControls } from "../../src/status-controls";
 import { Workflows } from "../../src/workflows";
 import { MemoryStore } from "./workflows";
 export async function run(): Promise<void> {
@@ -54,18 +55,24 @@ export async function run(): Promise<void> {
     assert.equal(own(user, "editor.formatOnSave"), true);
     await workflows.restore();
     assert.equal(own(user, "editor.formatOnSave"), false);
-    const quick = new Dashboard(
-      extension.extensionUri,
-      () => undefined,
-      workflows,
-      "quick",
-    );
+    const item = vscode.window.createStatusBarItem();
     try {
-      await quick.open(false, "actions");
-      assert.equal((await quick.snapshot()).scope.target, "user");
-      assert.equal((await quick.snapshot()).quickTab, "actions");
+      const controls = new StatusControls(item, () => undefined);
+      controls.refresh();
+      assert.ok(
+        (item.tooltip as vscode.MarkdownString).value.includes("[User"),
+      );
+      const revision = JSON.parse(
+        decodeURIComponent(
+          (item.tooltip as vscode.MarkdownString).value.match(
+            /statusControl\?([^)]*)/,
+          )?.[1] ?? "",
+        ),
+      )[0];
+      await controls.control(revision, 0);
+      assert.equal(own(user, "editor.formatOnSave"), true);
     } finally {
-      quick.dispose();
+      item.dispose();
     }
     await dashboard.open();
     await dashboard.open(true);

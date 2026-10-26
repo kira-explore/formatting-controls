@@ -84,7 +84,7 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
       - run: bun install --frozen-lockfile
       - run: xvfb-run -a bun run test:ui
-      - run: xvfb-run -a bun run test/run-integration.ts --quick-ui
+      - run: xvfb-run -a bun run test/run-integration.ts --status-ui
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
