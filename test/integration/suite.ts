@@ -12,6 +12,7 @@ import {
 import { Dashboard } from "../../src/dashboard";
 import { Workflows } from "../../src/workflows";
 import { profileDashboard } from "./performance";
+import { runQuickTests } from "./quick-controls";
 import { MemoryStore, runWorkflowTests } from "./workflows";
 
 async function changeFolders(
@@ -303,12 +304,34 @@ export async function run(): Promise<void> {
     } finally {
       await changeFolders(1, 0, { uri: other.uri, name: other.name });
     }
+    await runQuickTests(ext.extensionUri, uri);
     await runWorkflowTests(ext.extensionUri, uri);
     await profileDashboard(dashboard);
     if (
       process.env.FORMATTING_CONTROLS_UI_READY &&
       process.env.FORMATTING_CONTROLS_UI_DONE
     ) {
+      if (process.env.FORMATTING_CONTROLS_QUICK_UI) {
+        await vscode.commands.executeCommand(
+          "workbench.action.closeAllEditors",
+        );
+        const quickDocument = await vscode.languages.setTextDocumentLanguage(
+          await vscode.workspace.openTextDocument(uri),
+          "typescript",
+        );
+        await vscode.window.showTextDocument(quickDocument);
+        await setAction(first, "source.organizeImports", "explicit");
+        await setAction(
+          { ...first, language: "typescript" },
+          "source.organizeImports",
+          "never",
+        );
+        await vscode.commands.executeCommand(
+          "formattingControls.quickControls",
+        );
+      } else {
+        await dashboard.open();
+      }
       await vscode.commands.executeCommand("workbench.action.closeSidebar");
       await vscode.commands.executeCommand("workbench.action.closePanel");
       writeFileSync(process.env.FORMATTING_CONTROLS_UI_READY, "ready");

@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { validValue } from "../shared/protocol";
+import { quickTab } from "../shared/status-hover";
 import {
   configuration,
   own,
@@ -17,6 +18,7 @@ import {
   status,
 } from "./model";
 import { FileProfiles } from "./profile-store";
+import { statusTooltip } from "./status-hover";
 import { Workflows } from "./workflows";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -32,22 +34,31 @@ export function activate(context: vscode.ExtensionContext): void {
     profiles,
   );
   const dashboard = new Dashboard(context.extensionUri, undefined, workflows);
+  const quick = new Dashboard(
+    context.extensionUri,
+    undefined,
+    workflows,
+    "quick",
+  );
   const item = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
     100,
   );
-  item.command = "formattingControls.open";
+  item.name = "Formatting Controls";
+  item.command = "formattingControls.quickControls";
+  let activeDocument = vscode.window.activeTextEditor?.document;
   const scope = (): Selection => {
-    const document = vscode.window.activeTextEditor?.document;
+    const document = vscode.window.activeTextEditor?.document ?? activeDocument;
     return {
       target: vscode.ConfigurationTarget.Global,
       ...(document ? { uri: document.uri } : {}),
     };
   };
   const refresh = () => {
+    activeDocument = vscode.window.activeTextEditor?.document ?? activeDocument;
     const c = configuration(scope());
     // Read with the active language even when the editing target is ordinary User settings.
-    const document = vscode.window.activeTextEditor?.document;
+    const document = vscode.window.activeTextEditor?.document ?? activeDocument;
     const effective = document
       ? vscode.workspace.getConfiguration(undefined, {
           uri: document.uri,
@@ -55,15 +66,24 @@ export function activate(context: vscode.ExtensionContext): void {
         })
       : c;
     item.text = `$(settings-gear) Formatting: ${status(flags.map((k) => effective.get<boolean>(k, false)))}`;
-    item.tooltip =
-      "Effective Save / Paste / Type formatting for the active editor. Click to choose a setting and scope. Code actions are separate.";
+    const formatter = effective.get<unknown>("editor.defaultFormatter");
+    const tooltip = statusTooltip({
+      file: document
+        ? vscode.workspace.asRelativePath(document.uri)
+        : "No active editor",
+      ...(document ? { language: document.languageId } : {}),
+      flags: flags.map((key) => effective.get<boolean>(key, false)),
+      ...(typeof formatter === "string" ? { formatter } : {}),
+      actions: effective.get("editor.codeActionsOnSave"),
+    });
+    item.tooltip = tooltip;
     item.accessibilityInformation = {
       label: item.text.replace("$(settings-gear) ", ""),
     };
     item.show();
   };
   const inspect = async () => {
-    const d = vscode.window.activeTextEditor?.document;
+    const d = vscode.window.activeTextEditor?.document ?? activeDocument;
     const c = vscode.workspace.getConfiguration(
       undefined,
       d ? { uri: d.uri, languageId: d.languageId } : undefined,
@@ -113,7 +133,7 @@ export function activate(context: vscode.ExtensionContext): void {
     if (!target) return;
     if (target.label === "$(layout) Open Dashboard") return dashboard.open();
     const s: Selection = { ...scope(), target: target.target };
-    const d = vscode.window.activeTextEditor?.document;
+    const d = vscode.window.activeTextEditor?.document ?? activeDocument;
     const language =
       d &&
       (await vscode.window.showQuickPick(
@@ -264,6 +284,12 @@ export function activate(context: vscode.ExtensionContext): void {
       }),
     ),
     dashboard,
+    quick,
+    vscode.commands.registerCommand(
+      "formattingControls.quickControls",
+      (tab?: unknown) =>
+        guarded(() => quick.open(false, quickTab(tab), activeDocument))(),
+    ),
     vscode.commands.registerCommand(
       "formattingControls.dashboard",
       guarded(() => dashboard.open()),
@@ -278,6 +304,12 @@ export function activate(context: vscode.ExtensionContext): void {
       "formattingControls.inspect",
       guarded(inspect),
     ),
+    vscode.workspace.onDidCloseTextDocument((document) => {
+      if (document === activeDocument) {
+        activeDocument = vscode.window.activeTextEditor?.document;
+        refresh();
+      }
+    }),
     vscode.workspace.onDidChangeConfiguration(refresh),
     vscode.window.onDidChangeActiveTextEditor(refresh),
   );

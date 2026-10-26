@@ -12,7 +12,14 @@ export async function run(): Promise<void> {
   await extension.activate();
   assert.equal(vscode.workspace.workspaceFolders, undefined);
   const commands = await vscode.commands.getCommands();
-  for (const command of ["open", "inspect", "dashboard", "welcome", "restore"])
+  for (const command of [
+    "open",
+    "inspect",
+    "dashboard",
+    "welcome",
+    "restore",
+    "quickControls",
+  ])
     assert.ok(commands.includes(`formattingControls.${command}`));
   const workflows = new Workflows(
     new MemoryStore(),
@@ -47,6 +54,19 @@ export async function run(): Promise<void> {
     assert.equal(own(user, "editor.formatOnSave"), true);
     await workflows.restore();
     assert.equal(own(user, "editor.formatOnSave"), false);
+    const quick = new Dashboard(
+      extension.extensionUri,
+      () => undefined,
+      workflows,
+      "quick",
+    );
+    try {
+      await quick.open(false, "actions");
+      assert.equal((await quick.snapshot()).scope.target, "user");
+      assert.equal((await quick.snapshot()).quickTab, "actions");
+    } finally {
+      quick.dispose();
+    }
     await dashboard.open();
     await dashboard.open(true);
     assert.equal((await dashboard.snapshot()).page, "welcome");

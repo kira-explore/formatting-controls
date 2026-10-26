@@ -62,7 +62,7 @@
     "commands": [
       {
         "command": "formattingControls.open",
-        "title": "Formatting Controls: Quick Controls"
+        "title": "Formatting Controls: Native Quick Controls"
       },
       {
         "command": "formattingControls.inspect",
@@ -79,6 +79,10 @@
       {
         "command": "formattingControls.restore",
         "title": "Formatting Controls: Restore Previous Settings"
+      },
+      {
+        "command": "formattingControls.quickControls",
+        "title": "Formatting Controls: Quick Controls"
       }
     ]
   },

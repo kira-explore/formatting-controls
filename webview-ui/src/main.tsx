@@ -2,6 +2,7 @@ import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { Key, Scope } from "../../shared/protocol";
 import { actionNames, descriptions, display, labels, pages } from "./catalog";
+import { QuickControls } from "./QuickControls";
 import { useEditor } from "./useEditor";
 import { WorkflowPages } from "./WorkflowPages";
 import "./styles.css";
@@ -823,6 +824,10 @@ const root = document.getElementById("root");
 if (root)
   createRoot(root).render(
     <StrictMode>
-      <App />
+      {document.documentElement.dataset.presentation === "quick" ? (
+        <QuickControls />
+      ) : (
+        <App />
+      )}
     </StrictMode>,
   );
