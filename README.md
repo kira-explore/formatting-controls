@@ -105,12 +105,12 @@ In VS Code, run **Extensions: Install from VSIX…** and select `formatting-cont
 
 ## Find your flow
 
-Click the status-bar item to open interactive formatting controls in the sidebar, keeping the editor visible. Use real checkboxes, scope/language dropdowns, formatter selection and confirmed resets. Hover for a brief effective-formatting summary. Open the full dashboard for save actions and advanced controls. Command Palette entries:
+Hover the status-bar item for formatting controls. Click it to focus and keep the same card open above the status bar. Toggle Save/Paste/Type, choose the write scope and language, or open the full dashboard for save actions and advanced controls. Command Palette entries:
 
 | Command                                             | Purpose                                                          |
 | --------------------------------------------------- | ---------------------------------------------------------------- |
 | **Formatting Controls: Open Dashboard**             | Open the full settings dashboard                                 |
-| **Formatting Controls: Open Sidebar Controls**      | Open interactive formatting controls in the sidebar              |
+| **Formatting Controls: Quick Controls**             | Use native formatting toggles and scope pickers                  |
 | **Formatting Controls: Native Quick Controls**      | Edit a setting using the original native pickers                 |
 | **Formatting Controls: Inspect Effective Settings** | Open a JSON report of effective values and scope sources         |
 | **Formatting Controls: Restore Previous Settings**  | Restore untouched values from the latest batch in this workspace |
@@ -118,9 +118,9 @@ Click the status-bar item to open interactive formatting controls in the sidebar
 
 The welcome page appears once on first activation. It introduces the workflow and links to settings, documentation, and GitHub; it does not apply a preset automatically.
 
-The sidebar uses VS Code theme colors and can be widened with its divider or moved through VS Code’s view controls. Clicking the status item opens the sidebar without adding an editor tab. See [sidebar controls and scope behavior](docs/status-controls.md).
+Hover and click use one native formatting card in the same location. VS Code controls its appearance, pointer and hover delay; scope and language choices use native pickers. See [status controls and scope behavior](docs/status-controls.md).
 
-![Interactive formatting sidebar in Dark Modern](docs/assets/formatting-sidebar-dark.png)
+![Formatting controls anchored above the status bar in Dark Modern](docs/assets/status-card-dark.png)
 
 ### Dashboard
 

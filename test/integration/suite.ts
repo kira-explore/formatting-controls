@@ -12,6 +12,7 @@ import {
 import { Dashboard } from "../../src/dashboard";
 import { Workflows } from "../../src/workflows";
 import { profileDashboard } from "./performance";
+import { runStatusTests } from "./status-controls";
 import { MemoryStore, runWorkflowTests } from "./workflows";
 
 async function changeFolders(
@@ -303,6 +304,7 @@ export async function run(): Promise<void> {
     } finally {
       await changeFolders(1, 0, { uri: other.uri, name: other.name });
     }
+    await runStatusTests(uri);
     await runWorkflowTests(ext.extensionUri, uri);
     await profileDashboard(dashboard);
     if (
@@ -319,11 +321,6 @@ export async function run(): Promise<void> {
         );
         await vscode.window.showTextDocument(document);
         await write(first, "editor.formatOnPaste", false);
-        await write(
-          { ...first, language: "typescript" },
-          "editor.formatOnPaste",
-          true,
-        );
       } else {
         await dashboard.open();
       }

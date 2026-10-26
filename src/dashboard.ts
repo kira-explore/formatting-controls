@@ -24,15 +24,8 @@ import { flags, status } from "./model";
 import { providersFor } from "./providers";
 import type { Workflows } from "./workflows";
 
-export class Dashboard
-  implements vscode.Disposable, vscode.WebviewViewProvider
-{
+export class Dashboard implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
-  private initialized = false;
-  private get document(): vscode.TextDocument | undefined {
-    return this.active?.isClosed ? undefined : this.active;
-  }
-  private webview: vscode.Webview | undefined;
   private listeners: vscode.Disposable[] = [];
   private revision = 0;
   private navigation = 0;
@@ -55,7 +48,7 @@ export class Dashboard
   }
   private async post(message: Response): Promise<void> {
     if (this.onResponse) await this.onResponse(message);
-    await this.webview?.postMessage(message);
+    await this.panel?.webview.postMessage(message);
   }
   async open(welcome = false): Promise<void> {
     this.reconcileScope();
@@ -75,46 +68,18 @@ export class Dashboard
       { enableScripts: true, localResourceRoots: [root] },
     );
     this.panel = panel;
-    this.mount(panel.webview, panel.onDidDispose, "dashboard");
-  }
-  captureContext(document: vscode.TextDocument | undefined): void {
-    if (document) this.active = document;
-  }
-  resolveWebviewView(view: vscode.WebviewView): void {
-    this.active = vscode.window.activeTextEditor?.document ?? this.active;
-    if (!this.initialized) {
-      const folder =
-        this.active && vscode.workspace.getWorkspaceFolder(this.active.uri);
-      this.scope = folder
-        ? { target: "folder", folder: folder.uri.toString() }
-        : vscode.workspace.workspaceFile ||
-            vscode.workspace.workspaceFolders?.length
-          ? { target: "workspace" }
-          : { target: "user" };
-      this.initialized = true;
-    }
-    this.reconcileScope();
-    this.mount(view.webview, view.onDidDispose, "sidebar");
-  }
-  private mount(
-    webview: vscode.Webview,
-    onDispose: vscode.Event<void>,
-    presentation: string,
-  ): void {
-    for (const listener of this.listeners.splice(0)) listener.dispose();
-    const root = vscode.Uri.joinPath(this.extensionUri, "dist", "webview");
-    this.webview = webview;
-    webview.options = { enableScripts: true, localResourceRoots: [root] };
     const nonce = randomBytes(24).toString("base64");
-    const js = webview.asWebviewUri(vscode.Uri.joinPath(root, "dashboard.js"));
-    const css = webview.asWebviewUri(
+    const js = panel.webview.asWebviewUri(
+      vscode.Uri.joinPath(root, "dashboard.js"),
+    );
+    const css = panel.webview.asWebviewUri(
       vscode.Uri.joinPath(root, "dashboard.css"),
     );
-    webview.html = `<!doctype html><html lang="en" data-presentation="${presentation}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src ${webview.cspSource}; font-src ${webview.cspSource}; img-src ${webview.cspSource};"><title>Formatting Controls</title><link rel="stylesheet" href="${css}"></head><body><div id="root"></div><script nonce="${nonce}" type="module" src="${js}"></script></body></html>`;
+    panel.webview.html = `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src ${panel.webview.cspSource}; font-src ${panel.webview.cspSource}; img-src ${panel.webview.cspSource};"><title>Formatting Controls</title><link rel="stylesheet" href="${css}"></head><body><div id="root"></div><script nonce="${nonce}" type="module" src="${js}"></script></body></html>`;
     this.listeners = [
-      webview.onDidReceiveMessage((raw: unknown) => {
+      panel.webview.onDidReceiveMessage((raw: unknown) => {
         this.queue = this.queue
-          .then(() => (this.webview === webview ? this.handle(raw) : undefined))
+          .then(() => (this.panel === panel ? this.handle(raw) : undefined))
           .catch(() => undefined);
       }),
       vscode.workspace.onDidChangeConfiguration(() => {
@@ -151,23 +116,8 @@ export class Dashboard
             }),
           ]
         : []),
-      vscode.workspace.onDidCloseTextDocument((document) => {
-        if (document === this.active) {
-          this.revision++;
-          void this.publish();
-        }
-      }),
-      vscode.workspace.onDidOpenTextDocument((document) => {
-        if (document.uri.toString() === this.active?.uri.toString()) {
-          this.active = document;
-          this.revision++;
-          void this.publish();
-        }
-      }),
-      onDispose(() => {
-        if (this.webview !== webview) return;
+      panel.onDidDispose(() => {
         this.panel = undefined;
-        this.webview = undefined;
         for (const listener of this.listeners.splice(0)) listener.dispose();
       }),
     ];
@@ -188,7 +138,7 @@ export class Dashboard
       !vscode.workspace.workspaceFolders?.length
     )
       throw new Error("Open a workspace before editing workspace settings.");
-    const activeUri = this.document?.uri;
+    const activeUri = this.active?.uri;
     const activeFolder =
       activeUri && vscode.workspace.getWorkspaceFolder(activeUri);
     const uri = folder
@@ -212,10 +162,10 @@ export class Dashboard
     const selection = this.selection(this.scope);
     const effective = configuration({
       ...selection,
-      ...((this.scope.language ?? this.document?.languageId)
+      ...((this.scope.language ?? this.active?.languageId)
         ? {
             language: (this.scope.language ??
-              this.document?.languageId) as string,
+              this.active?.languageId) as string,
           }
         : {}),
     });
@@ -228,7 +178,7 @@ export class Dashboard
     }));
     const detected = providersFor(
       effective,
-      this.scope.language ?? this.document?.languageId ?? "",
+      this.scope.language ?? this.active?.languageId ?? "",
       effective.get("editor.defaultFormatter"),
     );
     const ids = new Set(
@@ -286,7 +236,7 @@ export class Dashboard
       scope: this.scope,
       page: this.page,
       activeLanguage:
-        this.scope.language ?? this.document?.languageId ?? "All languages",
+        this.scope.language ?? this.active?.languageId ?? "All languages",
       resource: selection.uri?.toString() ?? "No active file",
       folders: (vscode.workspace.workspaceFolders ?? []).map((f) => ({
         name: f.name,
@@ -308,11 +258,11 @@ export class Dashboard
     };
   }
   private async publish(id?: string, message?: string): Promise<void> {
-    if (!this.webview && !this.onResponse) return;
-    const webview = this.webview;
+    if (!this.panel && !this.onResponse) return;
+    const panel = this.panel;
     try {
       const state = await this.snapshot();
-      if (webview !== this.webview) return;
+      if (panel !== this.panel) return;
       await this.post({
         type: "state",
         state,
@@ -363,8 +313,6 @@ export class Dashboard
           await vscode.commands.executeCommand(
             "formattingControls.quickControls",
           );
-        else if (request.destination === "dashboard")
-          await vscode.commands.executeCommand("formattingControls.dashboard");
         else if (request.destination === "settings")
           await vscode.commands.executeCommand(
             "workbench.action.openSettings",
@@ -411,7 +359,7 @@ export class Dashboard
           throw new Error("Workflow storage is unavailable.");
         let message: string;
         if (request.type === "pause") {
-          const language = this.scope.language ?? this.document?.languageId;
+          const language = this.scope.language ?? this.active?.languageId;
           message = await this.workflows.pause(
             selection,
             this.scope,
@@ -495,7 +443,6 @@ export class Dashboard
   }
   dispose(): void {
     this.panel?.dispose();
-    this.webview = undefined;
     for (const listener of this.listeners.splice(0)) listener.dispose();
   }
 }

@@ -20,5 +20,3 @@ release-notes.md
 
 .vscode-test
 .vscode-test/**
-
-!assets/sidebar.svg
