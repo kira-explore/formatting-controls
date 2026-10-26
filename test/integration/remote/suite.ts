@@ -65,6 +65,16 @@ export async function run(): Promise<void> {
         "Reconnect must use a new remote extension-host process",
       );
       assert.equal(workflows.recovery()?.kind, "pause");
+      // The remote host can activate before the client has loaded folder
+      // configuration after reconnect. Require the persisted values, not a delay.
+      const configurationStarted = Date.now();
+      while (own(selection, "editor.formatOnSave") !== false) {
+        assert.ok(
+          Date.now() - configurationStarted < 15000,
+          "Persisted folder configuration must load after reconnect",
+        );
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
       assert.equal(
         own(selection, "editor.formatOnSave"),
         false,
@@ -84,6 +94,7 @@ export async function run(): Promise<void> {
       const result = {
         passed: true,
         previousPid: previous.pid,
+        configurationReadyMs: Date.now() - configurationStarted,
         pid: process.pid,
         remoteName: vscode.env.remoteName,
         checks: [
