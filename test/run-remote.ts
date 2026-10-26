@@ -226,6 +226,7 @@ try {
       "-c",
       "if test -f /home/fc/workspace/actor-error.json; then cat /home/fc/workspace/actor-error.json; fi",
     );
+    if (status) writeFileSync(join(report, "failure.json"), status);
     assert.equal(status, "", status);
   };
   await launch();

@@ -65,7 +65,11 @@ export async function run(): Promise<void> {
         "Reconnect must use a new remote extension-host process",
       );
       assert.equal(workflows.recovery()?.kind, "pause");
-      assert.equal(own(selection, "editor.formatOnSave"), false);
+      assert.equal(
+        own(selection, "editor.formatOnSave"),
+        false,
+        "Folder format-on-save must be false during pause",
+      );
       assert.ok(profiles.read().some((p) => p.name === "Remote saved"));
       await setAction(selection, "source.fixAll.afterReconnect", "explicit");
       await workflows.restore();
@@ -117,11 +121,19 @@ export async function run(): Promise<void> {
     );
     await write(user, "editor.formatOnSave", true);
     await write(workspace, "editor.formatOnSave", false);
-    assert.equal(configuration(selection).get("editor.formatOnSave"), false);
+    assert.equal(
+      configuration(selection).get("editor.formatOnSave"),
+      false,
+      "Workspace false must override global true",
+    );
     await write(selection, "editor.formatOnSave", true);
     assert.equal(configuration(selection).get("editor.formatOnSave"), true);
     assert.equal(own(user, "editor.formatOnSave"), true);
-    assert.equal(own(workspace, "editor.formatOnSave"), false);
+    assert.equal(
+      own(workspace, "editor.formatOnSave"),
+      false,
+      "Workspace must retain its explicit false value",
+    );
     assert.equal(
       own({ ...selection, uri: other.uri }, "editor.formatOnSave"),
       undefined,
@@ -129,7 +141,11 @@ export async function run(): Promise<void> {
     checks.push("User/Workspace/Folder precedence and remote folder isolation");
     const language = { ...selection, language: "typescript" };
     await write(language, "editor.formatOnSave", false);
-    assert.equal(configuration(language).get("editor.formatOnSave"), false);
+    assert.equal(
+      configuration(language).get("editor.formatOnSave"),
+      false,
+      "TypeScript override must remain false",
+    );
     assert.equal(
       configuration({ ...selection, language: "javascript" }).get(
         "editor.formatOnSave",
@@ -170,7 +186,11 @@ export async function run(): Promise<void> {
       scope,
       configuration(selection).get("editor.codeActionsOnSave"),
     );
-    assert.equal(own(selection, "editor.formatOnSave"), false);
+    assert.equal(
+      own(selection, "editor.formatOnSave"),
+      false,
+      "Folder format-on-save must be false during pause",
+    );
     assert.equal(workflows.recovery()?.kind, "pause");
     workflows.dispose();
     workflows = make();

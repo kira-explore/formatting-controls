@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import * as vscode from "vscode";
 import { activate as activateProduct } from "../../../src/extension";
@@ -12,11 +12,27 @@ export function activate(context: vscode.ExtensionContext) {
         await run();
       } catch (error) {
         const workspace = vscode.workspace.workspaceFile;
-        if (workspace)
+        if (workspace) {
+          const raw = (path: string) =>
+            existsSync(path) ? readFileSync(path, "utf8") : null;
           writeFileSync(
             join(dirname(workspace.fsPath), "actor-error.json"),
-            String(error),
+            JSON.stringify(
+              {
+                error: error instanceof Error ? error.stack : String(error),
+                workspace: raw(workspace.fsPath),
+                folder: raw(
+                  join(
+                    dirname(workspace.fsPath),
+                    "first/.vscode/settings.json",
+                  ),
+                ),
+              },
+              null,
+              2,
+            ),
           );
+        }
         console.error(error);
       } finally {
         await vscode.commands.executeCommand("workbench.action.quit");
