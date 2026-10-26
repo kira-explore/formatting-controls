@@ -15,13 +15,14 @@ import { reviewDashboard } from "./dashboard";
     workspace,
     JSON.stringify({ folders: [{ path: "first" }, { path: "second" }] }),
   );
-  const ui = process.argv.includes("--ui");
+  const quickUi = process.argv.includes("--quick-ui");
+  const ui = process.argv.includes("--ui") || quickUi;
   const empty = process.argv.includes("--empty");
   const ready = path.join(temp, "ui-ready"),
     done = path.join(temp, "ui-done");
   const report = path.resolve(
     "test-results",
-    `${process.platform}-${process.env.VSCODE_VERSION ?? "stable"}-${(process.env.FORMATTING_CONTROLS_UI_THEME ?? "Dark Modern").replaceAll(" ", "-")}`,
+    `${process.platform}-${process.env.VSCODE_VERSION ?? "stable"}-${(process.env.FORMATTING_CONTROLS_UI_THEME ?? "Dark Modern").replaceAll(" ", "-")}${quickUi ? "-quick" : ""}`,
   );
   let hostFinished = false;
   try {
@@ -32,6 +33,7 @@ import { reviewDashboard } from "./dashboard";
         `dist/test/integration/${empty ? "empty" : "suite"}.js`,
       ),
       extensionTestsEnv: {
+        FORMATTING_CONTROLS_QUICK_UI: quickUi ? "1" : "",
         FORMATTING_CONTROLS_UI_THEME:
           process.env.FORMATTING_CONTROLS_UI_THEME ?? (ui ? "Dark Modern" : ""),
         FORMATTING_CONTROLS_REPORT_DIR: report,

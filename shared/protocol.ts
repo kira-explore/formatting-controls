@@ -46,7 +46,12 @@ export type Operation =
     }
   | {
       type: "open";
-      destination: "settings" | "github" | "docs" | "quickControls";
+      destination:
+        | "settings"
+        | "github"
+        | "docs"
+        | "quickControls"
+        | "dashboard";
     };
 export type Request = { id: string; scope: Scope } & Operation;
 export interface Setting {
@@ -69,6 +74,7 @@ export interface LanguageRule {
   sources: string[];
 }
 export interface Snapshot {
+  quickTab?: "formatting" | "actions";
   remoteName?: string;
   revision: number;
   navigation: number;
@@ -147,7 +153,7 @@ export function parseRequest(raw: unknown): Request {
   if (
     raw.type === "open" &&
     typeof raw.destination === "string" &&
-    ["settings", "github", "docs", "quickControls"].includes(
+    ["settings", "github", "docs", "quickControls", "dashboard"].includes(
       String(raw.destination),
     )
   )

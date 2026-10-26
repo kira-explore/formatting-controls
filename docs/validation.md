@@ -66,3 +66,8 @@ Reproduced two saved-profile data-loss cases in real concurrent macOS VS Code wi
 ## Remote SSH review — 26 October 2026
 
 Real macOS-to-Linux Remote SSH checks passed for configuration scopes, existing Remote versus local User settings destinations, language and folder isolation, Linux-owned profile storage, JSON import/export and conflict-aware pause/resume. A different Linux extension-host process recovered the persisted pause after closing and reconnecting the desktop client. Hands-on native UI checks covered remote export/import dialogs, confirmation/cancellation and pause/resume. See [the review method and coverage limits](remote-workspace.md). Updated @types/node to ^26.6.5; host/browser type checks and the 46-test unit suite pass under the Node 24 build baseline.
+
+
+## Status hover and Quick Controls
+
+Added pure regressions for effective hover summaries, independent action counts, escaping untrusted Markdown/HTML and constrained tab navigation. Real editor coverage verifies trusted navigation-only hover links, default folder selection, explicit scoped writes, readiness/scope retention, stale revisions, active-file context and empty-window behavior. The compact panel shares the existing host protocol and bundled assets. Local checks pass under Node 24 with 49 pure tests, VS Code 1.140.0/stable editor and empty-window suites, 16 existing dashboard scans and 12 additional quick-panel scans across Dark Modern, Light Modern and Default High Contrast. Real checkbox and action writes, keyboard tabs and the native rendered status hover pass. See [status controls](status-controls.md) for the supported native-hover/editor-panel design and its difference from the conceptual anchored popup.

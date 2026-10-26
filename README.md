@@ -105,17 +105,22 @@ In VS Code, run **Extensions: Install from VSIX…** and select `formatting-cont
 
 ## Find your flow
 
-Click the status-bar item to open native Quick Controls, or use these Command Palette entries:
+Hover the status-bar item for effective formatting and save-action details. Click it to open compact tabbed Quick Controls beside your editor, or use these Command Palette entries:
 
 | Command                                             | Purpose                                                          |
 | --------------------------------------------------- | ---------------------------------------------------------------- |
 | **Formatting Controls: Open Dashboard**             | Open the full settings dashboard                                 |
-| **Formatting Controls: Quick Controls**             | Edit a setting using native pickers                              |
+| **Formatting Controls: Quick Controls**             | Open compact Formatting and Save actions tabs                    |
+| **Formatting Controls: Native Quick Controls**      | Edit a setting using the original native pickers                 |
 | **Formatting Controls: Inspect Effective Settings** | Open a JSON report of effective values and scope sources         |
 | **Formatting Controls: Restore Previous Settings**  | Restore untouched values from the latest batch in this workspace |
 | **Formatting Controls: Getting Started**            | Reopen the welcome page                                          |
 
 The welcome page appears once on first activation. It introduces the workflow and links to settings, documentation, and GitHub; it does not apply a preset automatically.
+
+The hover and compact panel share a clear settings summary. VS Code controls the native hover; the clicked controls use a supported editor panel, rather than an anchored Copilot-style popup. See [status controls and scope behavior](docs/status-controls.md).
+
+![Compact tabbed Quick Controls beside the editor in Dark Modern](docs/assets/status-quick-controls-dark.png)
 
 ### Dashboard
 
