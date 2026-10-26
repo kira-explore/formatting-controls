@@ -15,7 +15,8 @@
     "test:ui": "bun run build && bun run test/run-integration.ts --ui",
     "release:check": "bun run scripts/release-check.ts",
     "security:check": "bun run scripts/audit.ts",
-    "test:multi-window": "bun run build && bun run test/run-multi-window.ts"
+    "test:multi-window": "bun run build && bun run test/run-multi-window.ts",
+    "test:remote": "bun run build && bun run test/run-remote.ts"
   },
   "author": {
     "name": "Raju Dhami",
@@ -26,7 +27,7 @@
   "type": "module",
   "devDependencies": {
     "@biomejs/biome": "2.6.3",
-    "@types/node": "^24.0.0",
+    "@types/node": "^26.6.5",
     "@types/proper-lockfile": "4.1.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

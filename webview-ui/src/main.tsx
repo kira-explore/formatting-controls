@@ -214,7 +214,7 @@ function App() {
         </nav>
         <div className="sidebar-footer">
           <span className="privacy-dot" />
-          Local settings. No telemetry.
+          VS Code settings. No telemetry.
           <button
             type="button"
             disabled={disabled}
@@ -331,6 +331,18 @@ function App() {
               </span>
             </div>
           </section>
+          {state.remoteName && state.scope.target === "user" && (
+            <div className="callout" role="note">
+              <div>
+                <strong>Remote workspace</strong>
+                <p>
+                  User changes may affect local User settings or existing Remote
+                  settings. Choose a workspace scope to keep changes in this
+                  project. Use VS Code Settings to select Remote explicitly.
+                </p>
+              </div>
+            </div>
+          )}
           <div aria-live="polite" className="feedback">
             {pending ? "Updating editor…" : notice}
           </div>

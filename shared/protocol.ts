@@ -69,6 +69,7 @@ export interface LanguageRule {
   sources: string[];
 }
 export interface Snapshot {
+  remoteName?: string;
   revision: number;
   navigation: number;
   scope: Scope;
