@@ -15,7 +15,7 @@
 
 The Phase 4 packaging advisory GHSA-xcx6-jx8p-x3h5 was subsequently resolved using a scoped, compatibility-tested override; see packaging-security.md. Both PR and release validation now require a clean, unfiltered audit. No Marketplace token or publisher-account change was introduced.
 
-Automated preparation is implemented, but public-release approval is still pending hands-on screen-reader, real remote-workspace and concurrent-window reviews. No Marketplace publication, public release or release-workflow dispatch was performed during implementation. These are release gates, not a new feature phase.
+Automated preparation is implemented, but public-release approval is still pending hands-on screen-reader review; [Remote SSH](remote-workspace.md) and [two-window](multi-window.md) reviews have since passed within their documented limits. No Marketplace publication, public release or release-workflow dispatch was performed during implementation. These are release gates, not a new feature phase.
 
 ## Local evidence
 

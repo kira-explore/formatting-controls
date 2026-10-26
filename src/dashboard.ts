@@ -230,6 +230,7 @@ export class Dashboard implements vscode.Disposable {
         .join("; ");
     }
     return {
+      ...(vscode.env.remoteName ? { remoteName: vscode.env.remoteName } : {}),
       revision: this.revision,
       navigation: this.navigation,
       scope: this.scope,

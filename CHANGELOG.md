@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+Added real Remote SSH regression coverage for scopes, host-owned profiles, import/export and persisted pause recovery after client reconnect, plus native UI review notes and remote User-scope guidance. Updated Node type declarations to ^26.6.5 while retaining Node 24 compatibility.
+
 Fixed saved-profile loss between simultaneous windows with coordinated private-file storage, stale overwrite/delete checks, live profile refresh and real two-window regression coverage. Existing profile storage migrates on first successful mutation.
 
 ## 0.4.0 — Unreleased
