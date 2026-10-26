@@ -12,7 +12,7 @@ Clicking the status item opens a compact, theme-aware Quick Controls panel besid
 
 ## Editing
 
-The first opening selects the active file's workspace folder, otherwise Workspace, or User in an empty window. Later openings preserve the selected scope. Folder and Language remain explicit. Formatting checkboxes show the selected scope's owned value when present, otherwise the effective inherited value; a higher-priority effective value is shown separately when it differs. The header and status bar continue to summarize effective formatting.
+The first opening selects the active file's workspace folder, otherwise Workspace, or User in an empty window. Later openings preserve the selected scope. Folder and Language remain explicit. Formatting checkboxes and save-action selectors show the selected scope's owned value when present, otherwise the effective inherited value; a higher-priority effective value is shown separately when it differs. The header and status bar continue to summarize effective formatting.
 
 Save actions have their own tab. Existing provider-specific entries remain visible; generic fix-all/import actions and a validated custom action ID can be configured without replacing unrelated entries. Legacy or malformed action containers must be migrated in VS Code Settings first. Configured actions do not guarantee provider eligibility, execution order or afterDelay Auto Save execution.
 

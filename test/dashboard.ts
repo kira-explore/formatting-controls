@@ -173,6 +173,18 @@ export async function reviewDashboard(directory: string): Promise<void> {
         `document.querySelector('input[aria-label="Format on save"]').checked===${!before}&&!document.querySelector('input[aria-label="Format on save"]').disabled`,
       );
       await evaluate("document.getElementById('quick-actions-tab').click()");
+      assert.equal(
+        await evaluate<string>(
+          `document.querySelector('select[aria-label="Organize imports"]').value`,
+        ),
+        "explicit",
+        "The selected folder's value must remain editable when a language override wins",
+      );
+      assert.ok(
+        await evaluate<boolean>(
+          `document.querySelector('select[aria-label="Organize imports"]').closest('label').textContent.includes('Effective: Never')`,
+        ),
+      );
       await evaluate(
         `(()=>{const select=document.querySelector('select[aria-label="Organize imports"]');select.value='always';select.dispatchEvent(new Event('change',{bubbles:true}));})()`,
       );

@@ -9,6 +9,17 @@ import { actionNames, labels } from "./catalog";
 import { useEditor } from "./useEditor";
 import "./quick.css";
 
+const actionMode = (value: unknown): string =>
+  value === true
+    ? "explicit"
+    : value === false
+      ? "never"
+      : typeof value === "string"
+        ? value
+        : value === undefined
+          ? "unset"
+          : "unsupported";
+
 export function QuickControls() {
   const { state, pending, error, setError, notice, send } = useEditor();
   const [tab, setTab] = useState<QuickTab>("formatting");
@@ -296,26 +307,33 @@ export function QuickControls() {
                 !Array.isArray(ownActions)
                   ? (ownActions as Record<string, unknown>)[id]
                   : undefined;
-              const value =
-                effective === true
-                  ? "explicit"
-                  : effective === false
-                    ? "never"
-                    : typeof effective === "string"
-                      ? effective
-                      : "unset";
+              const value = actionMode(
+                stored !== undefined ? stored : effective,
+              );
+              const effectiveMode = actionMode(effective);
+              const effectiveLabel =
+                {
+                  explicit: "Explicit saves",
+                  always: "All supported saves",
+                  never: "Never",
+                  unset: "Not configured",
+                }[effectiveMode] ?? "Unsupported value";
               return (
                 <label className="quick-action" key={id}>
                   <span>
                     {actionNames[id] ?? id}
-                    <small>
+                    <small id={`quick-action-${id}`}>
                       {stored === undefined
                         ? "Inherited at this scope"
                         : "Configured at selected scope"}
+                      {value !== effectiveMode
+                        ? ` · Effective: ${effectiveLabel}`
+                        : ""}
                     </small>
                   </span>
                   <select
                     aria-label={actionNames[id] ?? id}
+                    aria-describedby={`quick-action-${id}`}
                     value={value}
                     disabled={disabled}
                     onChange={(event) =>

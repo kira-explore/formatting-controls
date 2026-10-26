@@ -315,8 +315,16 @@ export async function run(): Promise<void> {
         await vscode.commands.executeCommand(
           "workbench.action.closeAllEditors",
         );
-        await vscode.window.showTextDocument(
+        const quickDocument = await vscode.languages.setTextDocumentLanguage(
           await vscode.workspace.openTextDocument(uri),
+          "typescript",
+        );
+        await vscode.window.showTextDocument(quickDocument);
+        await setAction(first, "source.organizeImports", "explicit");
+        await setAction(
+          { ...first, language: "typescript" },
+          "source.organizeImports",
+          "never",
         );
         await vscode.commands.executeCommand(
           "formattingControls.quickControls",
