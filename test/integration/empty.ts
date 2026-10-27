@@ -20,7 +20,6 @@ export async function run(): Promise<void> {
     "welcome",
     "restore",
     "quickControls",
-    "nativeQuickControls",
   ])
     assert.ok(commands.includes(`formattingControls.${command}`));
   const workflows = new Workflows(

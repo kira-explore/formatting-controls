@@ -2,22 +2,26 @@ import assert from "node:assert/strict";
 import * as vscode from "vscode";
 import { own, write } from "../../src/configuration";
 import { StatusControls } from "../../src/status-controls";
+import { Workflows } from "../../src/workflows";
+import { MemoryStore } from "./workflows";
 export async function runStatusTests(uri: vscode.Uri): Promise<void> {
   let document: vscode.TextDocument | undefined =
     await vscode.workspace.openTextDocument(uri);
   const item = vscode.window.createStatusBarItem();
-  const controls = new StatusControls(item, () => document);
+  const workflows = new Workflows(
+    new MemoryStore(),
+    new MemoryStore(),
+    async () => true,
+  );
+  const controls = new StatusControls(item, () => document, workflows);
   const selection = { target: vscode.ConfigurationTarget.WorkspaceFolder, uri };
   const key = "editor.formatOnPaste";
   const original = own(selection, key);
   const language = { ...selection, language: document.languageId };
   const originalLanguage = own(language, key);
-  const workspaceLanguage = {
-    ...language,
-    target: vscode.ConfigurationTarget.Workspace,
-  };
-  const originalWorkspaceLanguage = own(workspaceLanguage, key);
   const actions = own(selection, "editor.codeActionsOnSave");
+  const originalSave = own(selection, "editor.formatOnSave");
+  const originalType = own(selection, "editor.formatOnType");
   const revision = () =>
     JSON.parse(
       decodeURIComponent(
@@ -30,14 +34,13 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     await write(selection, key, false);
     await write(language, key, true);
     controls.refresh();
-    assert.equal(item.command, "formattingControls.quickControls");
+    assert.equal(item.command, "workbench.action.showHover");
     const tooltip = item.tooltip as vscode.MarkdownString;
     assert.equal(tooltip.supportHtml, true);
     assert.equal(tooltip.supportThemeIcons, false);
     assert.deepEqual(tooltip.isTrusted, {
       enabledCommands: [
         "formattingControls.statusControl",
-        "formattingControls.quickControls",
         "formattingControls.dashboard",
         "workbench.action.openSettings",
       ],
@@ -68,24 +71,25 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     await assert.rejects(controls.control(stale, 1), /changed/);
     for (const action of [-1, 3, "0", "editor.codeActionsOnSave", null, {}])
       await assert.rejects(controls.control(revision(), action), /Unknown/);
-    await write(workspaceLanguage, key, false);
-    controls.setScope({ target: "workspace", language: document.languageId });
-    await controls.control(revision(), 1);
-    assert.equal(
-      own(workspaceLanguage, key),
-      true,
-      "Native fallback respects the docked write destination",
-    );
-    assert.equal(
-      own(language, key),
-      true,
-      "Shared scope must not mutate the active folder override",
-    );
     await controls.control(revision(), "collapse");
     assert.ok(
       !(item.tooltip as vscode.MarkdownString).value.includes("Format on save"),
     );
     await controls.control(revision(), "collapse");
+    await controls.control(revision(), "pause");
+    assert.equal(own(selection, "editor.formatOnSave"), false);
+    assert.equal(own(selection, "editor.formatOnPaste"), false);
+    assert.equal(own(selection, "editor.formatOnType"), false);
+    assert.deepEqual(own(selection, "editor.codeActionsOnSave"), actions);
+    assert.match((item.tooltip as vscode.MarkdownString).value, /Resume/);
+    await controls.control(revision(), "pause");
+    assert.equal(own(selection, "editor.formatOnPaste"), true);
+    assert.equal(
+      vscode.extensions.getExtension("rajudhami.formatting-controls")
+        ?.packageJSON.contributes.views,
+      undefined,
+      "No docked view is contributed",
+    );
     const previousDocument = revision();
     document = undefined;
     controls.refresh();
@@ -97,7 +101,9 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
   } finally {
     await write(selection, key, original);
     await write(language, key, originalLanguage);
-    await write(workspaceLanguage, key, originalWorkspaceLanguage);
+    await write(selection, "editor.formatOnSave", originalSave);
+    await write(selection, "editor.formatOnType", originalType);
+    workflows.dispose();
     item.dispose();
   }
 }

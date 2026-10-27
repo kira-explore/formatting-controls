@@ -1,11 +1,11 @@
 import * as vscode from "vscode";
-import type { Scope } from "../shared/protocol";
 import { settingSource } from "../shared/setting-source";
 import { own, type Selection, write } from "./configuration";
 import { flags, status } from "./model";
 import { statusTooltip } from "./status-hover";
+import type { Workflows } from "./workflows";
 
-/** Native summary above the status item; click opens real controls in the Panel. */
+/** Hover and click share the same native anchored status card. */
 export class StatusControls {
   private revision = 0;
   private fingerprint = "";
@@ -13,17 +13,13 @@ export class StatusControls {
   private languageOnly = false;
   private pending = false;
   private collapsed = false;
-  private externalScope: Scope | undefined;
-  setScope(scope: Scope): void {
-    this.externalScope = scope;
-    this.refresh();
-  }
   constructor(
     private readonly item: vscode.StatusBarItem,
     private readonly document: () => vscode.TextDocument | undefined,
+    private readonly workflows?: Workflows,
   ) {
     item.name = "Formatting Controls";
-    item.command = "formattingControls.quickControls";
+    item.command = "workbench.action.showHover";
   }
   private selection(): Selection {
     const document = this.document();
@@ -33,31 +29,6 @@ export class StatusControls {
       vscode.workspace.workspaceFile ||
       vscode.workspace.workspaceFolders?.length
     );
-    if (this.externalScope) {
-      const scope = this.externalScope;
-      const selectedFolder = vscode.workspace.workspaceFolders?.find(
-        (f) => f.uri.toString() === scope.folder,
-      );
-      const target =
-        scope.target === "user"
-          ? vscode.ConfigurationTarget.Global
-          : scope.target === "workspace" && hasWorkspace
-            ? vscode.ConfigurationTarget.Workspace
-            : scope.target === "folder" && selectedFolder
-              ? vscode.ConfigurationTarget.WorkspaceFolder
-              : vscode.ConfigurationTarget.Global;
-      const uri =
-        target === vscode.ConfigurationTarget.WorkspaceFolder &&
-        selectedFolder &&
-        folder?.uri.toString() !== selectedFolder.uri.toString()
-          ? selectedFolder.uri
-          : document?.uri;
-      return {
-        target,
-        ...(uri ? { uri } : {}),
-        ...(scope.language ? { language: scope.language } : {}),
-      };
-    }
     const target =
       this.target ??
       (folder
@@ -101,7 +72,17 @@ export class StatusControls {
       : undefined;
     const folder =
       document && vscode.workspace.getWorkspaceFolder(document.uri);
+    let paused = false;
+    try {
+      paused = this.workflows?.recovery()?.kind === "pause";
+    } catch {
+      /* The dashboard reports invalid recovery storage. */
+    }
     const context = {
+      paused,
+      canPause:
+        !!this.workflows &&
+        (paused || selection.target !== vscode.ConfigurationTarget.Global),
       file: document
         ? (document.uri.path.split("/").pop() ?? document.fileName)
         : "No active file",
@@ -201,6 +182,30 @@ export class StatusControls {
   ): Promise<void> {
     if (action === "collapse") {
       this.collapsed = !this.collapsed;
+    } else if (action === "pause") {
+      if (!this.workflows) throw new Error("Pause storage is unavailable.");
+      if (this.workflows.recovery()?.kind === "pause")
+        await this.workflows.restore();
+      else {
+        const selection = this.selection();
+        await this.workflows.pauseFormatting(selection, {
+          target:
+            selection.target === vscode.ConfigurationTarget.Global
+              ? "user"
+              : selection.target === vscode.ConfigurationTarget.Workspace
+                ? "workspace"
+                : "folder",
+          ...(selection.target === vscode.ConfigurationTarget.WorkspaceFolder &&
+          selection.uri
+            ? {
+                folder: vscode.workspace
+                  .getWorkspaceFolder(selection.uri)
+                  ?.uri.toString() as string,
+              }
+            : {}),
+          ...(selection.language ? { language: selection.language } : {}),
+        });
+      }
     } else if (action === "scope") {
       const document = this.document();
       const choices = [
@@ -229,25 +234,6 @@ export class StatusControls {
       if (!choice) return;
       this.assertCurrent(revision);
       this.target = choice.target;
-      if (this.externalScope) {
-        const folder =
-          document && vscode.workspace.getWorkspaceFolder(document.uri);
-        this.externalScope = {
-          target:
-            choice.target === vscode.ConfigurationTarget.Global
-              ? "user"
-              : choice.target === vscode.ConfigurationTarget.Workspace
-                ? "workspace"
-                : "folder",
-          ...(choice.target === vscode.ConfigurationTarget.WorkspaceFolder &&
-          folder
-            ? { folder: folder.uri.toString() }
-            : {}),
-          ...(this.externalScope.language
-            ? { language: this.externalScope.language }
-            : {}),
-        };
-      }
     } else if (action === "language") {
       const language = this.document()?.languageId;
       const choice = await vscode.window.showQuickPick(
@@ -257,11 +243,6 @@ export class StatusControls {
       if (!choice) return;
       this.assertCurrent(revision);
       this.languageOnly = choice !== "All languages";
-      if (this.externalScope) {
-        this.externalScope = { ...this.externalScope };
-        if (this.languageOnly) this.externalScope.language = choice;
-        else delete this.externalScope.language;
-      }
     } else if (
       typeof action === "number" &&
       Number.isInteger(action) &&

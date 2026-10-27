@@ -10,7 +10,7 @@ A control center for VS Code formatting, save actions, and language settings. Ma
 
 ## What you can do
 
-- **Adjust formatting without leaving your file.** Open docked controls from the status bar, choose a destination and language, and edit real checkbox/select inputs. Pause only automatic formatting with a reviewed, recoverable change.
+- **Keep quick controls at the status bar.** Hover to open the anchored card; click to pin the same card. Use command links to change formatting, choose a destination/language and preview formatting-only Pause/Resume. Full controls remain in the existing dashboard.
 
 - **See the effective state.** The status bar shows ON, OFF, or MIXED for Format on Save, Paste, and Type in the active editor.
 - **Choose where changes belong.** Write to User, Workspace, or a specific workspace folder. Select a VS Code language ID for language overrides.
@@ -109,13 +109,12 @@ In VS Code, run **Extensions: Install from VSIX…** and select `formatting-cont
 
 ## Find your flow
 
-Hover the status-bar item for a native formatting summary. Click it to open the docked **Formatting Controls** view with real checkboxes, inline scope/language dropdowns, a default-formatter selector and formatting-only Pause/Resume. No editor tab is opened. Use the full dashboard for save actions and advanced workflows. The interactive floating mockup is not a public VS Code API surface; see [surface details](docs/status-controls.md). Command Palette entries:
+Hover the status-bar item to open the anchored **Formatting Controls** card. Click it to focus and keep that same card open above the status bar; no docked panel or editor tab is created. Use its On/Off links for quick changes and open the dashboard for full settings, save actions and advanced workflows. Scope/language choices use native pickers because public tooltip APIs do not host inline select widgets. See [surface details](docs/status-controls.md). Command Palette entries:
 
 | Command                                             | Purpose                                                          |
 | --------------------------------------------------- | ---------------------------------------------------------------- |
 | **Formatting Controls: Open Dashboard**             | Open the full settings dashboard                                 |
-| **Formatting Controls: Quick Controls**             | Open docked formatting controls with inline inputs               |
-| **Formatting Controls: Native Formatting Picker**   | Optional formatting-only native picker                           |
+| **Formatting Controls: Quick Controls**             | Optional formatting-only native picker                           |
 | **Formatting Controls: Native Quick Controls**      | Edit a setting using the original native pickers                 |
 | **Formatting Controls: Inspect Effective Settings** | Open a JSON report of effective values and scope sources         |
 | **Formatting Controls: Restore Previous Settings**  | Restore untouched values from the latest batch in this workspace |
@@ -127,7 +126,6 @@ Hover and click use one wider formatting card in the same location, with checkbo
 
 ![Native formatting summary above the status bar in Dark Modern](docs/assets/status-card-dark.png)
 
-![Docked formatting controls in Dark Modern](docs/assets/docked-controls-dark.png)
 
 ### Dashboard
 

@@ -1,7 +1,7 @@
 {
   "name": "formatting-controls",
   "version": "0.5.0",
-  "description": "Control formatting from your status bar and docked controls, with explicit scopes, language rules, profiles and diagnostics.",
+  "description": "Control formatting from your status bar, with a dashboard for explicit scopes, language rules, profiles and diagnostics.",
   "main": "./dist/extension.js",
   "scripts": {
     "build": "bun run build.ts",
@@ -83,30 +83,8 @@
       {
         "command": "formattingControls.quickControls",
         "title": "Formatting Controls: Quick Controls"
-      },
-      {
-        "command": "formattingControls.nativeQuickControls",
-        "title": "Formatting Controls: Native Formatting Picker"
       }
-    ],
-    "viewsContainers": {
-      "panel": [
-        {
-          "id": "formattingControls",
-          "title": "Formatting Controls",
-          "icon": "$(settings)"
-        }
-      ]
-    },
-    "views": {
-      "formattingControls": [
-        {
-          "id": "formattingControls.controls",
-          "name": "Formatting Controls",
-          "type": "webview"
-        }
-      ]
-    }
+    ]
   },
   "repository": {
     "type": "git",

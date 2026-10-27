@@ -2,13 +2,11 @@ import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import axe from "axe-core";
-import type { Browser, Page } from "playwright-core";
-import { attachControls } from "./webview";
+import type { Page } from "playwright-core";
 
 export async function reviewStatus(
   page: Page,
   directory: string,
-  browser: Browser,
 ): Promise<void> {
   mkdirSync(directory, { recursive: true });
   const button = page.getByRole("button", {
@@ -17,156 +15,112 @@ export async function reviewStatus(
   const hover = page
     .locator(".monaco-hover")
     .filter({ hasText: "Formatting Controls" });
+  const editorTabs = () => page.locator(".editor-group-container .tab").count();
+  const panels = () => page.locator(".part.panel:visible").count();
   await button.waitFor();
-  await button.hover();
+  const tabs = await editorTabs();
+  const panelCount = await panels();
+  await button.click();
   await hover.waitFor({ state: "visible" });
-  const text = await hover.textContent();
-  assert.ok(text?.includes("Active file:"));
-  assert.ok(text?.includes("Apply to language"));
-  assert.ok(!text?.includes("Set here"));
+  const clicked = await hover.boundingBox();
+  assert.ok(clicked);
+  assert.equal(
+    await editorTabs(),
+    tabs,
+    "A cold status click must not open an editor tab",
+  );
+  assert.equal(
+    await panels(),
+    panelCount,
+    "A cold status click must not open the Panel",
+  );
   assert.equal(
     await hover.locator("input,select,button,script,style").count(),
     0,
   );
+  const text = await hover.textContent();
+  assert.ok(text?.includes("Active file:"));
+  assert.ok(text?.includes("Apply to language"));
+  assert.ok(!text?.includes("Set here"));
+  await page.mouse.move(5, 5);
+  await page.waitForTimeout(650);
+  assert.ok(
+    await hover.isVisible(),
+    "Click pins the status hover after the pointer leaves",
+  );
+  await page.screenshot({ path: join(directory, "status-click-window.png") });
+  await page.evaluate(axe.source);
+  const accessibility = await page.evaluate<{ violations: unknown[] }>(
+    `axe.run(document.querySelector('.monaco-hover'),{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa']}}).then(r=>({violations:r.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))}))`,
+  );
+  writeFileSync(
+    join(directory, "status-accessibility.json"),
+    JSON.stringify(accessibility, null, 2),
+  );
+  assert.deepEqual(
+    accessibility.violations,
+    [],
+    "Native status card accessibility",
+  );
+  await page.keyboard.press("Escape");
+  await hover.waitFor({ state: "hidden" });
+  await page
+    .locator(".monaco-editor")
+    .first()
+    .click({ position: { x: 150, y: 100 } });
+  await button.hover();
+  await hover.waitFor({ state: "visible" });
+  assert.deepEqual(
+    await hover.boundingBox(),
+    clicked,
+    "Hover and click share exactly the same card placement",
+  );
+  assert.equal(await hover.textContent(), text);
   await page.screenshot({ path: join(directory, "status-hover-window.png") });
-  const tabs = await page.locator(".editor-group-container .tab").count();
+  const row = hover.getByRole("row").filter({ hasText: "Format on type" });
+  const value = row.getByRole("link");
+  const before = (await value.textContent())?.trim() ?? "";
+  await value.click();
+  await hover.waitFor({ state: "visible" });
+  await row
+    .getByRole("link", { name: before === "On" ? "Off" : "On", exact: true })
+    .waitFor();
+  assert.deepEqual(
+    await hover.boundingBox(),
+    clicked,
+    "Setting changes must keep the anchored card stable",
+  );
+  await row.getByRole("link").click();
+  await row.getByRole("link", { name: before, exact: true }).waitFor();
+  await hover.getByRole("link", { name: /Automatic formatting/ }).click();
+  await row.waitFor({ state: "hidden" });
+  await hover.getByRole("link", { name: /Automatic formatting/ }).click();
+  await row.waitFor();
+  await page.screenshot({ path: join(directory, "status-card.png") });
+  await hover.getByRole("link", { name: /Folder:/ }).click();
+  await page.getByRole("option", { name: "Workspace", exact: true }).click();
   await button.click();
-  const controls = await attachControls(browser);
-  try {
-    const { evaluate, wait } = controls;
-    assert.equal(
-      await page.locator(".editor-group-container .tab").count(),
-      tabs,
-      "Status click must open a Panel view without another editor tab",
-    );
-    assert.equal(
-      await evaluate<string>('document.querySelector("h1").textContent'),
-      "Formatting Controls",
-    );
-    assert.equal(
-      await evaluate<number>(
-        'document.querySelectorAll("input[type=checkbox]").length',
-      ),
-      3,
-    );
-    assert.equal(
-      await evaluate<number>(
-        'document.querySelectorAll(".brand-mark,img").length',
-      ),
-      0,
-    );
-    const change = async (label: string, value: string) => {
-      await evaluate(
-        `(()=>{const select=document.querySelector('select[aria-label=${JSON.stringify(label)}]');select.value=${JSON.stringify(value)};select.dispatchEvent(new Event('change',{bubbles:true}));})()`,
-      );
-      await wait(
-        `document.querySelector('select[aria-label=${JSON.stringify(label)}]').value===${JSON.stringify(value)} && !document.querySelector('select:disabled')`,
-      );
-    };
-    await change("Write to", "workspace");
-    await change("Apply to language", "typescript");
-    const before = await evaluate<{
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      checked: boolean;
-    }>(
-      `(()=>{const e=document.querySelector('input[aria-label="Format on type"]');const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,checked:e.checked};})()`,
-    );
-    await evaluate(
-      `document.querySelector('input[aria-label="Format on type"]').click()`,
-    );
-    await wait(
-      `document.querySelector('input[aria-label="Format on type"]').checked===${!before.checked} && !document.querySelector('input:disabled')`,
-    );
-    const after = await evaluate<{
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      checked: boolean;
-    }>(
-      `(()=>{const e=document.querySelector('input[aria-label="Format on type"]');const r=e.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height,checked:e.checked};})()`,
-    );
-    assert.deepEqual(
-      { ...after, checked: before.checked },
-      before,
-      "Checkbox geometry stays stable when inheritance becomes explicit",
-    );
-    await evaluate('document.querySelector("summary").click()');
-    assert.equal(
-      await evaluate<boolean>('document.querySelector("details").open'),
-      false,
-    );
-    await evaluate('document.querySelector("summary").click()');
-    const panel = await page.locator(".part.panel").boundingBox();
-    if (panel) {
-      const sashes = await page
-        .locator(".monaco-sash.horizontal")
-        .evaluateAll((elements) =>
-          elements
-            .map((e) => {
-              const r = e.getBoundingClientRect();
-              return { x: r.x, y: r.y, width: r.width, height: r.height };
-            })
-            .filter((r) => r.width > 300 && r.height > 0),
-        );
-      const sash = sashes.sort(
-        (a, b) => Math.abs(a.y - panel.y) - Math.abs(b.y - panel.y),
-      )[0];
-      if (sash) {
-        await page.mouse.move(
-          sash.x + sash.width / 2,
-          sash.y + sash.height / 2,
-        );
-        await page.mouse.down();
-        await page.mouse.move(sash.x + sash.width / 2, 350, { steps: 12 });
-        await page.mouse.up();
-      }
-    }
-    await page.screenshot({
-      path: join(directory, "docked-controls-window.png"),
-    });
-    await evaluate(axe.source);
-    const reports = [];
-    for (const width of [1600, 460]) {
-      await page.setViewportSize({ width, height: 1100 });
-      const report = await evaluate<{
-        violations: unknown[];
-        width: number;
-        scroll: number;
-      }>(
-        `axe.run(document,{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa','best-practice']}}).then(r=>({violations:r.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)})),width:innerWidth,scroll:document.documentElement.scrollWidth}))`,
-      );
-      reports.push(report);
-      writeFileSync(
-        join(directory, "controls-accessibility.json"),
-        JSON.stringify(reports, null, 2),
-      );
-      assert.deepEqual(report.violations, [], "Docked controls accessibility");
-      assert.ok(
-        report.scroll <= report.width + 1,
-        "Controls reflow without horizontal scrolling",
-      );
-    }
-    await page.setViewportSize({ width: 1600, height: 1100 });
-    const csp = await evaluate<string>(
-      'document.querySelector("meta[http-equiv=Content-Security-Policy]").content',
-    );
-    assert.ok(
-      csp.includes("default-src 'none'") &&
-        !/unsafe-inline|unsafe-eval/.test(csp),
-    );
-    await evaluate(`document.querySelector('.quick-footer button').click()`);
-    await page
-      .getByRole("tab", { name: /Formatting Controls/ })
-      .first()
-      .waitFor();
-    console.log(
-      "Controls verified: native status summary, docked WebviewView without editor tab, inline scope/language selects, persisted checkbox write, stable geometry, disclosure, CSP, responsive accessibility and dashboard navigation.",
-    );
-  } finally {
-    await controls.dispose();
-  }
+  await hover.waitFor({ state: "visible" });
+  await hover.getByRole("link", { name: /^Workspace/ }).waitFor();
+  await hover.getByRole("link", { name: /All languages/ }).click();
+  await page.getByRole("option", { name: "typescript", exact: true }).click();
+  await button.click();
+  await hover.waitFor({ state: "visible" });
+  await hover.getByRole("link", { name: /^typescript/ }).waitFor();
+  await page.keyboard.press("Escape");
+  await button.focus();
+  await page.keyboard.press("Enter");
+  await hover.waitFor({ state: "visible" });
+  assert.equal(await editorTabs(), tabs);
+  assert.equal(await panels(), panelCount);
+  await hover
+    .getByRole("link", { name: "Open dashboard ↗", exact: true })
+    .click();
+  await page
+    .getByRole("tab", { name: /Formatting Controls/ })
+    .first()
+    .waitFor();
+  console.log(
+    "Anchored card verified: cold click, pinning, identical hover/click placement, no dock or editor tab, repeated stable toggles, disclosure, native pickers, keyboard access, accessibility and separate dashboard navigation.",
+  );
 }

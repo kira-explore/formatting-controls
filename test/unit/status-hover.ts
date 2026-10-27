@@ -17,14 +17,15 @@ const context: HoverContext = {
   scope: "Workspace",
   languageScope: "All languages",
   revision: 7,
+  canPause: true,
 };
-test("native hover reports effective values and links to real controls without fake inputs", () => {
+test("anchored card offers constrained actions without fake form inputs", () => {
   const html = statusHover(context);
   assert.match(html, /<code>Mixed<\/code>/);
-  assert.match(html, /Saved value: On/);
+  assert.match(html, /Effective: Off/);
   assert.match(html, /Inherited from User settings/);
   assert.match(html, /Workspace: project/);
-  assert.match(html, /command:formattingControls.quickControls/);
+  assert.ok(!html.includes("formattingControls.quickControls"));
   assert.ok(
     !/save actions|codeActions|<input|<select|<button|Set here/.test(html),
   );
@@ -52,7 +53,12 @@ test("only automatic formatting rows collapse; context and footer remain", () =>
       /href="command:formattingControls.statusControl\?([^"]*)"/g,
     ),
   ].map((m) => JSON.parse(decodeURIComponent(m[1] ?? "")));
-  assert.deepEqual(actions, [[7, "collapse"]]);
+  assert.deepEqual(actions, [
+    [7, "scope"],
+    [7, "language"],
+    [7, "collapse"],
+    [7, "pause"],
+  ]);
 });
 test("untrusted file, workspace and provider text cannot inject HTML or commands", () => {
   const html = statusHover({
@@ -69,7 +75,6 @@ test("untrusted file, workspace and provider text cannot inject HTML or commands
     new Set([...html.matchAll(/href="command:([\w.]+)/g)].map((m) => m[1])),
     new Set([
       "formattingControls.statusControl",
-      "formattingControls.quickControls",
       "formattingControls.dashboard",
       "workbench.action.openSettings",
     ]),

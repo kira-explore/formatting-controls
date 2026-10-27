@@ -10,6 +10,8 @@ export interface HoverContext {
   scope: string;
   languageScope: string;
   collapsed?: boolean;
+  paused?: boolean;
+  canPause?: boolean;
   revision: number;
 }
 const text = (value: string) =>
@@ -29,14 +31,15 @@ const table = (rows: string) =>
   `<table width="400"><tbody>${rows}</tbody></table>`;
 const row = (label: string, value: string, height = 32) =>
   `<tr height="${height}"><td>${label}</td><td align="right">${value}</td></tr>`;
-const dock = "command:formattingControls.quickControls";
 export function statusHover(context: HoverContext): string {
   const state = context.flags.every(Boolean)
     ? "On"
     : context.flags.some(Boolean)
       ? "Mixed"
       : "Off";
-  const collapse = `command:formattingControls.statusControl?${encodeURIComponent(JSON.stringify([context.revision, "collapse"]))}`;
+  const link = (action: string | number) =>
+    `command:formattingControls.statusControl?${encodeURIComponent(JSON.stringify([context.revision, action]))}`;
+  const collapse = link("collapse");
   const triggers = ["Save", "Paste", "Type"]
     .map((label, i) => {
       const source =
@@ -44,14 +47,15 @@ export function statusHover(context: HoverContext): string {
         (context.owned[i] === undefined
           ? "Using VS Code default"
           : `Saved in ${context.scope}`);
+      const checked = context.owned[i] ?? context.flags[i];
       const override =
         context.owned[i] !== undefined && context.owned[i] !== context.flags[i]
-          ? ` · Saved value: ${context.owned[i] ? "On" : "Off"}`
+          ? ` · Effective: ${context.flags[i] ? "On" : "Off"}`
           : "";
       return (
         row(
           `Format on ${label.toLowerCase()}`,
-          context.flags[i] ? "On" : "Off",
+          `<a href="${link(i)}" title="Turn ${checked ? "off" : "on"} format on ${label.toLowerCase()} at ${text(context.scope)} / ${text(context.languageScope)}">${checked ? "On" : "Off"}</a>`,
         ) +
         `<tr height="22"><td colspan="2"><small>${muted(text(source + override))}</small></td></tr>`
       );
@@ -62,8 +66,14 @@ export function statusHover(context: HoverContext): string {
     "<hr>",
     `<blockquote>Active file: ${text(context.file)}${context.language ? ` · ${text(context.language)}` : ""}${context.workspace ? `<br>${muted(`Workspace: ${text(context.workspace)}${context.folder ? ` · Folder: ${text(context.folder)}` : ""}`)}` : ""}</blockquote>`,
     table(
-      row("Write to", text(context.scope)) +
-        row("Apply to language", text(context.languageScope)),
+      row(
+        "Write to",
+        `<a href="${link("scope")}" title="Choose write destination in the native picker">${text(context.scope)} ⌄</a>`,
+      ) +
+        row(
+          "Apply to language",
+          `<a href="${link("language")}" title="Choose language rule in the native picker">${text(context.languageScope)} ⌄</a>`,
+        ),
     ),
     "<hr>",
     `<a href="${collapse}">Automatic formatting ${context.collapsed ? "›" : "⌄"}</a>`,
@@ -75,9 +85,8 @@ export function statusHover(context: HoverContext): string {
         muted(text(context.formatter || "Not configured")),
       ),
     ),
-    `<p><a href="${dock}">Edit formatting controls ↗</a></p>`,
     "<hr>",
-    `<a href="${dock}">Pause</a> &nbsp; ${muted("Temporarily stop automatic formatting")}`,
+    `${context.canPause ? `<a href="${link("pause")}">${context.paused ? "Resume" : "Pause"}</a>` : muted("Pause")} &nbsp; ${muted(context.paused ? "Restore unchanged formatting preferences" : context.canPause ? "Temporarily stop automatic formatting" : "Choose Workspace or Folder to pause")}`,
     "<hr>",
     table(
       row(

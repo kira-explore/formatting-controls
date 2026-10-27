@@ -27,19 +27,15 @@ export function activate(context: vscode.ExtensionContext): void {
     profiles,
   );
   const dashboard = new Dashboard(context.extensionUri, undefined, workflows);
-  const docked = new Dashboard(
-    context.extensionUri,
-    undefined,
-    workflows,
-    "controls",
-  );
   const item = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
     100,
   );
   let activeDocument = vscode.window.activeTextEditor?.document;
-  const controls = new StatusControls(item, () =>
-    activeDocument?.isClosed ? undefined : activeDocument,
+  const controls = new StatusControls(
+    item,
+    () => (activeDocument?.isClosed ? undefined : activeDocument),
+    workflows,
   );
   const scope = (): Selection => {
     const document = vscode.window.activeTextEditor?.document ?? activeDocument;
@@ -254,18 +250,8 @@ export function activate(context: vscode.ExtensionContext): void {
       }),
     ),
     dashboard,
-    docked,
-    docked.onDidChangeScope((scope) => controls.setScope(scope)),
-    vscode.window.registerWebviewViewProvider(
-      "formattingControls.controls",
-      docked,
-    ),
     vscode.commands.registerCommand(
       "formattingControls.quickControls",
-      guarded(() => docked.open()),
-    ),
-    vscode.commands.registerCommand(
-      "formattingControls.nativeQuickControls",
       guarded(() => controls.open()),
     ),
     vscode.commands.registerCommand(

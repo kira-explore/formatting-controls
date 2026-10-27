@@ -5,8 +5,6 @@ import { actionNames, descriptions, display, labels, pages } from "./catalog";
 import { useEditor } from "./useEditor";
 import { WorkflowPages } from "./WorkflowPages";
 import "./styles.css";
-import { QuickControls } from "./QuickControls";
-import "./quick-controls.css";
 
 function App() {
   const { state, page, setPage, pending, error, setError, notice, send } =
@@ -825,10 +823,6 @@ const root = document.getElementById("root");
 if (root)
   createRoot(root).render(
     <StrictMode>
-      {document.body.dataset.surface === "controls" ? (
-        <QuickControls />
-      ) : (
-        <App />
-      )}
+      <App />
     </StrictMode>,
   );

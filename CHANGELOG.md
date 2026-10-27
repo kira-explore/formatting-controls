@@ -2,11 +2,11 @@
 
 ## 0.5.0 — Unreleased
 
-Added a docked Formatting Controls Panel view with real HTML checkboxes and inline scope, language and formatter selects. Added active-file/workspace context, accurate source and override labels, a collapsible automatic-formatting section, and formatting-only Pause/Resume that preserves save actions and newer edits. The existing dashboard and native picker workflows remain available.
+Hover and click now share one anchored Formatting Controls card, with click pinning the card instead of opening a docked view. Added constrained On/Off actions, clearer saved/inherited/override labels, active-file/workspace context and an expandable formatting section. Full interactive controls remain in the existing dashboard; the docked-view draft was removed.
 
-The status item now opens the docked view on click. Its native Markdown hover provides effective values and navigation without fake checkbox or dropdown widgets. VS Code does not expose the richer interactive status-popover host used by Copilot. Added editor-language lifecycle, inline-control, scope, pause-preservation, responsive accessibility and source-precedence coverage.
+Added formatting-only Pause/Resume with reviewed, durable recovery that preserves save actions and newer edits. Native tooltip actions use command links and native scope/language pickers; real checkbox/select widgets are not exposed by VS Code's tooltip API. Added cold-click, hover/click placement, pinning, keyboard, no-new-surface and pause-preservation regression coverage.
 
-Renamed the Extensions display name to Kira Formatting Controls, retained the stable package/publisher identity, and replaced the app icon with the approved centered blue/white control symbol on a black background. Hover and docked headers use the shorter Formatting Controls name without an app icon.
+Renamed the Extensions display name to Kira Formatting Controls, retained the stable package/publisher identity, and replaced the app icon with the approved centered blue/white control symbol on a black background. The status item and card have no app icon.
 
 Added real Remote SSH regression coverage for scopes, host-owned profiles, import/export and persisted pause recovery after client reconnect, plus native UI review notes and remote User-scope guidance. Updated Node type declarations to ^26.6.5 while retaining Node 24 compatibility.
 

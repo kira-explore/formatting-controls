@@ -31,7 +31,6 @@ export type Operation =
   | { type: "reset"; key: Key; revision: number }
   | { type: "providerSettings"; provider: string }
   | { type: "pause"; revision: number }
-  | { type: "pauseFormatting"; revision: number }
   | {
       type: "profile";
       action:
@@ -47,12 +46,7 @@ export type Operation =
     }
   | {
       type: "open";
-      destination:
-        | "settings"
-        | "github"
-        | "docs"
-        | "quickControls"
-        | "dashboard";
+      destination: "settings" | "github" | "docs" | "quickControls";
     };
 export type Request = { id: string; scope: Scope } & Operation;
 export interface Setting {
@@ -81,13 +75,6 @@ export interface Snapshot {
   scope: Scope;
   page: "overview" | "welcome";
   activeLanguage: string;
-  editorContext?: {
-    file: string;
-    path: string;
-    language: string;
-    workspace?: string;
-    folder?: string;
-  };
   resource: string;
   folders: { name: string; uri: string }[];
   languages: string[];
@@ -160,7 +147,7 @@ export function parseRequest(raw: unknown): Request {
   if (
     raw.type === "open" &&
     typeof raw.destination === "string" &&
-    ["settings", "github", "docs", "quickControls", "dashboard"].includes(
+    ["settings", "github", "docs", "quickControls"].includes(
       String(raw.destination),
     )
   )
@@ -173,8 +160,7 @@ export function parseRequest(raw: unknown): Request {
     return raw as Request;
   if (!Number.isSafeInteger(raw.revision) || Number(raw.revision) < 0)
     throw new Error("Invalid settings revision.");
-  if (raw.type === "pause" || raw.type === "pauseFormatting")
-    return raw as Request;
+  if (raw.type === "pause") return raw as Request;
   if (
     raw.type === "profile" &&
     typeof raw.action === "string" &&
