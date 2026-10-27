@@ -19,6 +19,7 @@ await build({
   external: ["vscode"],
   sourcemap: true,
   minifySyntax: true,
+  minifyWhitespace: true,
 });
 for (const file of globSync("test/{unit,integration}/**/*.ts"))
   await build({

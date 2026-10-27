@@ -28,7 +28,7 @@ export async function reviewDashboard(
     await page.bringToFront();
     await page.setViewportSize({ width: 1600, height: 1100 });
     if (statusUi) {
-      await reviewStatus(page, directory);
+      await reviewStatus(page, directory, browser);
       return;
     }
     const session = await browser.newBrowserCDPSession();

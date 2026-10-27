@@ -1,11 +1,15 @@
 export interface HoverContext {
   file: string;
   language?: string;
+  workspace?: string;
+  folder?: string;
   flags: readonly boolean[];
   owned: readonly (boolean | undefined)[];
+  sources?: readonly string[];
   formatter?: string;
   scope: string;
   languageScope: string;
+  collapsed?: boolean;
   revision: number;
 }
 const text = (value: string) =>
@@ -22,56 +26,48 @@ const text = (value: string) =>
 const muted = (value: string) =>
   `<span style="color:var(--vscode-descriptionForeground);">${value}</span>`;
 const table = (rows: string) =>
-  `<table width="360"><tbody>${rows}</tbody></table>`;
+  `<table width="400"><tbody>${rows}</tbody></table>`;
 const row = (label: string, value: string, height = 32) =>
   `<tr height="${height}"><td>${label}</td><td align="right">${value}</td></tr>`;
+const dock = "command:formattingControls.quickControls";
 export function statusHover(context: HoverContext): string {
-  const link = (action: number | string) =>
-    `command:formattingControls.statusControl?${encodeURIComponent(JSON.stringify([context.revision, action]))}`;
   const state = context.flags.every(Boolean)
     ? "On"
     : context.flags.some(Boolean)
       ? "Mixed"
       : "Off";
-  const dropdown = (value: string, action: string) =>
-    `<a href="${link(action)}" title="Choose ${action === "scope" ? "write scope" : "language scope"} in VS Code picker"><span style="color:var(--vscode-dropdown-foreground);background-color:var(--vscode-dropdown-background);display:inline-block;border-radius:4px;">&nbsp; ${text(value)}&nbsp; ⌄ &nbsp;</span></a>`;
+  const collapse = `command:formattingControls.statusControl?${encodeURIComponent(JSON.stringify([context.revision, "collapse"]))}`;
   const triggers = ["Save", "Paste", "Type"]
     .map((label, i) => {
-      const owned = context.owned[i];
-      const checked = owned ?? context.flags[i];
-      const name = `Format on ${label.toLowerCase()}`;
-      const title = `Turn ${checked ? "off" : "on"} ${name.toLowerCase()} at ${context.scope} / ${context.languageScope}`;
-      const icon = `<span class="codicon codicon-${checked ? "check" : "chrome-maximize"}" style="color:var(--vscode-checkbox-foreground);${checked ? "background-color:var(--vscode-checkbox-background);display:inline-block;border-radius:2px;" : ""}"></span>`;
-      const control = `<a href="${link(i)}" title="${text(title)}"><span style="color:var(--vscode-foreground);">${icon}&nbsp; ${name}</span></a>`;
-      const note =
-        owned === undefined
-          ? "Inherited at this scope"
-          : owned !== context.flags[i]
-            ? `Effective value: ${context.flags[i] ? "On" : "Off"} (override)`
-            : "Set at this scope";
+      const source =
+        context.sources?.[i] ??
+        (context.owned[i] === undefined
+          ? "Using VS Code default"
+          : `Saved in ${context.scope}`);
+      const override =
+        context.owned[i] !== undefined && context.owned[i] !== context.flags[i]
+          ? ` · Saved value: ${context.owned[i] ? "On" : "Off"}`
+          : "";
       return (
-        row(control, muted(checked ? "On" : "Off"), 36) +
-        `<tr height="18"><td colspan="2"><small>${muted(note)}</small></td></tr>`
+        row(
+          `Format on ${label.toLowerCase()}`,
+          context.flags[i] ? "On" : "Off",
+        ) +
+        `<tr height="22"><td colspan="2"><small>${muted(text(source + override))}</small></td></tr>`
       );
     })
     .join("");
   return [
-    table(
-      row(
-        "<strong>Formatting Controls</strong>",
-        `<span style="color:var(--vscode-badge-foreground);background-color:var(--vscode-badge-background);display:inline-block;border-radius:4px;">&nbsp;${state}&nbsp;</span>`,
-        30,
-      ),
-    ),
-    `<p>${muted(text(context.file))}${context.language ? `<br>${muted(text(context.language))}` : ""}</p>`,
+    table(row("Formatting Controls", `<code>${state}</code>`)),
     "<hr>",
+    `<blockquote>Active file: ${text(context.file)}${context.language ? ` · ${text(context.language)}` : ""}${context.workspace ? `<br>${muted(`Workspace: ${text(context.workspace)}${context.folder ? ` · Folder: ${text(context.folder)}` : ""}`)}` : ""}</blockquote>`,
     table(
-      row("Write to", dropdown(context.scope, "scope")) +
-        row("Language", dropdown(context.languageScope, "language")),
+      row("Write to", text(context.scope)) +
+        row("Apply to language", text(context.languageScope)),
     ),
     "<hr>",
-    "<p><strong>Automatic formatting</strong></p>",
-    table(triggers),
+    `<a href="${collapse}">Automatic formatting ${context.collapsed ? "›" : "⌄"}</a>`,
+    ...(context.collapsed ? [] : [table(triggers)]),
     "<hr>",
     table(
       row(
@@ -79,11 +75,14 @@ export function statusHover(context: HoverContext): string {
         muted(text(context.formatter || "Not configured")),
       ),
     ),
+    `<p><a href="${dock}">Edit formatting controls ↗</a></p>`,
+    "<hr>",
+    `<a href="${dock}">Pause</a> &nbsp; ${muted("Temporarily stop automatic formatting")}`,
     "<hr>",
     table(
       row(
         '<a href="command:formattingControls.dashboard">Open dashboard ↗</a>',
-        `<a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}">VS Code Settings</a>`,
+        `<a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}">Settings</a>`,
       ),
     ),
   ].join("\n\n");

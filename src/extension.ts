@@ -27,12 +27,20 @@ export function activate(context: vscode.ExtensionContext): void {
     profiles,
   );
   const dashboard = new Dashboard(context.extensionUri, undefined, workflows);
+  const docked = new Dashboard(
+    context.extensionUri,
+    undefined,
+    workflows,
+    "controls",
+  );
   const item = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
     100,
   );
   let activeDocument = vscode.window.activeTextEditor?.document;
-  const controls = new StatusControls(item, () => activeDocument);
+  const controls = new StatusControls(item, () =>
+    activeDocument?.isClosed ? undefined : activeDocument,
+  );
   const scope = (): Selection => {
     const document = vscode.window.activeTextEditor?.document ?? activeDocument;
     return {
@@ -246,8 +254,18 @@ export function activate(context: vscode.ExtensionContext): void {
       }),
     ),
     dashboard,
+    docked,
+    docked.onDidChangeScope((scope) => controls.setScope(scope)),
+    vscode.window.registerWebviewViewProvider(
+      "formattingControls.controls",
+      docked,
+    ),
     vscode.commands.registerCommand(
       "formattingControls.quickControls",
+      guarded(() => docked.open()),
+    ),
+    vscode.commands.registerCommand(
+      "formattingControls.nativeQuickControls",
       guarded(() => controls.open()),
     ),
     vscode.commands.registerCommand(
@@ -269,11 +287,14 @@ export function activate(context: vscode.ExtensionContext): void {
       "formattingControls.inspect",
       guarded(inspect),
     ),
-    vscode.workspace.onDidCloseTextDocument((document) => {
-      if (document === activeDocument) {
-        activeDocument = vscode.window.activeTextEditor?.document;
+    vscode.workspace.onDidOpenTextDocument((document) => {
+      if (activeDocument?.uri.toString() === document.uri.toString()) {
+        activeDocument = document;
         refresh();
       }
+    }),
+    vscode.workspace.onDidCloseTextDocument((document) => {
+      if (document === activeDocument) refresh();
     }),
     vscode.workspace.onDidChangeConfiguration(refresh),
     vscode.workspace.onDidChangeWorkspaceFolders(refresh),

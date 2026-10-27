@@ -62,6 +62,37 @@ export async function runWorkflowTests(
       }),
       /scope changed/,
     );
+    const actionsBeforePause = structuredClone(
+      own(selection, "editor.codeActionsOnSave"),
+    );
+    await workflows.pauseFormatting(selection, scope);
+    assert.equal(own(selection, "editor.formatOnSave"), false);
+    assert.equal(own(selection, "editor.formatOnPaste"), false);
+    assert.equal(own(selection, "editor.formatOnType"), false);
+    assert.deepEqual(
+      own(selection, "editor.codeActionsOnSave"),
+      actionsBeforePause,
+      "Formatting-only pause must preserve all save actions",
+    );
+    await write(selection, "editor.formatOnType", true);
+    await workflows.restore();
+    assert.equal(own(selection, "editor.formatOnSave"), true);
+    assert.equal(
+      own(selection, "editor.formatOnType"),
+      true,
+      "Resume preserves newer edits",
+    );
+    assert.deepEqual(
+      own(selection, "editor.codeActionsOnSave"),
+      actionsBeforePause,
+    );
+    await workflows.discard();
+    previews.length = 0;
+    await write(
+      selection,
+      "editor.formatOnType",
+      originals.find((entry) => entry.key === "editor.formatOnType")?.value,
+    );
     await workflows.save("TSX Project", selection, scope);
     assert.ok(
       workflows

@@ -1,10 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 — Unreleased
 
-Fixed anchored-card jumps when inherited formatting becomes explicitly configured. Retained ownership-note row heights and skipped equivalent tooltip rebuilds while preserving invalidation for changed settings or write destinations. Added hover-only repeated-toggle coverage.
+Added a docked Formatting Controls Panel view with real HTML checkboxes and inline scope, language and formatter selects. Added active-file/workspace context, accurate source and override labels, a collapsible automatic-formatting section, and formatting-only Pause/Resume that preserves save actions and newer edits. The existing dashboard and native picker workflows remain available.
 
-Added a wider formatting-only status card using VS Code’s sanitized HTML support, themed choice fields and spaced checkbox-style links: hovering and clicking show the same native card above the status bar, and clicking keeps it focused without opening an editor tab. Save/Paste/Type toggles have explicit scope/language choices and stale-state protection. Save actions, pause/recovery and advanced controls remain in the dashboard. Quick Controls uses native formatting pickers; Native Quick Controls retains the original settings workflow.
+The status item now opens the docked view on click. Its native Markdown hover provides effective values and navigation without fake checkbox or dropdown widgets. VS Code does not expose the richer interactive status-popover host used by Copilot. Added editor-language lifecycle, inline-control, scope, pause-preservation, responsive accessibility and source-precedence coverage.
+
+Renamed the Extensions display name to Kira Formatting Controls, retained the stable package/publisher identity, and replaced the app icon with the approved centered blue/white control symbol on a black background. Hover and docked headers use the shorter Formatting Controls name without an app icon.
 
 Added real Remote SSH regression coverage for scopes, host-owned profiles, import/export and persisted pause recovery after client reconnect, plus native UI review notes and remote User-scope guidance. Updated Node type declarations to ^26.6.5 while retaining Node 24 compatibility.
 

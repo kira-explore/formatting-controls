@@ -1,21 +1,29 @@
 import * as vscode from "vscode";
+import type { Scope } from "../shared/protocol";
+import { settingSource } from "../shared/setting-source";
 import { own, type Selection, write } from "./configuration";
 import { flags, status } from "./model";
 import { statusTooltip } from "./status-hover";
 
-/** Native status hover; its click command focuses the same hover, without a webview. */
+/** Native summary above the status item; click opens real controls in the Panel. */
 export class StatusControls {
   private revision = 0;
   private fingerprint = "";
   private target: vscode.ConfigurationTarget | undefined;
   private languageOnly = false;
   private pending = false;
+  private collapsed = false;
+  private externalScope: Scope | undefined;
+  setScope(scope: Scope): void {
+    this.externalScope = scope;
+    this.refresh();
+  }
   constructor(
     private readonly item: vscode.StatusBarItem,
     private readonly document: () => vscode.TextDocument | undefined,
   ) {
     item.name = "Formatting Controls";
-    item.command = "workbench.action.showHover";
+    item.command = "formattingControls.quickControls";
   }
   private selection(): Selection {
     const document = this.document();
@@ -25,6 +33,31 @@ export class StatusControls {
       vscode.workspace.workspaceFile ||
       vscode.workspace.workspaceFolders?.length
     );
+    if (this.externalScope) {
+      const scope = this.externalScope;
+      const selectedFolder = vscode.workspace.workspaceFolders?.find(
+        (f) => f.uri.toString() === scope.folder,
+      );
+      const target =
+        scope.target === "user"
+          ? vscode.ConfigurationTarget.Global
+          : scope.target === "workspace" && hasWorkspace
+            ? vscode.ConfigurationTarget.Workspace
+            : scope.target === "folder" && selectedFolder
+              ? vscode.ConfigurationTarget.WorkspaceFolder
+              : vscode.ConfigurationTarget.Global;
+      const uri =
+        target === vscode.ConfigurationTarget.WorkspaceFolder &&
+        selectedFolder &&
+        folder?.uri.toString() !== selectedFolder.uri.toString()
+          ? selectedFolder.uri
+          : document?.uri;
+      return {
+        target,
+        ...(uri ? { uri } : {}),
+        ...(scope.language ? { language: scope.language } : {}),
+      };
+    }
     const target =
       this.target ??
       (folder
@@ -70,10 +103,41 @@ export class StatusControls {
       document && vscode.workspace.getWorkspaceFolder(document.uri);
     const context = {
       file: document
-        ? vscode.workspace.asRelativePath(document.uri)
-        : "No active editor",
+        ? (document.uri.path.split("/").pop() ?? document.fileName)
+        : "No active file",
+      collapsed: this.collapsed,
       ...(document ? { language: document.languageId } : {}),
+      ...(vscode.workspace.name ? { workspace: vscode.workspace.name } : {}),
+      ...(folder && (vscode.workspace.workspaceFolders?.length ?? 0) > 1
+        ? { folder: folder.name }
+        : {}),
       flags: values,
+      sources: flags.map((key) => {
+        const source = settingSource(
+          {
+            configured: own(selection, key) !== undefined,
+            owned: own(selection, key),
+            effective: effective.get(key),
+            sources: effective.inspect(key) as unknown as Record<
+              string,
+              unknown
+            >,
+          },
+          {
+            target:
+              selection.target === vscode.ConfigurationTarget.Global
+                ? "user"
+                : selection.target === vscode.ConfigurationTarget.Workspace
+                  ? "workspace"
+                  : "folder",
+            ...(selection.language ? { language: selection.language } : {}),
+          },
+          document?.languageId,
+        );
+        return source.override
+          ? `${source.label} · ${source.override}`
+          : source.label;
+      }),
       owned: flags.map((key) => {
         const value = own(selection, key);
         return typeof value === "boolean" ? value : undefined;
@@ -89,12 +153,13 @@ export class StatusControls {
           ? "User"
           : selection.target === vscode.ConfigurationTarget.Workspace
             ? "Workspace"
-            : `Folder: ${folder?.name ?? ""}`,
+            : `Folder: ${selection.uri ? (vscode.workspace.getWorkspaceFolder(selection.uri)?.name ?? "") : ""}`,
       languageScope: selection.language ?? "All languages",
     };
     // Distinguish write destinations even when their visible labels match.
     const fingerprint = JSON.stringify({
       context,
+      activePath: document?.uri.toString(),
       target: selection.target,
       uri: selection.uri?.toString(),
       language: selection.language,
@@ -105,7 +170,7 @@ export class StatusControls {
     if (fingerprint === this.fingerprint) return;
     this.fingerprint = fingerprint;
     this.revision++;
-    this.item.text = `$(settings-gear) Formatting: ${status(values)}`;
+    this.item.text = `Formatting: ${status(values)}`;
     this.item.tooltip = statusTooltip({ ...context, revision: this.revision });
     this.item.accessibilityInformation = {
       label: this.item.text.replace("$(settings-gear) ", ""),
@@ -134,7 +199,9 @@ export class StatusControls {
     revision: unknown,
     action: unknown,
   ): Promise<void> {
-    if (action === "scope") {
+    if (action === "collapse") {
+      this.collapsed = !this.collapsed;
+    } else if (action === "scope") {
       const document = this.document();
       const choices = [
         { label: "User", target: vscode.ConfigurationTarget.Global },
@@ -162,6 +229,25 @@ export class StatusControls {
       if (!choice) return;
       this.assertCurrent(revision);
       this.target = choice.target;
+      if (this.externalScope) {
+        const folder =
+          document && vscode.workspace.getWorkspaceFolder(document.uri);
+        this.externalScope = {
+          target:
+            choice.target === vscode.ConfigurationTarget.Global
+              ? "user"
+              : choice.target === vscode.ConfigurationTarget.Workspace
+                ? "workspace"
+                : "folder",
+          ...(choice.target === vscode.ConfigurationTarget.WorkspaceFolder &&
+          folder
+            ? { folder: folder.uri.toString() }
+            : {}),
+          ...(this.externalScope.language
+            ? { language: this.externalScope.language }
+            : {}),
+        };
+      }
     } else if (action === "language") {
       const language = this.document()?.languageId;
       const choice = await vscode.window.showQuickPick(
@@ -171,6 +257,11 @@ export class StatusControls {
       if (!choice) return;
       this.assertCurrent(revision);
       this.languageOnly = choice !== "All languages";
+      if (this.externalScope) {
+        this.externalScope = { ...this.externalScope };
+        if (this.languageOnly) this.externalScope.language = choice;
+        else delete this.externalScope.language;
+      }
     } else if (
       typeof action === "number" &&
       Number.isInteger(action) &&

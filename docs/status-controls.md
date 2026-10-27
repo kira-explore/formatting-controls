@@ -1,31 +1,40 @@
-# Formatting status card
+# Formatting controls in version 0.5.0
 
-Hover and click use the same native Markdown card above the status-bar item. Clicking runs VS Code's built-in `workbench.action.showHover` command, which focuses and keeps the item's hover open. Escape dismisses it; Enter or Space on the focused status item opens it. Clicking does not create an editor tab. The previous Quick Controls webview has been removed.
+Hover the status-bar item for a native formatting summary. Click it, or run **Formatting Controls: Quick Controls**, to open the docked **Formatting Controls** Panel view. The editor stays visible and no editor tab is created. The existing dashboard still opens separately for save actions, profiles, diagnostics, language rules and advanced settings.
 
-The card uses a 360px content width, a compact heading/status badge, aligned scope/language choices, spaced Save/Paste/Type rows, a formatter summary and dashboard/settings links. It replaces the narrow three-column settings table. Save actions and pause/recovery controls remain in the full dashboard.
+The extension listing is named **Kira Formatting Controls**. The hover and Panel headers remain **Formatting Controls**, without an app icon. The package identifier remains `rajudhami.formatting-controls` to preserve extension identity, storage and commands.
 
-![Native formatting card above the status bar](assets/status-card-dark.png)
+## Supported surfaces
 
-## Editing
+The public `StatusBarItem.tooltip` API accepts text or Markdown, not a webview. VS Code’s Markdown renderer disables checkbox inputs and does not expose inline dropdowns in tooltips. Consequently, the hover uses honest text values and command links, not imitation checkbox or dropdown controls. Click **Edit formatting controls** or **Pause** to open the docked view. The automatic-formatting section can be expanded or collapsed in either surface.
 
-The default write target follows the active file's folder, otherwise Workspace, or User without a workspace. Choosing a scope keeps that target within the window; Folder follows the active editor's folder. Unavailable targets fall back to the visibly labelled User scope. Language defaults to All languages and can be restricted to the active editor's language using the native picker.
+The Panel uses a supported `WebviewView` with real HTML checkbox/select inputs styled using VS Code theme tokens. Its selects open inline rather than launching QuickPick. These browser controls are not Copilot’s internal workbench components. VS Code controls the native hover’s position, frame, delay and sanitized appearance; the richer floating mockup remains an API-dependent concept.
 
-A row shows its selected scope's owned value when present, otherwise the effective inherited value. Clicking the row's On/Off link toggles that value at the displayed scope. An `effective On/Off` note identifies a higher-priority override that differs from the owned value. The header and status item summarize effective formatting for the active language regardless of the write scope. Each trigger keeps an ownership-note row whether its value is inherited, set here or overridden, so changing ownership does not resize or move the anchored card.
+Sources: [StatusBarItem](https://code.visualstudio.com/api/references/vscode-api#StatusBarItem), [Webview hosts](https://code.visualstudio.com/api/extension-guides/webview), [Markdown input handling](https://github.com/microsoft/vscode/blob/1.143.1/src/vs/base/browser/markdownRenderer.ts).
 
-The checkbox-style rows and field-style choices are command links, not HTML form inputs. Links carry the current revision and accept only the three formatting flags or scope/language choices. Changes to the displayed settings, selected write destination or editor/folder context invalidate earlier links. Equivalent notifications retain the current revision and hover content. Pending controls cannot overlap. File names, languages, folder names, formatter labels and attribute text are HTML-escaped. HTML support uses only VS Code’s sanitized subset, with fixed table/row dimensions, static theme-token colors and static codicons. Theme-icon parsing is disabled so context text cannot introduce icons. Only the two extension control/navigation commands and the built-in Settings navigation command are trusted. Hovering does not write settings or run a formatter. Reopen the card after a picker or edit if VS Code dismisses it.
+## Context and scope
 
-## Native appearance and timing
+The information box identifies the last active file, its real editor language and workspace. A folder is named for multi-root workspaces, and remote sessions identify their host. A file’s relative path is available on hover. Closing the file clears its active context. A Settings editor does not replace the code-file context.
 
-The public MarkdownString API supports a sanitized HTML subset. Table width/height attributes and a small set of span styles let the native hover use a wider card layout and VS Code theme colors. This improves the layout without a webview or workbench modification. Native outer styling and pointer behavior still apply equally on hover and click.
+**Write to** selects User, Workspace or Workspace folder. **Apply to language** selects All languages or an explicit VS Code language ID. These selectors choose the write destination, not a new language mode for the file. Unavailable workspace/folder targets are disabled. Selecting a different folder/language makes the displayed configuration context explicit.
 
-This does not expose Copilot’s real HTML widgets: VS Code disables checkbox inputs and removes other input types in Markdown. The setting rows remain functional links that toggle values; scope/language choices open native pickers rather than inline dropdowns. No disabled imitation form controls are rendered.
+Checkboxes show the value owned at the destination when one exists, otherwise the effective inherited value. The header’s On / Off / Mixed state describes the effective combination. A source label says **Saved in Workspace**, **Inherited from User settings**, **Using VS Code default**, or the corresponding actual source, with language overrides identified. If a narrower/language/policy value wins, a separate explanation shows that effective override. Save actions stay out of this quick surface.
 
-Mouse hover follows VS Code's `workbench.hover.delay` preference. There is no per-item delay property in `StatusBarItem`, so the extension cannot make only this hover instantaneous. It does not alter the user's global hover preference. Clicking opens the card immediately. The implementation uses the registered workbench hover command, not the internal object-only status tooltip sentinels or injected workbench DOM. This behavior is regression-tested on the minimum supported host and stable host; built-in command behavior remains a compatibility dependency.
+## Pause and resume
 
-## Commands and verification
+The Panel’s **Pause** affects only Save, Paste and Type formatting at a workspace/folder destination. It leaves save actions and the formatter selection unchanged. The one-line description explains its purpose outside the button. Pause first offers a review step and then reuses the existing JSON change preview and native confirmation. Resume uses the durable recovery journal and preserves newer edits. A pending profile restore point must be reviewed before pausing.
 
-- Formatting Controls: Quick Controls opens formatting-only native toggles and scope/language pickers from the Command Palette or dashboard.
-- Formatting Controls: Native Quick Controls retains the original settings picker workflow and command ID `formattingControls.open`.
-- Formatting Controls: Open Dashboard contains save actions, formatter management, profiles and pause/recovery.
+The dashboard’s broader pause workflow retains its existing behavior, including configured save actions. Its preview lists those changes explicitly.
 
-After building, run `bun run test/run-integration.ts --status-ui` for the actual native hover/click test and `bun run test:ui` for the full dashboard. The status test verifies a cold click with editor focus, wider rendered bounds, identical hover/click bounds and content, pinning after moving the pointer away, Escape/Enter, hover-only repeated inherited-to-explicit toggles with unchanged bounds and no extra status click, real scoped writes, scope/language pickers, no new tabs, no form/script elements and a focused automated accessibility scan. CI runs the status test across the three existing themes. Backend tests cover stale/invalid links, owned-versus-effective values, save-action preservation and empty-window User scope. Automated checks do not replace the outstanding screen-reader review.
+## Security and lifecycle
+
+The Panel reuses the dashboard’s validated message schema, bounded values, revision checks, scope/folder allowlist and serialized mutation queue. No arbitrary commands or file paths are accepted. All context text in the native hover is HTML-escaped. Its trusted commands are limited to disclosure, docked-controls/dashboard navigation and Settings. Equivalent state notifications do not rebuild the tooltip. The webview uses a nonce-based content security policy and extension-local assets.
+
+The docked controls support keyboard access, visible focus, high-contrast theme tokens and responsive reflow when moved into a narrow view container. The icon appears in the Extensions listing only; native VS Code view-container chrome is managed by the editor.
+
+## Commands
+
+- **Quick Controls** (`formattingControls.quickControls`): docked formatting view.
+- **Native Formatting Picker** (`formattingControls.nativeQuickControls`): optional original formatting-only QuickPick workflow.
+- **Native Quick Controls** (`formattingControls.open`): original full settings picker workflow.
+- **Open Dashboard** (`formattingControls.dashboard`): existing advanced dashboard.

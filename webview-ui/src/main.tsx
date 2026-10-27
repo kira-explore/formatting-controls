@@ -5,6 +5,8 @@ import { actionNames, descriptions, display, labels, pages } from "./catalog";
 import { useEditor } from "./useEditor";
 import { WorkflowPages } from "./WorkflowPages";
 import "./styles.css";
+import { QuickControls } from "./QuickControls";
+import "./quick-controls.css";
 
 function App() {
   const { state, page, setPage, pending, error, setError, notice, send } =
@@ -805,7 +807,7 @@ function App() {
             </section>
           )}
           <footer>
-            <span>Formatting Controls · 0.4.0</span>
+            <span>Formatting Controls · 0.5.0</span>
             <button
               type="button"
               disabled={disabled}
@@ -823,6 +825,10 @@ const root = document.getElementById("root");
 if (root)
   createRoot(root).render(
     <StrictMode>
-      <App />
+      {document.body.dataset.surface === "controls" ? (
+        <QuickControls />
+      ) : (
+        <App />
+      )}
     </StrictMode>,
   );

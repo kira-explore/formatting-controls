@@ -12,6 +12,11 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
   const original = own(selection, key);
   const language = { ...selection, language: document.languageId };
   const originalLanguage = own(language, key);
+  const workspaceLanguage = {
+    ...language,
+    target: vscode.ConfigurationTarget.Workspace,
+  };
+  const originalWorkspaceLanguage = own(workspaceLanguage, key);
   const actions = own(selection, "editor.codeActionsOnSave");
   const revision = () =>
     JSON.parse(
@@ -25,18 +30,19 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     await write(selection, key, false);
     await write(language, key, true);
     controls.refresh();
-    assert.equal(item.command, "workbench.action.showHover");
+    assert.equal(item.command, "formattingControls.quickControls");
     const tooltip = item.tooltip as vscode.MarkdownString;
     assert.equal(tooltip.supportHtml, true);
     assert.equal(tooltip.supportThemeIcons, false);
     assert.deepEqual(tooltip.isTrusted, {
       enabledCommands: [
         "formattingControls.statusControl",
+        "formattingControls.quickControls",
         "formattingControls.dashboard",
         "workbench.action.openSettings",
       ],
     });
-    assert.match(tooltip.value, /Effective value: On/);
+    assert.match(tooltip.value, /Overridden by/);
     const stale = revision();
     controls.refresh();
     assert.equal(
@@ -62,17 +68,36 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     await assert.rejects(controls.control(stale, 1), /changed/);
     for (const action of [-1, 3, "0", "editor.codeActionsOnSave", null, {}])
       await assert.rejects(controls.control(revision(), action), /Unknown/);
+    await write(workspaceLanguage, key, false);
+    controls.setScope({ target: "workspace", language: document.languageId });
+    await controls.control(revision(), 1);
+    assert.equal(
+      own(workspaceLanguage, key),
+      true,
+      "Native fallback respects the docked write destination",
+    );
+    assert.equal(
+      own(language, key),
+      true,
+      "Shared scope must not mutate the active folder override",
+    );
+    await controls.control(revision(), "collapse");
+    assert.ok(
+      !(item.tooltip as vscode.MarkdownString).value.includes("Format on save"),
+    );
+    await controls.control(revision(), "collapse");
     const previousDocument = revision();
     document = undefined;
     controls.refresh();
     await assert.rejects(controls.control(previousDocument, 0), /changed/);
     assert.match(
       (item.tooltip as vscode.MarkdownString).value,
-      /No active editor/,
+      /No active file/,
     );
   } finally {
     await write(selection, key, original);
     await write(language, key, originalLanguage);
+    await write(workspaceLanguage, key, originalWorkspaceLanguage);
     item.dispose();
   }
 }
