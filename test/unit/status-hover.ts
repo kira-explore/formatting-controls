@@ -12,33 +12,39 @@ const context: HoverContext = {
   languageScope: "All languages",
   revision: 7,
 };
-test("formatting-only hover distinguishes owned, effective and inherited values", () => {
-  const hover = statusHover(context);
-  assert.match(hover, /Formatting Controls · Mixed/);
-  assert.match(hover, /On\].*Effective Off/);
-  assert.match(hover, /On\].*Inherited/);
-  assert.ok(!/save actions|codeActions|quickControls/i.test(hover));
+test("status card distinguishes selected-scope, inherited and effective formatting", () => {
+  const html = statusHover(context);
+  assert.match(html, />&nbsp;Mixed&nbsp;</);
+  assert.match(html, /Turn off format on save/);
+  assert.match(html, /Effective value: Off/);
+  assert.match(html, /Inherited at this scope/);
+  assert.ok(
+    !/save actions|codeActions|quickControls|<input|<select|<button/i.test(
+      html,
+    ),
+  );
   assert.match(
     statusHover({ ...context, flags: [true, true, true] }),
-    /Controls · On/,
+    />&nbsp;On&nbsp;</,
   );
   assert.match(
     statusHover({ ...context, flags: [false, false, false] }),
-    /Controls · Off/,
+    />&nbsp;Off&nbsp;</,
   );
 });
-test("untrusted context text cannot introduce markdown commands, HTML or codicons", () => {
-  const hover = statusHover({
+test("context text cannot introduce HTML, attributes or command links", () => {
+  const html = statusHover({
     ...context,
-    file: "[Run](command:evil)\n<img src=x>",
-    formatter: "$(zap)[Other](command:evil)",
-    scope: "[evil]",
+    file: '[Run](command:evil)\n<img src=x onerror="evil()">',
+    formatter: "$(zap)<script>evil()</script>",
+    scope: 'User" onmouseover="evil()',
   });
-  assert.ok(hover.includes("\\[Run\\]\\(command:evil\\)"));
-  assert.ok(hover.includes("\\<img src=x\\>"));
-  assert.ok(hover.includes("\\$\\(zap\\)"));
-  assert.ok(!hover.includes("[Run](command:evil)"));
-  const commands = [...hover.matchAll(/\]\(command:([\w.]+)/g)].map(
+  assert.ok(html.includes("&lt;img src=x onerror=&quot;evil()&quot;&gt;"));
+  assert.ok(html.includes("$(zap)&lt;script&gt;evil()&lt;/script&gt;"));
+  assert.ok(!html.includes("<img"));
+  assert.ok(!html.includes("<script>"));
+  assert.ok(!html.includes(' onmouseover="'));
+  const commands = [...html.matchAll(/href="command:([\w.]+)/g)].map(
     (match) => match[1],
   );
   assert.deepEqual(
@@ -50,11 +56,12 @@ test("untrusted context text cannot introduce markdown commands, HTML or codicon
     ]),
   );
 });
-test("each control carries the current revision and a constrained action", () => {
-  const hover = statusHover(context);
-  const actions = [...hover.matchAll(/statusControl\?([^)]*)/g)].map((match) =>
-    JSON.parse(decodeURIComponent(match[1] ?? "")),
-  );
+test("each settings link carries a revision and one constrained action", () => {
+  const actions = [
+    ...statusHover(context).matchAll(
+      /href="command:formattingControls.statusControl\?([^"]*)"/g,
+    ),
+  ].map((match) => JSON.parse(decodeURIComponent(match[1] ?? "")));
   assert.deepEqual(actions, [
     [7, "scope"],
     [7, "language"],

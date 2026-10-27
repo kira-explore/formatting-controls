@@ -22,14 +22,25 @@ export async function reviewStatus(
   await hover.waitFor({ state: "visible" });
   const clicked = await hover.boundingBox();
   assert.ok(clicked);
+  assert.ok(
+    clicked.width >= 360 && clicked.width <= 440,
+    "The native card must retain its wider layout",
+  );
+  assert.equal(
+    await hover.locator("input,select,button,script,style").count(),
+    0,
+    "The status surface must not contain disabled fake form inputs or scripts",
+  );
+  assert.ok((await hover.locator(".codicon-chrome-maximize").count()) > 0);
+
   const text = (await hover.textContent()) ?? "";
   for (const label of [
     "Format on save",
     "Format on paste",
     "Format on type",
-    "Write to:",
-    "Language:",
-    "Default formatter:",
+    "Write to",
+    "Language",
+    "Default formatter",
   ])
     assert.ok(text.includes(label));
   assert.ok(!/save actions/i.test(text));
@@ -87,7 +98,7 @@ export async function reviewStatus(
   await button.click();
   await hover.waitFor({ state: "visible" });
   await row
-    .getByRole("link", { name: before.includes("Off") ? /On/ : /Off/ })
+    .getByText(before.includes("Off") ? "On" : "Off", { exact: true })
     .waitFor();
   await hover.getByRole("link", { name: /Folder:/ }).click();
   await page.getByRole("option", { name: "Workspace", exact: true }).click();

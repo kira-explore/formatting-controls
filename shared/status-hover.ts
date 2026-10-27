@@ -14,7 +14,17 @@ const text = (value: string) =>
     .split("")
     .map((character) => (character.charCodeAt(0) < 32 ? " " : character))
     .join("")
-    .replace(/[\\`*_{}[\]()<>#+.!|$]/g, "\\$&");
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+const muted = (value: string) =>
+  `<span style="color:var(--vscode-descriptionForeground);">${value}</span>`;
+const table = (rows: string) =>
+  `<table width="360"><tbody>${rows}</tbody></table>`;
+const row = (label: string, value: string, height = 32) =>
+  `<tr height="${height}"><td>${label}</td><td align="right">${value}</td></tr>`;
 export function statusHover(context: HoverContext): string {
   const link = (action: number | string) =>
     `command:formattingControls.statusControl?${encodeURIComponent(JSON.stringify([context.revision, action]))}`;
@@ -23,28 +33,60 @@ export function statusHover(context: HoverContext): string {
     : context.flags.some(Boolean)
       ? "Mixed"
       : "Off";
+  const dropdown = (value: string, action: string) =>
+    `<a href="${link(action)}" title="Choose ${action === "scope" ? "write scope" : "language scope"}"><span style="color:var(--vscode-dropdown-foreground);background-color:var(--vscode-dropdown-background);display:inline-block;border-radius:4px;">&nbsp; ${text(value)}&nbsp; ⌄ &nbsp;</span></a>`;
+  const triggers = ["Save", "Paste", "Type"]
+    .map((label, i) => {
+      const owned = context.owned[i];
+      const checked = owned ?? context.flags[i];
+      const name = `Format on ${label.toLowerCase()}`;
+      const title = `Turn ${checked ? "off" : "on"} ${name.toLowerCase()} at ${context.scope} / ${context.languageScope}`;
+      const icon = `<span class="codicon codicon-${checked ? "check" : "chrome-maximize"}" style="color:var(--vscode-checkbox-foreground);${checked ? "background-color:var(--vscode-checkbox-background);display:inline-block;border-radius:2px;" : ""}"></span>`;
+      const control = `<a href="${link(i)}" title="${text(title)}"><span style="color:var(--vscode-foreground);">${icon}&nbsp; ${name}</span></a>`;
+      const note =
+        owned === undefined
+          ? "Inherited at this scope"
+          : owned !== context.flags[i]
+            ? `Effective value: ${context.flags[i] ? "On" : "Off"} · overridden by another scope`
+            : "";
+      return (
+        row(control, muted(checked ? "On" : "Off"), 36) +
+        (note
+          ? `<tr><td colspan="2"><small>${muted(note)}</small></td></tr>`
+          : "")
+      );
+    })
+    .join("");
   return [
-    `### $(settings-gear) Formatting Controls · ${state}`,
-    `${text(context.file)}${context.language ? ` · ${text(context.language)}` : ""}`,
-    "---",
-    `Write to: [${text(context.scope)} $(chevron-down)](${link("scope")})  \nLanguage: [${text(context.languageScope)} $(chevron-down)](${link("language")})`,
-    "| Formatting | Value | &nbsp;&nbsp; Source |\n|:---|---:|:---|\n" +
-      ["Save", "Paste", "Type"]
-        .map((label, i) => {
-          const owned = context.owned[i];
-          const checked = owned ?? context.flags[i];
-          const control = `[$(${checked ? "check" : "circle-large-outline"}) ${checked ? "On" : "Off"}](${link(i)})`;
-          const note =
-            owned === undefined
-              ? "Inherited"
-              : owned !== context.flags[i]
-                ? `Effective ${context.flags[i] ? "On" : "Off"}`
-                : "Set here";
-          return `| Format on ${label.toLowerCase()} | ${control} | &nbsp;&nbsp; ${note} |`;
-        })
-        .join("\n"),
-    `**Default formatter:** ${text(context.formatter || "Not configured")}`,
-    "---",
-    `[Open dashboard $(link-external)](command:formattingControls.dashboard)  ·  [VS Code Settings](command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))})`,
+    table(
+      row(
+        "<strong>Formatting Controls</strong>",
+        `<span style="color:var(--vscode-badge-foreground);background-color:var(--vscode-badge-background);display:inline-block;border-radius:4px;">&nbsp;${state}&nbsp;</span>`,
+        30,
+      ),
+    ),
+    `<p>${muted(text(context.file))}${context.language ? `<br>${muted(text(context.language))}` : ""}</p>`,
+    "<hr>",
+    table(
+      row("Write to", dropdown(context.scope, "scope")) +
+        row("Language", dropdown(context.languageScope, "language")),
+    ),
+    "<hr>",
+    "<p><strong>Automatic formatting</strong></p>",
+    table(triggers),
+    "<hr>",
+    table(
+      row(
+        "Default formatter",
+        muted(text(context.formatter || "Not configured")),
+      ),
+    ),
+    "<hr>",
+    table(
+      row(
+        '<a href="command:formattingControls.dashboard">Open dashboard ↗</a>',
+        `<a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}">VS Code Settings</a>`,
+      ),
+    ),
   ].join("\n\n");
 }

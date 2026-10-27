@@ -71,3 +71,8 @@ Real macOS-to-Linux Remote SSH checks passed for configuration scopes, existing 
 ## Formatting status card
 
 Replaced the compact editor panel with one native formatting-only status card. Local VS Code 1.140.0 and stable 1.143.1 tests verify cold click, identical hover/click bounds and content, pinning, keyboard access, real formatting edits and native scope/language pickers without opening tabs. The 49-test Node 24 suite, type checks, Biome and empty-window suite pass. Added revision/invalid-action regressions, owned-versus-effective checks and save-action preservation. CI runs native status checks across three themes alongside the existing dashboard scans. Native appearance, pointer and hover delay remain controlled by VS Code; see [status controls](status-controls.md).
+
+
+### Anchored card layout refinement
+
+Replaced the narrow settings table with a 360px HTML content layout using the public MarkdownString supportHtml option and VS Code’s built-in sanitizer. Escaped all dynamic text and attribute content, disabled theme-icon parsing for user text, and retained constrained command links and stale-state protection. Native UI checks measure the rendered width, compare hover/click position and content, and reject form/script elements. Host syntax optimization keeps the bundle within the existing budget without changing debug names or source maps.

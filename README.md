@@ -118,7 +118,7 @@ Hover the status-bar item for formatting controls. Click it to focus and keep th
 
 The welcome page appears once on first activation. It introduces the workflow and links to settings, documentation, and GitHub; it does not apply a preset automatically.
 
-Hover and click use one native formatting card in the same location. VS Code controls its appearance, pointer and hover delay; scope and language choices use native pickers. See [status controls and scope behavior](docs/status-controls.md).
+Hover and click use one wider formatting card in the same location, with checkbox-style links and aligned scope/language choices. Those choices open native pickers; VS Code controls the outer appearance, pointer and hover delay. See [status controls and scope behavior](docs/status-controls.md).
 
 ![Formatting controls anchored above the status bar in Dark Modern](docs/assets/status-card-dark.png)
 

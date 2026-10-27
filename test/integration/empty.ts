@@ -59,13 +59,11 @@ export async function run(): Promise<void> {
     try {
       const controls = new StatusControls(item, () => undefined);
       controls.refresh();
-      assert.ok(
-        (item.tooltip as vscode.MarkdownString).value.includes("[User"),
-      );
+      assert.ok((item.tooltip as vscode.MarkdownString).value.includes("User"));
       const revision = JSON.parse(
         decodeURIComponent(
           (item.tooltip as vscode.MarkdownString).value.match(
-            /statusControl\?([^)]*)/,
+            /statusControl\?([^"]*)/,
           )?.[1] ?? "",
         ),
       )[0];

@@ -17,7 +17,7 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     JSON.parse(
       decodeURIComponent(
         (item.tooltip as vscode.MarkdownString).value.match(
-          /statusControl\?([^)]*)/,
+          /statusControl\?([^"]*)/,
         )?.[1] ?? "",
       ),
     )[0];
@@ -27,7 +27,8 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     controls.refresh();
     assert.equal(item.command, "workbench.action.showHover");
     const tooltip = item.tooltip as vscode.MarkdownString;
-    assert.equal(tooltip.supportHtml, false);
+    assert.equal(tooltip.supportHtml, true);
+    assert.equal(tooltip.supportThemeIcons, false);
     assert.deepEqual(tooltip.isTrusted, {
       enabledCommands: [
         "formattingControls.statusControl",
@@ -35,7 +36,7 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
         "workbench.action.openSettings",
       ],
     });
-    assert.match(tooltip.value, /Effective On/);
+    assert.match(tooltip.value, /Effective value: On/);
     const stale = revision();
     const pending = controls.control(stale, 1);
     await assert.rejects(controls.control(stale, 1), /Finish|changed/);
