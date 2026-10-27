@@ -76,3 +76,8 @@ Replaced the compact editor panel with one native formatting-only status card. L
 ### Anchored card layout refinement
 
 Replaced the narrow settings table with a 360px HTML content layout using the public MarkdownString supportHtml option and VS Code’s built-in sanitizer. Escaped all dynamic text and attribute content, disabled theme-icon parsing for user text, and retained constrained command links and stale-state protection. Native UI checks measure the rendered width, compare hover/click position and content, and reject form/script elements. Host syntax optimization keeps the bundle within the existing budget without changing debug names or source maps.
+
+
+### Interaction follow-up from screen recordings
+
+An inherited trigger becoming explicitly configured used to remove its helper row and shift the anchored card. Ownership notes now retain a consistent row height. Equivalent configuration/focus notifications no longer rebuild the tooltip or invalidate unchanged links. A real-editor regression starts from editor focus, opens by hover alone and toggles an inherited trigger twice without another status click; it checks ownership notes, value changes and identical bounds throughout. Scope/language labels explicitly describe opening a VS Code picker. The fields remain command links, not inline dropdown widgets.

@@ -38,6 +38,17 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     });
     assert.match(tooltip.value, /Effective value: On/);
     const stale = revision();
+    controls.refresh();
+    assert.equal(
+      revision(),
+      stale,
+      "Equivalent refreshes must keep active links valid",
+    );
+    assert.equal(
+      item.tooltip,
+      tooltip,
+      "Equivalent refreshes must not rebuild the hover",
+    );
     const pending = controls.control(stale, 1);
     await assert.rejects(controls.control(stale, 1), /Finish|changed/);
     await pending;

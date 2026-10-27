@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+Fixed anchored-card jumps when inherited formatting becomes explicitly configured. Retained ownership-note row heights and skipped equivalent tooltip rebuilds while preserving invalidation for changed settings or write destinations. Added hover-only repeated-toggle coverage.
+
 Added a wider formatting-only status card using VS Code’s sanitized HTML support, themed choice fields and spaced checkbox-style links: hovering and clicking show the same native card above the status bar, and clicking keeps it focused without opening an editor tab. Save/Paste/Type toggles have explicit scope/language choices and stale-state protection. Save actions, pause/recovery and advanced controls remain in the dashboard. Quick Controls uses native formatting pickers; Native Quick Controls retains the original settings workflow.
 
 Added real Remote SSH regression coverage for scopes, host-owned profiles, import/export and persisted pause recovery after client reconnect, plus native UI review notes and remote User-scope guidance. Updated Node type declarations to ^26.6.5 while retaining Node 24 compatibility.

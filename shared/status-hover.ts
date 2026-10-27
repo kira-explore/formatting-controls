@@ -34,7 +34,7 @@ export function statusHover(context: HoverContext): string {
       ? "Mixed"
       : "Off";
   const dropdown = (value: string, action: string) =>
-    `<a href="${link(action)}" title="Choose ${action === "scope" ? "write scope" : "language scope"}"><span style="color:var(--vscode-dropdown-foreground);background-color:var(--vscode-dropdown-background);display:inline-block;border-radius:4px;">&nbsp; ${text(value)}&nbsp; ⌄ &nbsp;</span></a>`;
+    `<a href="${link(action)}" title="Choose ${action === "scope" ? "write scope" : "language scope"} in VS Code picker"><span style="color:var(--vscode-dropdown-foreground);background-color:var(--vscode-dropdown-background);display:inline-block;border-radius:4px;">&nbsp; ${text(value)}&nbsp; ⌄ &nbsp;</span></a>`;
   const triggers = ["Save", "Paste", "Type"]
     .map((label, i) => {
       const owned = context.owned[i];
@@ -47,13 +47,11 @@ export function statusHover(context: HoverContext): string {
         owned === undefined
           ? "Inherited at this scope"
           : owned !== context.flags[i]
-            ? `Effective value: ${context.flags[i] ? "On" : "Off"} · overridden by another scope`
-            : "";
+            ? `Effective value: ${context.flags[i] ? "On" : "Off"} (override)`
+            : "Set at this scope";
       return (
         row(control, muted(checked ? "On" : "Off"), 36) +
-        (note
-          ? `<tr><td colspan="2"><small>${muted(note)}</small></td></tr>`
-          : "")
+        `<tr height="18"><td colspan="2"><small>${muted(note)}</small></td></tr>`
       );
     })
     .join("");

@@ -6,6 +6,7 @@ import { statusTooltip } from "./status-hover";
 /** Native status hover; its click command focuses the same hover, without a webview. */
 export class StatusControls {
   private revision = 0;
+  private fingerprint = "";
   private target: vscode.ConfigurationTarget | undefined;
   private languageOnly = false;
   private pending = false;
@@ -53,7 +54,6 @@ export class StatusControls {
     );
   }
   refresh(): void {
-    this.revision++;
     const document = this.document();
     const selection = this.selection();
     const effective = this.effective();
@@ -68,8 +68,7 @@ export class StatusControls {
       : undefined;
     const folder =
       document && vscode.workspace.getWorkspaceFolder(document.uri);
-    this.item.text = `$(settings-gear) Formatting: ${status(values)}`;
-    this.item.tooltip = statusTooltip({
+    const context = {
       file: document
         ? vscode.workspace.asRelativePath(document.uri)
         : "No active editor",
@@ -92,8 +91,22 @@ export class StatusControls {
             ? "Workspace"
             : `Folder: ${folder?.name ?? ""}`,
       languageScope: selection.language ?? "All languages",
-      revision: this.revision,
+    };
+    // Distinguish write destinations even when their visible labels match.
+    const fingerprint = JSON.stringify({
+      context,
+      target: selection.target,
+      uri: selection.uri?.toString(),
+      language: selection.language,
+      folders: vscode.workspace.workspaceFolders?.map((folder) =>
+        folder.uri.toString(),
+      ),
     });
+    if (fingerprint === this.fingerprint) return;
+    this.fingerprint = fingerprint;
+    this.revision++;
+    this.item.text = `$(settings-gear) Formatting: ${status(values)}`;
+    this.item.tooltip = statusTooltip({ ...context, revision: this.revision });
     this.item.accessibilityInformation = {
       label: this.item.text.replace("$(settings-gear) ", ""),
     };

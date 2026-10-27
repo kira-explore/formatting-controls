@@ -82,6 +82,10 @@ export async function reviewStatus(
   );
   await page.keyboard.press("Escape");
   await hover.waitFor({ state: "hidden" });
+  await page
+    .locator(".monaco-editor")
+    .first()
+    .click({ position: { x: 150, y: 100 } });
   await button.hover();
   await hover.waitFor({ state: "visible" });
   const hovered = await hover.boundingBox();
@@ -92,14 +96,37 @@ export async function reviewStatus(
   );
   assert.equal(await hover.textContent(), text);
   await page.screenshot({ path: join(directory, "status-hover-window.png") });
-  const row = hover.getByRole("row").filter({ hasText: "Format on paste" });
+  const row = hover.getByRole("row").filter({ hasText: "Format on type" });
   const before = (await row.textContent()) ?? "";
+  const helper = row.locator("xpath=following-sibling::tr[1]");
+  assert.match((await helper.textContent()) ?? "", /Inherited at this scope/);
   await row.getByRole("link").click();
-  await button.click();
   await hover.waitFor({ state: "visible" });
   await row
     .getByText(before.includes("Off") ? "On" : "Off", { exact: true })
     .waitFor();
+  assert.deepEqual(
+    await hover.boundingBox(),
+    hovered,
+    "Changing inherited formatting must not move or resize the card",
+  );
+  assert.ok(
+    await hover.isVisible(),
+    "A hover-only setting click must not need another status click",
+  );
+  assert.match((await helper.textContent()) ?? "", /Set at this scope/);
+  await row.getByRole("link").click();
+  await row
+    .getByText(before.includes("Off") ? "Off" : "On", { exact: true })
+    .waitFor();
+  assert.deepEqual(
+    await hover.boundingBox(),
+    hovered,
+    "Repeated clicks must keep the same position and size",
+  );
+  await page.screenshot({
+    path: join(directory, "status-after-toggle-window.png"),
+  });
   await hover.getByRole("link", { name: /Folder:/ }).click();
   await page.getByRole("option", { name: "Workspace", exact: true }).click();
   await button.click();
@@ -116,6 +143,6 @@ export async function reviewStatus(
   await hover.waitFor({ state: "visible" });
   assert.equal(await page.getByRole("tab").count(), tabs);
   console.log(
-    "Native status verified: cold click, identical hover position/content, pinning, Escape/Enter, formatting write, scope/language pickers and no editor tabs.",
+    "Native status verified: cold click, identical hover position/content, pinning, Escape/Enter, hover-only repeated toggles without moving the card, scope/language pickers and no editor tabs.",
   );
 }
