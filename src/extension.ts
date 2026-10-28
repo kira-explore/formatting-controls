@@ -8,6 +8,7 @@ import {
   setAction,
   write,
 } from "./configuration";
+import { CoreControls } from "./core-controls";
 import { Dashboard } from "./dashboard";
 import { type ActionValue, flags, keys, type SettingKey } from "./model";
 import { FileProfiles } from "./profile-store";
@@ -37,6 +38,11 @@ export function activate(context: vscode.ExtensionContext): void {
     () => (activeDocument?.isClosed ? undefined : activeDocument),
     workflows,
   );
+  const core = new CoreControls(
+    () => (activeDocument?.isClosed ? undefined : activeDocument),
+    workflows,
+    (connected) => controls.setCoreMode(connected),
+  );
   const scope = (): Selection => {
     const document = vscode.window.activeTextEditor?.document ?? activeDocument;
     return {
@@ -47,6 +53,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const refresh = () => {
     activeDocument = vscode.window.activeTextEditor?.document ?? activeDocument;
     controls.refresh();
+    core.refresh();
   };
   const inspect = async () => {
     const d = vscode.window.activeTextEditor?.document ?? activeDocument;
@@ -242,6 +249,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     profiles,
     workflows,
+    core,
     workflows.onDidChange(refresh),
     vscode.commands.registerCommand(
       "formattingControls.restore",
@@ -291,6 +299,11 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.onDidChangeActiveTextEditor(refresh),
   );
   refresh();
+  void core.connect().catch((error) => {
+    void vscode.window.showErrorMessage(
+      `Formatting Controls prototype: ${String(error)}`,
+    );
+  });
   try {
     const recovery = workflows.recovery();
     if (

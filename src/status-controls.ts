@@ -13,6 +13,7 @@ export class StatusControls {
   private languageOnly = false;
   private pending = false;
   private collapsed = false;
+  private coreMode = false;
   constructor(
     private readonly item: vscode.StatusBarItem,
     private readonly document: () => vscode.TextDocument | undefined,
@@ -20,6 +21,14 @@ export class StatusControls {
   ) {
     item.name = "Formatting Controls";
     item.command = "workbench.action.showHover";
+  }
+  setCoreMode(enabled: boolean): void {
+    this.coreMode = enabled;
+    if (enabled) this.item.hide();
+    else {
+      this.fingerprint = "";
+      this.refresh();
+    }
   }
   private selection(): Selection {
     const document = this.document();
@@ -156,7 +165,8 @@ export class StatusControls {
     this.item.accessibilityInformation = {
       label: this.item.text.replace("$(settings-gear) ", ""),
     };
-    this.item.show();
+    if (this.coreMode) this.item.hide();
+    else this.item.show();
   }
   private assertCurrent(revision: unknown): void {
     if (revision !== this.revision)

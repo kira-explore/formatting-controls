@@ -1,5 +1,13 @@
 # Formatting status card
 
+## Approved interactive card: custom-editor prototype
+
+The approved design with real checkboxes, inline scope/language/formatter dropdowns, an outlined state and context box is implemented in the [isolated VS Code core prototype](../prototype/vscode/README.md). It uses the editor's internal components and hover service, with a private bridge to this extension for settings and workflows. The native card is shared by hover and click, without a docked view. The extension's fallback status item is hidden after the core handshake succeeds.
+
+This requires the patched VS Code 1.143.1 editor. It is not a capability of the normal Marketplace extension. The prototype documentation includes actual screenshots, pinned sources, build/run commands and validation details.
+
+## Ordinary VS Code compatibility
+
 Hover and click open the same native card above the Formatting status-bar item. Clicking focuses and keeps it open; moving the pointer away does not dismiss the pinned card. Escape dismisses it. Enter on the focused status item opens it. A normal status click creates neither a docked Panel view nor an editor tab.
 
 The extension listing is **Kira Formatting Controls**. The card and dashboard use the shorter **Formatting Controls** title. The refined app icon appears in the Extensions listing; the status item and card have no app icon. The package ID remains `rajudhami.formatting-controls`.
