@@ -1,6 +1,6 @@
 # Release preparation
 
-Development version: 0.4.0. Publisher: rajudhami. Identifier: rajudhami.formatting-controls. Node 24 LTS and Bun from packageManager are build tools; users do not need Bun to install the VSIX. VS Code supplies the extension-host runtime.
+Development version: 0.5.0. Display name: Kira Formatting Controls. Publisher: rajudhami. Identifier: rajudhami.formatting-controls. Node 24 LTS and Bun from packageManager are build tools; users do not need Bun to install the VSIX. VS Code supplies the extension-host runtime.
 
 ## Validate a candidate
 

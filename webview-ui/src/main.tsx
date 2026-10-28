@@ -2,7 +2,6 @@ import { StrictMode, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { Key, Scope } from "../../shared/protocol";
 import { actionNames, descriptions, display, labels, pages } from "./catalog";
-import { QuickControls } from "./QuickControls";
 import { useEditor } from "./useEditor";
 import { WorkflowPages } from "./WorkflowPages";
 import "./styles.css";
@@ -806,7 +805,7 @@ function App() {
             </section>
           )}
           <footer>
-            <span>Formatting Controls · 0.4.0</span>
+            <span>Formatting Controls · 0.5.0</span>
             <button
               type="button"
               disabled={disabled}
@@ -824,10 +823,6 @@ const root = document.getElementById("root");
 if (root)
   createRoot(root).render(
     <StrictMode>
-      {document.documentElement.dataset.presentation === "quick" ? (
-        <QuickControls />
-      ) : (
-        <App />
-      )}
+      <App />
     </StrictMode>,
   );

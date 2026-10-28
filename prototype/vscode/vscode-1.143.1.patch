@@ -1,0 +1,1046 @@
+diff --git a/src/vs/base/browser/ui/hover/hover.ts b/src/vs/base/browser/ui/hover/hover.ts
+index 5b6a4ca5..fdfc8f36 100644
+--- a/src/vs/base/browser/ui/hover/hover.ts
++++ b/src/vs/base/browser/ui/hover/hover.ts
+@@ -456,7 +456,7 @@ export type IManagedHoverContent = string | IManagedHoverTooltipMarkdownString |
+ export type IManagedHoverContentOrFactory = IManagedHoverContent | (() => IManagedHoverContent);
+ 
+ export interface IManagedHoverOptions extends Pick<IHoverOptions, 'actions' | 'additionalClasses' | 'linkHandler' | 'trapFocus' | 'onDidShow'> {
+-	appearance?: Pick<IHoverAppearanceOptions, 'showHoverHint'>;
++	appearance?: Pick<IHoverAppearanceOptions, 'showHoverHint' | 'showPointer'>;
+ 	position?: Pick<IHoverPositionOptions, 'anchorAlignment'>;
+ }
+ 
+diff --git a/src/vs/workbench/browser/parts/statusbar/statusbarItem.ts b/src/vs/workbench/browser/parts/statusbar/statusbarItem.ts
+index fe25a274..a8782d50 100644
+--- a/src/vs/workbench/browser/parts/statusbar/statusbarItem.ts
++++ b/src/vs/workbench/browser/parts/statusbar/statusbarItem.ts
+@@ -120,11 +120,12 @@ export class StatusbarEntryItem extends Disposable {
+ 
+ 		// Update: Hover
+ 		if (!this.entry || !this.isEqualTooltip(this.entry, entry)) {
+-			let hoverOptions: IManagedHoverOptions | undefined;
++			let hoverOptions: IManagedHoverOptions | undefined = entry.hoverOptions;
+ 			let hoverTooltip: TooltipContent | undefined;
+ 			if (isTooltipWithCommands(entry.tooltip)) {
+ 				hoverTooltip = entry.tooltip.content;
+ 				hoverOptions = {
++					...entry.hoverOptions,
+ 					onDidShow: entry.tooltip.onDidShow,
+ 					actions: entry.tooltip.commands.map(command => ({
+ 						commandId: command.id,
+@@ -233,7 +234,10 @@ export class StatusbarEntryItem extends Disposable {
+ 		this.entry = entry;
+ 	}
+ 
+-	private isEqualTooltip({ tooltip }: IStatusbarEntry, { tooltip: otherTooltip }: IStatusbarEntry) {
++	private isEqualTooltip({ tooltip, hoverOptions }: IStatusbarEntry, { tooltip: otherTooltip, hoverOptions: otherHoverOptions }: IStatusbarEntry) {
++		if (hoverOptions !== otherHoverOptions) {
++			return false;
++		}
+ 		if (tooltip === undefined) {
+ 			return otherTooltip === undefined;
+ 		}
+diff --git a/src/vs/workbench/services/statusbar/browser/statusbar.ts b/src/vs/workbench/services/statusbar/browser/statusbar.ts
+index 7d0aab5c..72da0480 100644
+--- a/src/vs/workbench/services/statusbar/browser/statusbar.ts
++++ b/src/vs/workbench/services/statusbar/browser/statusbar.ts
+@@ -8,7 +8,7 @@ import { DisposableStore, IDisposable } from '../../../../base/common/lifecycle.
+ import { ThemeColor } from '../../../../base/common/themables.js';
+ import { Command } from '../../../../editor/common/languages.js';
+ import { IMarkdownString } from '../../../../base/common/htmlContent.js';
+-import { IManagedHoverTooltipHTMLElement, IManagedHoverTooltipMarkdownString } from '../../../../base/browser/ui/hover/hover.js';
++import { IManagedHoverOptions, IManagedHoverTooltipHTMLElement, IManagedHoverTooltipMarkdownString } from '../../../../base/browser/ui/hover/hover.js';
+ import { ColorIdentifier } from '../../../../platform/theme/common/colorRegistry.js';
+ import { IAuxiliaryStatusbarPart, IStatusbarEntryContainer } from '../../../browser/parts/statusbar/statusbarPart.js';
+ 
+@@ -172,6 +172,9 @@ export interface IStatusbarEntry {
+ 	 */
+ 	readonly tooltip?: TooltipContent | ITooltipWithCommands;
+ 
++	/** Optional native hover appearance for this internal workbench entry. */
++	readonly hoverOptions?: IManagedHoverOptions;
++
+ 	/**
+ 	 * An optional color to use for the entry.
+ 	 *
+diff --git a/src/vs/workbench/workbench.common.main.ts b/src/vs/workbench/workbench.common.main.ts
+index b2aaf10f..59adb849 100644
+--- a/src/vs/workbench/workbench.common.main.ts
++++ b/src/vs/workbench/workbench.common.main.ts
+@@ -484,3 +484,6 @@ import './contrib/editTelemetry/browser/editTelemetry.contribution.js';
+ import './contrib/opener/browser/opener.contribution.js';
+ 
+ //#endregion
++
++// Isolated Kira Formatting Controls core prototype.
++import './contrib/formattingControls/browser/formattingControls.contribution.js';
+diff --git a/src/vs/workbench/contrib/formattingControls/browser/formattingControls.contribution.ts b/src/vs/workbench/contrib/formattingControls/browser/formattingControls.contribution.ts
+new file mode 100644
+--- /dev/null
++++ b/src/vs/workbench/contrib/formattingControls/browser/formattingControls.contribution.ts
+@@ -0,0 +1,192 @@
++/*---------------------------------------------------------------------------------------------
++ *  Copyright (c) Raju Dhami. All rights reserved.
++ *  Licensed under the MIT License. See the extension repository LICENSE for license information.
++ *--------------------------------------------------------------------------------------------*/
++
++import { disposableWindowInterval } from '../../../../base/browser/dom.js';
++import { mainWindow } from '../../../../base/browser/window.js';
++import {
++	Disposable,
++	DisposableStore,
++	MutableDisposable,
++} from '../../../../base/common/lifecycle.js';
++import { localize } from '../../../../nls.js';
++import {
++	CommandsRegistry,
++	ICommandService,
++} from '../../../../platform/commands/common/commands.js';
++import { IInstantiationService } from '../../../../platform/instantiation/common/instantiation.js';
++import {
++	type IWorkbenchContribution,
++	registerWorkbenchContribution2,
++	WorkbenchPhase,
++} from '../../../common/contributions.js';
++import {
++	type IStatusbarEntry,
++	type IStatusbarEntryAccessor,
++	IStatusbarService,
++	StatusbarAlignment,
++	ToggleTooltipCommand,
++} from '../../../services/statusbar/browser/statusbar.js';
++import {
++	type CoreAction,
++	type CoreState,
++	coreCommands,
++	isCoreState,
++} from './coreControlsProtocol.js';
++import { FormattingControlsCard } from './formattingControlsCard.js';
++
++/** Opt-in handshake with the development extension; contributes no UI on its own. */
++class FormattingControlsPrototype
++	extends Disposable
++	implements IWorkbenchContribution
++{
++	static readonly ID = 'workbench.contrib.kiraFormattingControlsPrototype';
++	private readonly entry = this._register(
++		new MutableDisposable<IStatusbarEntryAccessor>(),
++	);
++	private readonly cards = new Set<FormattingControlsCard>();
++	private state: CoreState | undefined;
++	private readonly tooltip: IStatusbarEntry['tooltip'];
++	private readonly hoverOptions = { appearance: { showPointer: true } };
++
++	constructor(
++		@ICommandService private readonly commandService: ICommandService,
++		@IStatusbarService private readonly statusbarService: IStatusbarService,
++		@IInstantiationService
++		private readonly instantiationService: IInstantiationService,
++	) {
++		super();
++		this.tooltip = {
++			contentOwnsPadding: true,
++			element: token => {
++				if (!this.state) {
++					throw new Error('Formatting Controls extension is disconnected.');
++				}
++				const store = new DisposableStore();
++				const card = store.add(
++					this.instantiationService.createInstance(
++						FormattingControlsCard,
++						this.state,
++						(action: CoreAction) => this.dispatch(action),
++					),
++				);
++				this.cards.add(card);
++				store.add({ dispose: () => this.cards.delete(card) });
++				store.add(token.onCancellationRequested(() => store.dispose()));
++				store.add(
++					disposableWindowInterval(
++						mainWindow,
++						() => {
++							if (!card.element.isConnected) {
++								store.dispose();
++							}
++						},
++						2000,
++					),
++				);
++				return card.element;
++			},
++		};
++		this._register(
++			CommandsRegistry.registerCommand(coreCommands.connect, async () => {
++				const state = await this.commandService.executeCommand<CoreState>(
++					coreCommands.snapshot,
++				);
++				this.accept(state, true);
++				return true;
++			}),
++		);
++		this._register(
++			CommandsRegistry.registerCommand(
++				coreCommands.update,
++				(_accessor, state: CoreState) => this.accept(state),
++			),
++		);
++		this._register(
++			CommandsRegistry.registerCommand(
++				coreCommands.disconnect,
++				(_accessor, session: string) => {
++					if (this.state?.session !== session) {
++						return;
++					}
++					this.entry.clear();
++					this.state = undefined;
++					for (const card of this.cards) {
++						card.dispose();
++					}
++					this.cards.clear();
++				},
++			),
++		);
++	}
++
++	private accept(state: unknown, reconnect = false): CoreState {
++		if (!isCoreState(state)) {
++			throw new Error('Invalid Formatting Controls bridge state.');
++		}
++		if (
++			!reconnect &&
++			this.state &&
++			(state.session !== this.state.session ||
++				state.revision < this.state.revision)
++		) {
++			return this.state;
++		}
++		this.state = state;
++		for (const card of this.cards) {
++			card.update(state);
++		}
++		const props: IStatusbarEntry = {
++			name: localize('formattingControlsName', 'Formatting Controls'),
++			text: localize('formattingStatus', 'Formatting: {0}', state.status),
++			ariaLabel: localize(
++				'formattingStatusAria',
++				'Formatting: {0}. Open formatting controls.',
++				state.status,
++			),
++			tooltip: this.tooltip,
++			hoverOptions: this.hoverOptions,
++			command: ToggleTooltipCommand,
++			showBeak: true,
++		};
++		if (this.entry.value) {
++			this.entry.value.update(props);
++		} else {
++			this.entry.value = this.statusbarService.addEntry(
++				props,
++				'kiraFormattingControls.prototype.status',
++				StatusbarAlignment.RIGHT,
++				100,
++			);
++		}
++		return state;
++	}
++
++	private async dispatch(action: CoreAction): Promise<CoreState> {
++		try {
++			const state = await this.commandService.executeCommand<CoreState>(
++				coreCommands.action,
++				action,
++			);
++			return this.accept(state);
++		} catch (error) {
++			try {
++				this.accept(
++					await this.commandService.executeCommand<CoreState>(
++						coreCommands.snapshot,
++					),
++				);
++			} catch {
++				/* Keep the action error visible. */
++			}
++			throw error;
++		}
++	}
++}
++
++registerWorkbenchContribution2(
++	FormattingControlsPrototype.ID,
++	FormattingControlsPrototype,
++	WorkbenchPhase.BlockRestore,
++);
+diff --git a/src/vs/workbench/contrib/formattingControls/browser/formattingControlsCard.ts b/src/vs/workbench/contrib/formattingControls/browser/formattingControlsCard.ts
+new file mode 100644
+--- /dev/null
++++ b/src/vs/workbench/contrib/formattingControls/browser/formattingControlsCard.ts
+@@ -0,0 +1,419 @@
++/*---------------------------------------------------------------------------------------------
++ *  Copyright (c) Raju Dhami. All rights reserved.
++ *  Licensed under the MIT License. See the extension repository LICENSE for license information.
++ *--------------------------------------------------------------------------------------------*/
++
++import {
++	$,
++	addDisposableListener,
++	EventType,
++} from '../../../../base/browser/dom.js';
++import { Button } from '../../../../base/browser/ui/button/button.js';
++import { SelectBox } from '../../../../base/browser/ui/selectBox/selectBox.js';
++import { Checkbox } from '../../../../base/browser/ui/toggle/toggle.js';
++import { Codicon } from '../../../../base/common/codicons.js';
++import { Disposable } from '../../../../base/common/lifecycle.js';
++import { ThemeIcon } from '../../../../base/common/themables.js';
++import { localize } from '../../../../nls.js';
++import { IContextViewService } from '../../../../platform/contextview/browser/contextView.js';
++import { IHoverService } from '../../../../platform/hover/browser/hover.js';
++import {
++	defaultButtonStyles,
++	defaultCheckboxStyles,
++	defaultSelectBoxStyles,
++} from '../../../../platform/theme/browser/defaultStyles.js';
++import type {
++	CoreAction,
++	CoreOption,
++	CoreState,
++} from './coreControlsProtocol.js';
++import './formattingControls.css';
++
++type UserAction = CoreAction extends infer T
++	? T extends CoreAction
++		? Omit<T, 'session' | 'revision'>
++		: never
++	: never;
++
++/** An interactive workbench hover; this is intentionally outside the extension API. */
++export class FormattingControlsCard extends Disposable {
++	private static nextIdentifier = 0;
++	private readonly identifier =
++		`kira-formatting-card-${FormattingControlsCard.nextIdentifier++}`;
++	readonly element = $('.kira-formatting-card');
++	private readonly badge = $('span.kira-formatting-state');
++	private readonly file = $('span.kira-formatting-file');
++	private readonly workspace = $('span.kira-formatting-workspace');
++	private readonly error = $('div.kira-formatting-error');
++	private readonly disclosure = $('button.kira-formatting-disclosure');
++	private readonly chevron = $('span');
++	private readonly triggers = $('div.kira-formatting-triggers');
++	private readonly rows: {
++		checkbox: Checkbox;
++		source: HTMLElement;
++		effective: HTMLElement;
++	}[] = [];
++	private readonly scopeSelect: SelectBox;
++	private readonly languageSelect: SelectBox;
++	private readonly formatterSelect: SelectBox;
++	private readonly pause: Button;
++	private readonly pauseDescription = $(
++		'span.kira-formatting-pause-description',
++	);
++	private state: CoreState;
++	private collapsed = false;
++	private busy = false;
++	private optionFingerprint = '';
++
++	constructor(
++		initial: CoreState,
++		private readonly dispatch: (action: CoreAction) => Promise<CoreState>,
++		@IContextViewService contextViewService: IContextViewService,
++		@IHoverService private readonly hoverService: IHoverService,
++	) {
++		super();
++		this.state = initial;
++		this.element.setAttribute('role', 'region');
++		this.element.setAttribute(
++			'aria-label',
++			localize('formattingControls', 'Formatting Controls'),
++		);
++		const header = this.element.appendChild($('div.kira-formatting-header'));
++		header.appendChild(
++			$(
++				'span.kira-formatting-title',
++				undefined,
++				localize('title', 'Formatting Controls'),
++			),
++		);
++		header.appendChild(this.badge);
++		this.badge.setAttribute('aria-live', 'polite');
++		const context = this.element.appendChild($('div.kira-formatting-context'));
++		context.appendChild($('span.kira-formatting-info')).className +=
++			` ${ThemeIcon.asClassName(Codicon.info)}`;
++		const contextText = context.appendChild($('div'));
++		contextText.append(this.file, this.workspace);
++		this._register(
++			this.hoverService.setupDelayedHover(context, () => ({
++				content: this.state.path || localize('noActiveFile', 'No active file'),
++			})),
++		);
++		const destinations = this.element.appendChild(
++			$('div.kira-formatting-destinations'),
++		);
++		this.scopeSelect = this.select(
++			destinations,
++			localize('writeTo', 'Write to'),
++			contextViewService,
++			index => {
++				const option = this.state.destinations[index];
++				if (option) {
++					void this.run({ type: 'scope', value: option.id });
++				}
++			},
++		);
++		this.languageSelect = this.select(
++			destinations,
++			localize('language', 'Apply to language'),
++			contextViewService,
++			index => {
++				const option = this.state.languages[index];
++				if (option) {
++					void this.run({ type: 'language', value: option.id });
++				}
++			},
++		);
++		const automatic = this.element.appendChild(
++			$('section.kira-formatting-automatic'),
++		);
++		this.disclosure.setAttribute('type', 'button');
++		this.disclosure.appendChild(
++			$(
++				'span',
++				undefined,
++				localize('automaticFormatting', 'Automatic formatting'),
++			),
++		);
++		this.disclosure.appendChild(this.chevron);
++		automatic.append(this.disclosure, this.triggers);
++		this._register(
++			addDisposableListener(this.disclosure, EventType.CLICK, () => {
++				this.collapsed = !this.collapsed;
++				this.renderDisclosure();
++			}),
++		);
++		for (const [index, flag] of initial.flags.entries()) {
++			const row = this.triggers.appendChild($('div.kira-formatting-trigger'));
++			const label = row.appendChild($('div.kira-formatting-trigger-label'));
++			const checkbox = this._register(
++				new Checkbox(flag.label, flag.checked, {
++					...defaultCheckboxStyles,
++					checkboxBackground: 'transparent',
++					checkboxBorder: 'var(--vscode-descriptionForeground)',
++					checkboxForeground: 'var(--vscode-foreground)',
++					size: 20,
++				}),
++			);
++			label.appendChild(checkbox.domNode);
++			const text = label.appendChild($('span', undefined, flag.label));
++			this._register(
++				addDisposableListener(text, EventType.CLICK, () => {
++					if (!checkbox.enabled) {
++						return;
++					}
++					checkbox.checked = !checkbox.checked;
++					checkbox.focus();
++					void this.run({
++						type: 'flag',
++						key: flag.key,
++						value: checkbox.checked,
++					});
++				}),
++			);
++			this._register(
++				checkbox.onChange(() => {
++					void this.run({
++						type: 'flag',
++						key: flag.key,
++						value: checkbox.checked,
++					});
++				}),
++			);
++			const effective = row.appendChild($('span.kira-formatting-effective'));
++			const source = row.appendChild($('div.kira-formatting-source'));
++			source.id = `${this.identifier}-source-${index}`;
++			checkbox.domNode.setAttribute('aria-describedby', source.id);
++			this._register(
++				this.hoverService.setupDelayedHover(source, () => ({
++					content: this.state.flags[index].source,
++				})),
++			);
++			this.rows.push({ checkbox, source, effective });
++		}
++		const formatter = this.element.appendChild(
++			$('div.kira-formatting-formatter'),
++		);
++		this.formatterSelect = this.select(
++			formatter,
++			localize('defaultFormatter', 'Default formatter'),
++			contextViewService,
++			index => {
++				const option = this.state.formatters[index];
++				if (option) {
++					void this.run({ type: 'formatter', value: option.id });
++				}
++			},
++		);
++		const pauseRow = this.element.appendChild($('div.kira-formatting-pause'));
++		this.pause = this._register(
++			new Button(pauseRow, {
++				...defaultButtonStyles,
++				buttonSecondaryBackground: 'transparent',
++				buttonSecondaryBorder: 'var(--vscode-widget-border)',
++				secondary: true,
++			}),
++		);
++		pauseRow.appendChild(this.pauseDescription);
++		this._register(
++			this.pause.onDidClick(() => {
++				void this.run({ type: 'pause' });
++			}),
++		);
++		this._register(
++			this.pause.onDidEscape(() => this.hoverService.hideHover(true)),
++		);
++		this.error.setAttribute('role', 'alert');
++		this.error.hidden = true;
++		this.element.appendChild(this.error);
++		const footer = this.element.appendChild($('div.kira-formatting-footer'));
++		this.link(
++			footer,
++			localize('openDashboard', 'Open dashboard ↗'),
++			'dashboard',
++		);
++		this.link(footer, localize('settings', 'Settings'), 'settings');
++		this.update(initial);
++		this.renderDisclosure();
++	}
++
++	private select(
++		container: HTMLElement,
++		label: string,
++		contextViewService: IContextViewService,
++		select: (index: number) => void,
++	): SelectBox {
++		const row = container.appendChild($('div.kira-formatting-select-row'));
++		row.appendChild($('span', undefined, label));
++		const host = row.appendChild($('div.kira-formatting-select-host'));
++		const control = this._register(
++			new SelectBox(
++				[],
++				0,
++				contextViewService,
++				{
++					...defaultSelectBoxStyles,
++					selectBackground: 'var(--vscode-editorHoverWidget-background)',
++					selectBorder: 'var(--vscode-widget-border)',
++				},
++				{
++					ariaLabel: label,
++					optionsAsChildren: true,
++				},
++			),
++		);
++		control.render(host);
++		this._register(control.onDidSelect(event => select(event.index)));
++		return control;
++	}
++
++	private link(
++		container: HTMLElement,
++		label: string,
++		type: 'dashboard' | 'settings',
++	): void {
++		const link = container.appendChild(
++			$('button.kira-formatting-link', undefined, label),
++		);
++		link.setAttribute('type', 'button');
++		this._register(
++			addDisposableListener(link, EventType.CLICK, () => {
++				void this.run({ type });
++			}),
++		);
++	}
++
++	private renderDisclosure(): void {
++		this.disclosure.setAttribute('aria-expanded', String(!this.collapsed));
++		this.chevron.className = ThemeIcon.asClassName(
++			this.collapsed ? Codicon.chevronRight : Codicon.chevronDown,
++		);
++		this.triggers.hidden = this.collapsed;
++	}
++
++	update(state: CoreState): void {
++		this.state = state;
++		this.badge.textContent = state.status;
++		this.file.textContent = state.language
++			? localize(
++					'activeFileLanguage',
++					'Active file: {0} · {1}',
++					state.file,
++					state.language,
++				)
++			: localize('activeFile', '{0}', state.file);
++		this.workspace.textContent = state.workspace
++			? state.folder
++				? localize(
++						'workspaceFolder',
++						'Workspace: {0} · Folder: {1}',
++						state.workspace,
++						state.folder,
++					)
++				: localize('workspace', 'Workspace: {0}', state.workspace)
++			: localize('noWorkspace', 'No workspace open');
++		const fingerprint = JSON.stringify([
++			state.destinations,
++			state.languages,
++			state.formatters,
++		]);
++		if (fingerprint !== this.optionFingerprint) {
++			this.optionFingerprint = fingerprint;
++			for (const [control, options, selected] of [
++				[this.scopeSelect, state.destinations, state.destination],
++				[this.languageSelect, state.languages, state.languageRule],
++				[this.formatterSelect, state.formatters, state.formatter],
++			] as const) {
++				control.setOptions(
++					options.map(option => ({ text: option.label })),
++					this.index(options, selected),
++				);
++			}
++		} else {
++			this.scopeSelect.select(
++				this.index(state.destinations, state.destination),
++			);
++			this.languageSelect.select(
++				this.index(state.languages, state.languageRule),
++			);
++			this.formatterSelect.select(
++				this.index(state.formatters, state.formatter),
++			);
++		}
++		state.flags.forEach((flag, index) => {
++			const row = this.rows[index];
++			row.checkbox.checked = flag.checked;
++			row.source.textContent = flag.source;
++			row.effective.textContent = flag.effective
++				? localize('on', 'On')
++				: localize('off', 'Off');
++		});
++		this.pause.label = state.paused
++			? localize('resume', 'Resume')
++			: localize('pause', 'Pause');
++		this.pauseDescription.textContent = state.paused
++			? localize(
++					'restorePreferences',
++					'Restore unchanged formatting preferences',
++				)
++			: state.canPause
++				? localize('pauseDescription', 'Temporarily stop automatic formatting')
++				: localize('pauseScope', 'Choose Workspace or Folder to pause');
++		this.setEnabled();
++	}
++
++	private index(options: CoreOption[], value: string): number {
++		return Math.max(
++			0,
++			options.findIndex(option => option.id === value),
++		);
++	}
++
++	private setEnabled(): void {
++		this.scopeSelect.setEnabled(!this.busy);
++		this.languageSelect.setEnabled(!this.busy);
++		this.formatterSelect.setEnabled(
++			!this.busy && !this.state.formatterDisabled,
++		);
++		this.pause.enabled = !this.busy && this.state.canPause;
++		this.rows.forEach((row, index) => {
++			if (this.busy || this.state.flags[index].disabled) {
++				row.checkbox.disable();
++			} else {
++				row.checkbox.enable();
++			}
++		});
++		this.element.setAttribute('aria-busy', String(this.busy));
++	}
++
++	private async run(action: UserAction): Promise<void> {
++		if (this.busy) {
++			return;
++		}
++		this.busy = true;
++		this.error.hidden = true;
++		this.setEnabled();
++		try {
++			this.update(
++				await this.dispatch({
++					...action,
++					session: this.state.session,
++					revision: this.state.revision,
++				}),
++			);
++			if (action.type === 'dashboard' || action.type === 'settings') {
++				this.hoverService.hideHover(true);
++			}
++		} catch (error) {
++			this.error.textContent =
++				error instanceof Error ? error.message : String(error);
++			this.error.hidden = false;
++			this.update(this.state);
++		} finally {
++			this.busy = false;
++			this.setEnabled();
++			if (action.type === 'pause' && this.element.isConnected) {
++				this.pause.focus();
++			}
++		}
++	}
++}
+diff --git a/src/vs/workbench/contrib/formattingControls/browser/formattingControls.css b/src/vs/workbench/contrib/formattingControls/browser/formattingControls.css
+new file mode 100644
+--- /dev/null
++++ b/src/vs/workbench/contrib/formattingControls/browser/formattingControls.css
+@@ -0,0 +1,202 @@
++/* Copyright (c) Raju Dhami. Licensed under the MIT License. */
++
++.kira-formatting-card {
++	box-sizing: border-box;
++	width: min(440px, calc(100vw - 32px));
++	padding: var(--vscode-spacing-size200);
++	font-size: var(--vscode-fontSize-body1);
++	color: var(--vscode-editorHoverWidget-foreground);
++}
++
++.monaco-hover:has(.kira-formatting-card) {
++	border-color: var(--vscode-focusBorder);
++	border-radius: var(--vscode-cornerRadius-large);
++}
++
++.workbench-hover-container:has(.kira-formatting-card)
++	.workbench-hover-pointer:after {
++	border-color: var(--vscode-focusBorder);
++}
++
++.kira-formatting-card .kira-formatting-header {
++	display: flex;
++	align-items: center;
++	justify-content: space-between;
++	gap: var(--vscode-spacing-size160);
++	padding-bottom: var(--vscode-spacing-size160);
++	border-bottom: var(--vscode-strokeThickness) solid
++		var(--vscode-editorHoverWidget-border);
++}
++
++.kira-formatting-card .kira-formatting-title {
++	font-size: var(--vscode-fontSize-heading2);
++	font-weight: var(--vscode-fontWeight-regular);
++}
++
++.kira-formatting-card .kira-formatting-state {
++	min-width: 48px;
++	text-align: center;
++	padding: var(--vscode-spacing-size40) var(--vscode-spacing-size80);
++	border: var(--vscode-strokeThickness) solid var(--vscode-widget-border);
++	border-radius: var(--vscode-cornerRadius-small);
++}
++
++.kira-formatting-card .kira-formatting-context {
++	display: flex;
++	align-items: flex-start;
++	gap: var(--vscode-spacing-size120);
++	padding: var(--vscode-spacing-size120);
++	margin: var(--vscode-spacing-size160) 0;
++	border: var(--vscode-strokeThickness) solid var(--vscode-focusBorder);
++	border-radius: var(--vscode-cornerRadius-medium);
++	background: color-mix(in srgb, var(--vscode-focusBorder) 7%, transparent);
++}
++
++.kira-formatting-card .kira-formatting-info {
++	color: var(--vscode-focusBorder);
++	font-size: var(--vscode-codiconFontSize);
++	flex-shrink: 0;
++	margin-top: var(--vscode-spacing-size20);
++}
++
++.kira-formatting-card .kira-formatting-file,
++.kira-formatting-card .kira-formatting-workspace {
++	display: block;
++	overflow: hidden;
++	text-overflow: ellipsis;
++	white-space: nowrap;
++}
++
++.kira-formatting-card .kira-formatting-context > div {
++	min-width: 0;
++}
++.kira-formatting-card .kira-formatting-workspace {
++	margin-top: var(--vscode-spacing-size40);
++}
++
++.kira-formatting-card .kira-formatting-workspace,
++.kira-formatting-card .kira-formatting-source,
++.kira-formatting-card .kira-formatting-pause-description,
++.kira-formatting-card .kira-formatting-effective {
++	color: var(--vscode-descriptionForeground);
++}
++
++.kira-formatting-card .kira-formatting-select-row {
++	display: grid;
++	grid-template-columns: minmax(0, 1fr) minmax(0, 212px);
++	align-items: center;
++	gap: var(--vscode-spacing-size160);
++	min-height: 36px;
++	margin-bottom: var(--vscode-spacing-size80);
++}
++
++.kira-formatting-card .kira-formatting-select-host {
++	min-width: 0;
++}
++.kira-formatting-card .kira-formatting-select-host .monaco-select-box {
++	width: 100%;
++	height: 32px;
++	border-radius: var(--vscode-cornerRadius-small);
++}
++
++.kira-formatting-card .kira-formatting-automatic,
++.kira-formatting-card .kira-formatting-formatter,
++.kira-formatting-card .kira-formatting-pause,
++.kira-formatting-card .kira-formatting-footer {
++	border-top: var(--vscode-strokeThickness) solid
++		var(--vscode-editorHoverWidget-border);
++	padding-top: var(--vscode-spacing-size160);
++	margin-top: var(--vscode-spacing-size160);
++}
++
++.kira-formatting-card .kira-formatting-disclosure,
++.kira-formatting-card .kira-formatting-link {
++	border: none;
++	background: none;
++	color: inherit;
++	font: inherit;
++	padding: 0;
++	cursor: pointer;
++}
++
++.kira-formatting-card .kira-formatting-disclosure {
++	display: flex;
++	align-items: center;
++	gap: var(--vscode-spacing-size80);
++}
++.kira-formatting-card .kira-formatting-disclosure:focus-visible,
++.kira-formatting-card .kira-formatting-link:focus-visible {
++	outline: var(--vscode-strokeThickness) solid var(--vscode-focusBorder);
++	outline-offset: 2px;
++}
++
++.kira-formatting-card .kira-formatting-trigger {
++	display: grid;
++	grid-template-columns: minmax(0, 1fr) auto;
++	row-gap: var(--vscode-spacing-size40);
++	margin-top: var(--vscode-spacing-size160);
++}
++
++.kira-formatting-card .kira-formatting-trigger-label {
++	display: flex;
++	align-items: center;
++	gap: var(--vscode-spacing-size120);
++}
++.kira-formatting-card .kira-formatting-trigger-label > span {
++	cursor: pointer;
++}
++.kira-formatting-card .kira-formatting-source {
++	grid-column: 1 / -1;
++	margin-left: var(--vscode-spacing-size320);
++	height: var(--vscode-spacing-size360);
++	line-height: 18px;
++	overflow: hidden;
++	font-size: var(--vscode-fontSize-label1);
++}
++.kira-formatting-card .kira-formatting-formatter .kira-formatting-select-row {
++	margin-bottom: 0;
++}
++.kira-formatting-card .kira-formatting-pause {
++	display: flex;
++	align-items: center;
++	gap: var(--vscode-spacing-size160);
++}
++.kira-formatting-card .kira-formatting-pause .monaco-button {
++	width: auto;
++	min-width: 64px;
++	box-sizing: border-box;
++	border-radius: var(--vscode-cornerRadius-small);
++	padding: var(--vscode-spacing-size60) var(--vscode-spacing-size120);
++}
++.kira-formatting-card .kira-formatting-pause-description {
++	font-size: var(--vscode-fontSize-label1);
++}
++.kira-formatting-card .kira-formatting-footer {
++	display: flex;
++	align-items: center;
++	justify-content: space-between;
++}
++.kira-formatting-card .kira-formatting-link {
++	color: var(--vscode-textLink-foreground);
++}
++.kira-formatting-card .kira-formatting-link:hover {
++	color: var(--vscode-textLink-activeForeground);
++	text-decoration: underline;
++}
++.kira-formatting-card .kira-formatting-error {
++	color: var(--vscode-errorForeground);
++	margin-top: var(--vscode-spacing-size120);
++}
++.kira-formatting-card [hidden] {
++	display: none;
++}
++
++@media (max-width: 480px) {
++	.kira-formatting-card .kira-formatting-select-row {
++		grid-template-columns: minmax(0, 1fr);
++		gap: var(--vscode-spacing-size40);
++	}
++	.kira-formatting-card .kira-formatting-pause {
++		flex-wrap: wrap;
++	}
++}
+diff --git a/src/vs/workbench/contrib/formattingControls/browser/coreControlsProtocol.ts b/src/vs/workbench/contrib/formattingControls/browser/coreControlsProtocol.ts
+new file mode 100644
+--- /dev/null
++++ b/src/vs/workbench/contrib/formattingControls/browser/coreControlsProtocol.ts
+@@ -0,0 +1,124 @@
++/* Private Kira Formatting Controls prototype bridge. MIT licensed. */
++/** Private bridge for the isolated VS Code core prototype, not a public VS Code API. */
++export const coreCommands = {
++  connect: "kiraFormattingControls.prototype.connect",
++  update: "kiraFormattingControls.prototype.update",
++  disconnect: "kiraFormattingControls.prototype.disconnect",
++  snapshot: "formattingControls.core.snapshot",
++  action: "formattingControls.core.action",
++} as const;
++
++export interface CoreOption {
++  id: string;
++  label: string;
++}
++export interface CoreFlag {
++  key: "editor.formatOnSave" | "editor.formatOnPaste" | "editor.formatOnType";
++  label: string;
++  checked: boolean;
++  effective: boolean;
++  source: string;
++  disabled: boolean;
++}
++export interface CoreState {
++  protocol: 1;
++  session: string;
++  revision: number;
++  file: string;
++  path: string;
++  language: string;
++  workspace: string;
++  folder: string;
++  status: "On" | "Off" | "Mixed";
++  destination: string;
++  destinations: CoreOption[];
++  languageRule: string;
++  languages: CoreOption[];
++  formatter: string;
++  formatters: CoreOption[];
++  formatterDisabled: boolean;
++  flags: CoreFlag[];
++  paused: boolean;
++  canPause: boolean;
++}
++export type CoreAction = {
++  session: string;
++  revision: number;
++} & (
++  | { type: "scope" | "language" | "formatter"; value: string }
++  | { type: "flag"; key: CoreFlag["key"]; value: boolean }
++  | { type: "pause" | "dashboard" | "settings" }
++);
++
++const object = (value: unknown): value is Record<string, unknown> =>
++  value !== null && typeof value === "object" && !Array.isArray(value);
++const text = (value: unknown, limit = 4096): value is string =>
++  typeof value === "string" && value.length <= limit;
++const options = (value: unknown): value is CoreOption[] =>
++  Array.isArray(value) &&
++  value.length <= 2000 &&
++  value.every((v) => object(v) && text(v.id) && text(v.label));
++
++export function isCoreState(value: unknown): value is CoreState {
++  if (!object(value)) return false;
++  return (
++    value.protocol === 1 &&
++    text(value.session, 80) &&
++    Number.isSafeInteger(value.revision) &&
++    Number(value.revision) > 0 &&
++    [
++      "file",
++      "path",
++      "language",
++      "workspace",
++      "folder",
++      "destination",
++      "languageRule",
++      "formatter",
++    ].every((key) => text(value[key])) &&
++    ["On", "Off", "Mixed"].includes(String(value.status)) &&
++    ["destinations", "languages", "formatters"].every((key) =>
++      options(value[key]),
++    ) &&
++    ["paused", "canPause", "formatterDisabled"].every(
++      (key) => typeof value[key] === "boolean",
++    ) &&
++    Array.isArray(value.flags) &&
++    value.flags.length === 3 &&
++    value.flags.every(
++      (flag, index) =>
++        object(flag) &&
++        flag.key ===
++          [
++            "editor.formatOnSave",
++            "editor.formatOnPaste",
++            "editor.formatOnType",
++          ][index] &&
++        text(flag.label) &&
++        text(flag.source) &&
++        ["checked", "effective", "disabled"].every(
++          (key) => typeof flag[key] === "boolean",
++        ),
++    )
++  );
++}
++
++export function isCoreAction(value: unknown): value is CoreAction {
++  if (
++    !object(value) ||
++    !text(value.session, 80) ||
++    !Number.isSafeInteger(value.revision)
++  )
++    return false;
++  if (["scope", "language", "formatter"].includes(String(value.type)))
++    return text(value.value);
++  if (value.type === "flag")
++    return (
++      [
++        "editor.formatOnSave",
++        "editor.formatOnPaste",
++        "editor.formatOnType",
++      ].includes(String(value.key)) && typeof value.value === "boolean"
++    );
++  return ["pause", "dashboard", "settings"].includes(String(value.type));
++}
+diff --git a/src/tsconfig.kira-formatting.json b/src/tsconfig.kira-formatting.json
+new file mode 100644
+--- /dev/null
++++ b/src/tsconfig.kira-formatting.json
+@@ -0,0 +1,7 @@
++{
++  "extends": "./tsconfig.json",
++  "include": [
++    "./typings",
++    "./vs/workbench/contrib/formattingControls/browser/*.ts"
++  ]
++}

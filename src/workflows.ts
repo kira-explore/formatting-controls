@@ -540,6 +540,29 @@ export class Workflows implements vscode.Disposable {
       return this.applyProfile(profile, s, scope, "pause");
     });
   }
+  async pauseFormatting(s: Selection, scope: Scope): Promise<string> {
+    return this.exclusive(async () => {
+      if (scope.target === "user")
+        throw new Error(
+          "Temporary pause requires Workspace or Workspace folder.",
+        );
+      return this.applyProfile(
+        {
+          version: 1,
+          name: "Automatic formatting pause",
+          ...(scope.language ? { language: scope.language } : {}),
+          settings: {
+            "editor.formatOnSave": false,
+            "editor.formatOnPaste": false,
+            "editor.formatOnType": false,
+          },
+        },
+        s,
+        scope,
+        "pause",
+      );
+    });
+  }
   async restore(): Promise<string> {
     return this.exclusive(async () => {
       const journal = this.journal();

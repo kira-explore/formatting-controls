@@ -12,7 +12,6 @@ import {
   settingKeys,
 } from "../shared/protocol";
 import { adapters } from "../shared/providers";
-import type { QuickTab } from "../shared/status-hover";
 import {
   configuration,
   own,
@@ -32,15 +31,12 @@ export class Dashboard implements vscode.Disposable {
   private navigation = 0;
   private scope: Scope = { target: "user" };
   private active = vscode.window.activeTextEditor?.document;
-  private quickTab: QuickTab = "formatting";
-  private quickInitialized = false;
   private page: "overview" | "welcome" = "overview";
   private queue = Promise.resolve();
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly onResponse?: (message: Response) => unknown,
     private readonly workflows?: Workflows,
-    private readonly presentation: "dashboard" | "quick" = "dashboard",
   ) {}
   private reconcileScope(): void {
     try {
@@ -54,25 +50,7 @@ export class Dashboard implements vscode.Disposable {
     if (this.onResponse) await this.onResponse(message);
     await this.panel?.webview.postMessage(message);
   }
-  async open(
-    welcome = false,
-    tab: QuickTab = "formatting",
-    context?: vscode.TextDocument,
-  ): Promise<void> {
-    this.active =
-      vscode.window.activeTextEditor?.document ?? context ?? this.active;
-    if (this.presentation === "quick" && !this.quickInitialized) {
-      const uri = this.active?.uri;
-      const folder = uri && vscode.workspace.getWorkspaceFolder(uri);
-      this.scope = folder
-        ? { target: "folder", folder: folder.uri.toString() }
-        : vscode.workspace.workspaceFolders?.length ||
-            vscode.workspace.workspaceFile
-          ? { target: "workspace" }
-          : { target: "user" };
-      this.quickInitialized = true;
-    }
-    this.quickTab = tab;
+  async open(welcome = false): Promise<void> {
     this.reconcileScope();
     this.page = welcome ? "welcome" : "overview";
     this.navigation++;
@@ -84,15 +62,9 @@ export class Dashboard implements vscode.Disposable {
     }
     const root = vscode.Uri.joinPath(this.extensionUri, "dist", "webview");
     const panel = vscode.window.createWebviewPanel(
-      this.presentation === "quick"
-        ? "formattingControls.quick"
-        : "formattingControls.dashboard",
-      this.presentation === "quick"
-        ? "Formatting Controls · Quick Controls"
-        : "Formatting Controls",
-      this.presentation === "quick"
-        ? vscode.ViewColumn.Beside
-        : vscode.ViewColumn.One,
+      "formattingControls.dashboard",
+      "Formatting Controls",
+      vscode.ViewColumn.One,
       { enableScripts: true, localResourceRoots: [root] },
     );
     this.panel = panel;
@@ -103,7 +75,7 @@ export class Dashboard implements vscode.Disposable {
     const css = panel.webview.asWebviewUri(
       vscode.Uri.joinPath(root, "dashboard.css"),
     );
-    panel.webview.html = `<!doctype html><html lang="en" data-presentation="${this.presentation}"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src ${panel.webview.cspSource}; font-src ${panel.webview.cspSource}; img-src ${panel.webview.cspSource};"><title>Formatting Controls</title><link rel="stylesheet" href="${css}"></head><body><div id="root"></div><script nonce="${nonce}" type="module" src="${js}"></script></body></html>`;
+    panel.webview.html = `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src ${panel.webview.cspSource}; font-src ${panel.webview.cspSource}; img-src ${panel.webview.cspSource};"><title>Formatting Controls</title><link rel="stylesheet" href="${css}"></head><body><div id="root"></div><script nonce="${nonce}" type="module" src="${js}"></script></body></html>`;
     this.listeners = [
       panel.webview.onDidReceiveMessage((raw: unknown) => {
         this.queue = this.queue
@@ -258,7 +230,6 @@ export class Dashboard implements vscode.Disposable {
         .join("; ");
     }
     return {
-      ...(this.presentation === "quick" ? { quickTab: this.quickTab } : {}),
       ...(vscode.env.remoteName ? { remoteName: vscode.env.remoteName } : {}),
       revision: this.revision,
       navigation: this.navigation,
@@ -342,8 +313,6 @@ export class Dashboard implements vscode.Disposable {
           await vscode.commands.executeCommand(
             "formattingControls.quickControls",
           );
-        else if (request.destination === "dashboard")
-          await vscode.commands.executeCommand("formattingControls.dashboard");
         else if (request.destination === "settings")
           await vscode.commands.executeCommand(
             "workbench.action.openSettings",

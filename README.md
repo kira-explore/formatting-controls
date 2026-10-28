@@ -1,4 +1,4 @@
-# Formatting Controls
+# Kira Formatting Controls
 
 **Make every save work your way.**
 
@@ -6,9 +6,13 @@
 
 A control center for VS Code formatting, save actions, and language settings. Make quick adjustments from the status bar, or open the dashboard to choose a formatter, manage source actions, and understand which settings apply.
 
+**0.5.0 interactive-card prototype:** the approved status-bar card with real checkboxes and inline dropdowns is implemented as a [VS Code core patch](prototype/vscode/README.md). It requires a custom editor build. Ordinary VS Code uses the existing Markdown card; installing the VSIX alone does not enable the interactive prototype.
+
 ![Formatting Controls Overview in VS Code Dark Modern](docs/assets/dashboard.png)
 
 ## What you can do
+
+- **Keep quick controls at the status bar.** Hover to open the anchored card; click to pin the same card. Use command links to change formatting, choose a destination/language and preview formatting-only Pause/Resume. Full controls remain in the existing dashboard.
 
 - **See the effective state.** The status bar shows ON, OFF, or MIXED for Format on Save, Paste, and Type in the active editor.
 - **Choose where changes belong.** Write to User, Workspace, or a specific workspace folder. Select a VS Code language ID for language overrides.
@@ -19,6 +23,8 @@ A control center for VS Code formatting, save actions, and language settings. Ma
 - **Reuse your preferences.** Save named profiles, import/export JSON, and preview changes before applying them. Restore only values that remain unchanged.
 - **Pause at a project scope.** Temporarily disable formatting and configured save actions, with a durable recovery record and an explicit Resume action.
 - **Reset deliberately.** Preview the selected setting before removing its value at that scope. A changed preview is rejected.
+
+The Marketplace display name is **Kira Formatting Controls**; the stable extension ID remains `rajudhami.formatting-controls`.
 
 No telemetry, remote analytics, or source-code transmission. Settings stay in VS Code. Opening the dashboard or welcome page changes no formatting preferences.
 
@@ -101,16 +107,16 @@ Open the folder in VS Code and press **F5** to launch the Extension Development 
 bun run package
 ```
 
-In VS Code, run **Extensions: Install from VSIX…** and select `formatting-controls-0.4.0.vsix`. A successful GitHub Actions run also provides the VSIX artifact. No Marketplace credentials are required.
+In VS Code, run **Extensions: Install from VSIX…** and select `formatting-controls-0.5.0.vsix`. A successful GitHub Actions run also provides the VSIX artifact. No Marketplace credentials are required.
 
 ## Find your flow
 
-Hover the status-bar item for effective formatting and save-action details. Click it to open compact tabbed Quick Controls beside your editor, or use these Command Palette entries:
+Hover the status-bar item to open the anchored **Formatting Controls** card. Click it to focus and keep that same card open above the status bar; no docked panel or editor tab is created. Use its On/Off links for quick changes and open the dashboard for full settings, save actions and advanced workflows. Scope/language choices use native pickers because public tooltip APIs do not host inline select widgets. See [surface details](docs/status-controls.md). Command Palette entries:
 
 | Command                                             | Purpose                                                          |
 | --------------------------------------------------- | ---------------------------------------------------------------- |
 | **Formatting Controls: Open Dashboard**             | Open the full settings dashboard                                 |
-| **Formatting Controls: Quick Controls**             | Open compact Formatting and Save actions tabs                    |
+| **Formatting Controls: Quick Controls**             | Optional formatting-only native picker                           |
 | **Formatting Controls: Native Quick Controls**      | Edit a setting using the original native pickers                 |
 | **Formatting Controls: Inspect Effective Settings** | Open a JSON report of effective values and scope sources         |
 | **Formatting Controls: Restore Previous Settings**  | Restore untouched values from the latest batch in this workspace |
@@ -118,9 +124,10 @@ Hover the status-bar item for effective formatting and save-action details. Clic
 
 The welcome page appears once on first activation. It introduces the workflow and links to settings, documentation, and GitHub; it does not apply a preset automatically.
 
-The hover and compact panel share a clear settings summary. VS Code controls the native hover; the clicked controls use a supported editor panel, rather than an anchored Copilot-style popup. See [status controls and scope behavior](docs/status-controls.md).
+Hover and click use one wider formatting card in the same location, with On/Off command links and aligned scope/language choices. Those choices open native pickers; VS Code controls the outer appearance, pointer and hover delay. See [status controls and scope behavior](docs/status-controls.md).
 
-![Compact tabbed Quick Controls beside the editor in Dark Modern](docs/assets/status-quick-controls-dark.png)
+![Native formatting summary above the status bar in Dark Modern](docs/assets/status-card-dark.png)
+
 
 ### Dashboard
 

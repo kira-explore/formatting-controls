@@ -1,8 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 — Unreleased
 
-Added a rich status-bar hover and compact tabbed Quick Controls beside the editor, with explicit scope/language selection, formatting flags, independent save-action editing and existing pause/recovery previews. Retained native pickers as Native Quick Controls.
+Added an isolated VS Code 1.143.1 core prototype implementing the approved anchored card with genuine Checkbox/SelectBox components, outlined state/context, collapsible formatting details, direct formatter selection, Pause/Resume and separate footer navigation. Added a constrained extension-host settings bridge, pinned/apply-checked portable core patch, build instructions and real custom-editor UI/accessibility coverage. This UI requires the custom editor; it is not enabled by installing the VSIX in ordinary VS Code.
+
+Hover and click now share one anchored Formatting Controls card, with click pinning the card instead of opening a docked view. Added constrained On/Off actions, clearer saved/inherited/override labels, active-file/workspace context and an expandable formatting section. Full interactive controls remain in the existing dashboard; the docked-view draft was removed.
+
+Added formatting-only Pause/Resume with reviewed, durable recovery that preserves save actions and newer edits. Native tooltip actions use command links and native scope/language pickers; real checkbox/select widgets are not exposed by VS Code's tooltip API. Added cold-click, hover/click placement, pinning, keyboard, no-new-surface and pause-preservation regression coverage.
+
+Renamed the Extensions display name to Kira Formatting Controls, retained the stable package/publisher identity, and replaced the app icon with the approved centered blue/white control symbol on a black background. The status item and card have no app icon.
 
 Added real Remote SSH regression coverage for scopes, host-owned profiles, import/export and persisted pause recovery after client reconnect, plus native UI review notes and remote User-scope guidance. Updated Node type declarations to ^26.6.5 while retaining Node 24 compatibility.
 

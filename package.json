@@ -1,7 +1,7 @@
 {
   "name": "formatting-controls",
-  "version": "0.4.0",
-  "description": "Control formatting, save actions, and language settings from a theme-aware dashboard with explicit configuration scopes.",
+  "version": "0.5.0",
+  "description": "Control formatting from your status bar, with a dashboard for explicit scopes, language rules, profiles and diagnostics.",
   "main": "./dist/extension.js",
   "scripts": {
     "build": "bun run build.ts",
@@ -16,7 +16,11 @@
     "release:check": "bun run scripts/release-check.ts",
     "security:check": "bun run scripts/audit.ts",
     "test:multi-window": "bun run build && bun run test/run-multi-window.ts",
-    "test:remote": "bun run build && bun run test/run-remote.ts"
+    "test:remote": "bun run build && bun run test/run-remote.ts",
+    "prototype:apply": "bun run scripts/core-prototype.ts apply",
+    "prototype:check": "bun run scripts/core-prototype.ts check",
+    "prototype:patch": "bun run scripts/core-prototype.ts patch",
+    "test:core-prototype": "bun run build && bun run test/core-prototype.ts"
   },
   "author": {
     "name": "Raju Dhami",
@@ -45,7 +49,7 @@
     "vite": "^8.3.5",
     "yauzl": "3.4.0"
   },
-  "displayName": "Formatting Controls",
+  "displayName": "Kira Formatting Controls",
   "publisher": "rajudhami",
   "engines": {
     "vscode": "^1.140.0",
@@ -97,7 +101,7 @@
   "packageManager": "bun@1.4.4",
   "icon": "assets/icon.png",
   "galleryBanner": {
-    "color": "#111827",
+    "color": "#000000",
     "theme": "dark"
   },
   "keywords": [

@@ -9,6 +9,7 @@ tsconfig.json
 dist/test/**
 dist/**/*.map
 .gitignore
+.gitattributes
 bun.lock
 biome.json
 webview-ui/**
@@ -17,6 +18,7 @@ test-results/**
 assets/*.svg
 *.vsix.sha256
 release-notes.md
+prototype/**
 
 .vscode-test
 .vscode-test/**

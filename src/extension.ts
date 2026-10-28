@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import { validValue } from "../shared/protocol";
-import { quickTab } from "../shared/status-hover";
 import {
   configuration,
   own,
@@ -9,16 +8,11 @@ import {
   setAction,
   write,
 } from "./configuration";
+import { CoreControls } from "./core-controls";
 import { Dashboard } from "./dashboard";
-import {
-  type ActionValue,
-  flags,
-  keys,
-  type SettingKey,
-  status,
-} from "./model";
+import { type ActionValue, flags, keys, type SettingKey } from "./model";
 import { FileProfiles } from "./profile-store";
-import { statusTooltip } from "./status-hover";
+import { StatusControls } from "./status-controls";
 import { Workflows } from "./workflows";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -34,19 +28,21 @@ export function activate(context: vscode.ExtensionContext): void {
     profiles,
   );
   const dashboard = new Dashboard(context.extensionUri, undefined, workflows);
-  const quick = new Dashboard(
-    context.extensionUri,
-    undefined,
-    workflows,
-    "quick",
-  );
   const item = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
     100,
   );
-  item.name = "Formatting Controls";
-  item.command = "formattingControls.quickControls";
   let activeDocument = vscode.window.activeTextEditor?.document;
+  const controls = new StatusControls(
+    item,
+    () => (activeDocument?.isClosed ? undefined : activeDocument),
+    workflows,
+  );
+  const core = new CoreControls(
+    () => (activeDocument?.isClosed ? undefined : activeDocument),
+    workflows,
+    (connected) => controls.setCoreMode(connected),
+  );
   const scope = (): Selection => {
     const document = vscode.window.activeTextEditor?.document ?? activeDocument;
     return {
@@ -56,31 +52,8 @@ export function activate(context: vscode.ExtensionContext): void {
   };
   const refresh = () => {
     activeDocument = vscode.window.activeTextEditor?.document ?? activeDocument;
-    const c = configuration(scope());
-    // Read with the active language even when the editing target is ordinary User settings.
-    const document = vscode.window.activeTextEditor?.document ?? activeDocument;
-    const effective = document
-      ? vscode.workspace.getConfiguration(undefined, {
-          uri: document.uri,
-          languageId: document.languageId,
-        })
-      : c;
-    item.text = `$(settings-gear) Formatting: ${status(flags.map((k) => effective.get<boolean>(k, false)))}`;
-    const formatter = effective.get<unknown>("editor.defaultFormatter");
-    const tooltip = statusTooltip({
-      file: document
-        ? vscode.workspace.asRelativePath(document.uri)
-        : "No active editor",
-      ...(document ? { language: document.languageId } : {}),
-      flags: flags.map((key) => effective.get<boolean>(key, false)),
-      ...(typeof formatter === "string" ? { formatter } : {}),
-      actions: effective.get("editor.codeActionsOnSave"),
-    });
-    item.tooltip = tooltip;
-    item.accessibilityInformation = {
-      label: item.text.replace("$(settings-gear) ", ""),
-    };
-    item.show();
+    controls.refresh();
+    core.refresh();
   };
   const inspect = async () => {
     const d = vscode.window.activeTextEditor?.document ?? activeDocument;
@@ -276,6 +249,7 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     profiles,
     workflows,
+    core,
     workflows.onDidChange(refresh),
     vscode.commands.registerCommand(
       "formattingControls.restore",
@@ -284,11 +258,14 @@ export function activate(context: vscode.ExtensionContext): void {
       }),
     ),
     dashboard,
-    quick,
     vscode.commands.registerCommand(
       "formattingControls.quickControls",
-      (tab?: unknown) =>
-        guarded(() => quick.open(false, quickTab(tab), activeDocument))(),
+      guarded(() => controls.open()),
+    ),
+    vscode.commands.registerCommand(
+      "formattingControls.statusControl",
+      (revision: unknown, action: unknown) =>
+        guarded(() => controls.control(revision, action))(),
     ),
     vscode.commands.registerCommand(
       "formattingControls.dashboard",
@@ -304,16 +281,29 @@ export function activate(context: vscode.ExtensionContext): void {
       "formattingControls.inspect",
       guarded(inspect),
     ),
-    vscode.workspace.onDidCloseTextDocument((document) => {
-      if (document === activeDocument) {
-        activeDocument = vscode.window.activeTextEditor?.document;
+    vscode.workspace.onDidOpenTextDocument((document) => {
+      if (activeDocument?.uri.toString() === document.uri.toString()) {
+        activeDocument = document;
         refresh();
       }
     }),
+    vscode.workspace.onDidCloseTextDocument((document) => {
+      if (document === activeDocument) refresh();
+    }),
     vscode.workspace.onDidChangeConfiguration(refresh),
+    vscode.workspace.onDidChangeWorkspaceFolders(refresh),
+    vscode.extensions.onDidChange(refresh),
+    vscode.window.onDidChangeWindowState(({ focused }) => {
+      if (focused) refresh();
+    }),
     vscode.window.onDidChangeActiveTextEditor(refresh),
   );
   refresh();
+  void core.connect().catch((error) => {
+    void vscode.window.showErrorMessage(
+      `Formatting Controls prototype: ${String(error)}`,
+    );
+  });
   try {
     const recovery = workflows.recovery();
     if (

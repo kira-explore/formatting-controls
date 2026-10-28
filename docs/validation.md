@@ -68,6 +68,31 @@ Reproduced two saved-profile data-loss cases in real concurrent macOS VS Code wi
 Real macOS-to-Linux Remote SSH checks passed for configuration scopes, existing Remote versus local User settings destinations, language and folder isolation, Linux-owned profile storage, JSON import/export and conflict-aware pause/resume. A different Linux extension-host process recovered the persisted pause after closing and reconnecting the desktop client. Hands-on native UI checks covered remote export/import dialogs, confirmation/cancellation and pause/resume. See [the review method and coverage limits](remote-workspace.md). Updated @types/node to ^26.6.5; host/browser type checks and the 46-test unit suite pass under the Node 24 build baseline.
 
 
-## Status hover and Quick Controls
+## Formatting status card
 
-Added pure regressions for effective hover summaries, independent action counts, escaping untrusted Markdown/HTML and constrained tab navigation. Real editor coverage verifies trusted navigation-only hover links, default folder selection, explicit scoped writes, readiness/scope retention, stale revisions, active-file context and empty-window behavior. The compact panel shares the existing host protocol and bundled assets. Local checks pass under Node 24 with 49 pure tests, VS Code 1.140.0/stable editor and empty-window suites, 16 existing dashboard scans and 12 additional quick-panel scans across Dark Modern, Light Modern and Default High Contrast. Real checkbox and action writes, keyboard tabs and the native rendered status hover pass. See [status controls](status-controls.md) for the supported native-hover/editor-panel design and its difference from the conceptual anchored popup.
+Replaced the compact editor panel with one native formatting-only status card. Local VS Code 1.140.0 and stable 1.143.1 tests verify cold click, identical hover/click bounds and content, pinning, keyboard access, real formatting edits and native scope/language pickers without opening tabs. The 49-test Node 24 suite, type checks, Biome and empty-window suite pass. Added revision/invalid-action regressions, owned-versus-effective checks and save-action preservation. CI runs native status checks across three themes alongside the existing dashboard scans. Native appearance, pointer and hover delay remain controlled by VS Code; see [status controls](status-controls.md).
+
+
+### Anchored card layout refinement
+
+Replaced the narrow settings table with a 360px HTML content layout using the public MarkdownString supportHtml option and VS Code’s built-in sanitizer. Escaped all dynamic text and attribute content, disabled theme-icon parsing for user text, and retained constrained command links and stale-state protection. Native UI checks measure the rendered width, compare hover/click position and content, and reject form/script elements. Host syntax optimization keeps the bundle within the existing budget without changing debug names or source maps.
+
+
+### Interaction follow-up from screen recordings
+
+An inherited trigger becoming explicitly configured used to remove its helper row and shift the anchored card. Ownership notes now retain a consistent row height. Equivalent configuration/focus notifications no longer rebuild the tooltip or invalidate unchanged links. A real-editor regression starts from editor focus, opens by hover alone and toggles an inherited trigger twice without another status click; it checks ownership notes, value changes and identical bounds throughout. Scope/language labels explicitly describe opening a VS Code picker. The fields remain command links, not inline dropdown widgets.
+
+## Version 0.5.0 anchored controls
+
+The release uses one native card for hover and click, plus the existing editor dashboard for full controls. The docked-view draft and its frontend/provider/contributions were removed. Regression checks cover cold status clicks, pinning after the pointer leaves, identical hover/click bounds and content, repeated formatting changes without moving the card, disclosure, native scope/language choices, keyboard access and dashboard navigation. A normal status click must create neither a Panel nor an editor tab.
+
+Source-precedence tests cover regular/language scopes and organisation policy. Host tests verify formatting-only Pause/Resume preserves save actions and newer edits, and no docked view is contributed. The refined icon and Kira Formatting Controls display name retain the stable `rajudhami.formatting-controls` identity. Surface limits and the built-in hover-command compatibility dependency are documented in [status controls](status-controls.md).
+
+
+## Interactive core prototype — 28 October 2026
+
+Built the pinned VS Code 1.143.1 source (e646868227c3e3a9e3f24277c8c7220be42c0be7), its built-in extensions and matching Electron runtime in an isolated checkout under Node 24.21.0. The targeted upstream TypeScript check includes the card contribution and its transitive status/hover dependencies. A portable patch and guarded apply/check scripts reproduce the core changes. CI also verifies patch applicability and regeneration against the pinned upstream revision.
+
+Real macOS editor tests pass in Dark Modern, Light Modern and Default High Contrast, with the theme kind verified before capture. Each run checks a single status entry, identical native anchored hover/click geometry and pointer, click pinning, genuine Checkbox and SelectBox controls, inline scope/language/formatter changes without a QuickPick, stable repeated toggles, disclosure, reviewed Pause/Resume, keyboard activation/Escape and separate dashboard navigation. Axe reports zero violations in each card scan. The core button's Escape event explicitly dismisses the hover after native confirmation workflows.
+
+The private extension-host bridge is covered by stale session/revision rejection, option allowlisting, scoped flag writes, formatter reset, language selection and save-action preservation checks. The ordinary-editor integration suite passes with the bridge dormant. The expanded pure suite has 55 passing tests. The [prototype documentation](../prototype/vscode/README.md) includes actual screenshots, build/run commands and the custom-editor requirement. Installing the VSIX in ordinary VS Code does not enable this interactive UI.
