@@ -1,2 +1,0 @@
-# Unified-diff context prefixes are data, not source indentation.
-prototype/vscode/*.patch -whitespace

@@ -11,7 +11,9 @@ import {
   renameSync,
   rmSync,
   statSync,
+  unwatchFile,
   watch,
+  watchFile,
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
@@ -30,10 +32,13 @@ export interface ProfileRepository {
 export class FileProfiles implements ProfileRepository {
   private readonly changed = new EventEmitter();
   private watcher: FSWatcher | undefined;
+  private polledPath: string | undefined;
+  private readonly polledChange = () => this.changed.emit("change");
   private disposed = false;
   constructor(
     private readonly uri: { scheme: string; fsPath: string },
     private readonly legacy: { get<T>(key: string): T | undefined },
+    private readonly watchDirectory: typeof watch = watch,
   ) {}
   private location(): string {
     // Desktop VS Code uses vscode-userdata for its native User-data directory.
@@ -42,9 +47,23 @@ export class FileProfiles implements ProfileRepository {
         "Shared profiles require file-based extension storage in this host.",
       );
     mkdirSync(this.uri.fsPath, { recursive: true, mode: 0o700 });
+    const path = join(this.uri.fsPath, "profiles-v2.json");
+    // Native watchers can miss the first atomic rename before their stream is ready.
+    if (!this.polledPath && !this.disposed) {
+      try {
+        watchFile(
+          path,
+          { persistent: false, interval: 1000 },
+          this.polledChange,
+        );
+        this.polledPath = path;
+      } catch {
+        /* Native events, window focus and Refresh profiles remain available. */
+      }
+    }
     if (!this.watcher && !this.disposed) {
       try {
-        this.watcher = watch(
+        this.watcher = this.watchDirectory(
           this.uri.fsPath,
           { persistent: false },
           (_event, name) => {
@@ -60,7 +79,7 @@ export class FileProfiles implements ProfileRepository {
         /* Window focus and Refresh profiles remain available if watching fails. */
       }
     }
-    return join(this.uri.fsPath, "profiles-v2.json");
+    return path;
   }
   onDidChange(listener: () => void): { dispose(): void } {
     this.changed.on("change", listener);
@@ -169,6 +188,8 @@ export class FileProfiles implements ProfileRepository {
     this.disposed = true;
     this.watcher?.close();
     this.watcher = undefined;
+    if (this.polledPath) unwatchFile(this.polledPath, this.polledChange);
+    this.polledPath = undefined;
     this.changed.removeAllListeners();
   }
 }

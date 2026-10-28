@@ -6,7 +6,7 @@
 
 A control center for VS Code formatting, save actions, and language settings. Make quick adjustments from the status bar, or open the dashboard to choose a formatter, manage source actions, and understand which settings apply.
 
-**0.5.0 interactive-card prototype:** the approved status-bar card with real checkboxes and inline dropdowns is implemented as a [VS Code core patch](prototype/vscode/README.md). It requires a custom editor build. Ordinary VS Code uses the existing Markdown card; installing the VSIX alone does not enable the interactive prototype.
+**Status controls in regular VS Code:** hover and click open the same anchored Markdown card. Click pins it; On/Off links edit formatting, and scope/language links open native pickers. Real checkboxes and dropdowns are in the separate dashboard.
 
 ![Formatting Controls Overview in VS Code Dark Modern](docs/assets/dashboard.png)
 

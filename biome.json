@@ -20,14 +20,6 @@
   },
   "overrides": [
     {
-      "includes": ["prototype/vscode/**/*.ts", "prototype/vscode/**/*.css"],
-      "formatter": { "indentStyle": "tab" },
-      "javascript": {
-        "parser": { "unsafeParameterDecoratorsEnabled": true },
-        "formatter": { "quoteStyle": "single", "arrowParentheses": "asNeeded" }
-      }
-    },
-    {
       "includes": ["webview-ui/src/styles.css"],
       "linter": {
         "rules": {

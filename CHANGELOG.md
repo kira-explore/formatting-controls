@@ -2,7 +2,7 @@
 
 ## 0.5.0 — Unreleased
 
-Added an isolated VS Code 1.143.1 core prototype implementing the approved anchored card with genuine Checkbox/SelectBox components, outlined state/context, collapsible formatting details, direct formatter selection, Pause/Resume and separate footer navigation. Added a constrained extension-host settings bridge, pinned/apply-checked portable core patch, build instructions and real custom-editor UI/accessibility coverage. This UI requires the custom editor; it is not enabled by installing the VSIX in ordinary VS Code.
+Prepared the 0.5.0 release for regular VS Code: removed the custom-editor connection, private commands, prototype sources and build/CI tooling. Hover and click use the same anchored Markdown card; interactive checkbox/dropdown controls remain in the separate dashboard. Source notes reserve space for overrides so formatting changes keep the card in position. Added a polling fallback for missed native profile notifications.
 
 Hover and click now share one anchored Formatting Controls card, with click pinning the card instead of opening a docked view. Added constrained On/Off actions, clearer saved/inherited/override labels, active-file/workspace context and an expandable formatting section. Full interactive controls remain in the existing dashboard; the docked-view draft was removed.
 

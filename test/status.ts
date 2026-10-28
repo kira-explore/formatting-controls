@@ -48,7 +48,10 @@ export async function reviewStatus(
     await hover.isVisible(),
     "Click pins the status hover after the pointer leaves",
   );
-  await page.screenshot({ path: join(directory, "status-click-window.png") });
+  await page.screenshot({
+    animations: "disabled",
+    path: join(directory, "status-click-window.png"),
+  });
   await page.evaluate(axe.source);
   const accessibility = await page.evaluate<{ violations: unknown[] }>(
     `axe.run(document.querySelector('.monaco-hover'),{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa']}}).then(r=>({violations:r.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))}))`,
@@ -76,7 +79,10 @@ export async function reviewStatus(
     "Hover and click share exactly the same card placement",
   );
   assert.equal(await hover.textContent(), text);
-  await page.screenshot({ path: join(directory, "status-hover-window.png") });
+  await page.screenshot({
+    animations: "disabled",
+    path: join(directory, "status-hover-window.png"),
+  });
   const row = hover.getByRole("row").filter({ hasText: "Format on type" });
   const value = row.getByRole("link");
   const before = (await value.textContent())?.trim() ?? "";
@@ -96,7 +102,10 @@ export async function reviewStatus(
   await row.waitFor({ state: "hidden" });
   await hover.getByRole("link", { name: /Automatic formatting/ }).click();
   await row.waitFor();
-  await page.screenshot({ path: join(directory, "status-card.png") });
+  await page.screenshot({
+    animations: "disabled",
+    path: join(directory, "status-card.png"),
+  });
   await hover.getByRole("link", { name: /Folder:/ }).click();
   await page.getByRole("option", { name: "Workspace", exact: true }).click();
   await button.click();

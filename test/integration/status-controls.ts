@@ -35,6 +35,15 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     await write(language, key, true);
     controls.refresh();
     assert.equal(item.command, "workbench.action.showHover");
+    assert.deepEqual(
+      (await vscode.commands.getCommands(true)).filter(
+        (command) =>
+          command.startsWith("kiraFormattingControls.prototype.") ||
+          command.startsWith("formattingControls.core."),
+      ),
+      [],
+      "The shipped extension must not register custom-editor bridge commands.",
+    );
     const tooltip = item.tooltip as vscode.MarkdownString;
     assert.equal(tooltip.supportHtml, true);
     assert.equal(tooltip.supportThemeIcons, false);

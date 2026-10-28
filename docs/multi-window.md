@@ -24,7 +24,7 @@ A cross-process proper-lockfile lock serializes each read/compare/merge/write. T
 
 On the first successful mutation, existing valid v1 Memento profiles are copied into the v2 document with the mutation. Reads alone do not migrate. The old Memento is retained as a backup, and later reads use the v2 document. Downgrading to an older extension will see the older backup, not later v2 edits; export JSON before downgrading. Export/import remains the supported way to move profiles between hosts or editor profiles. The store is limited to 50 profiles and 8 MiB. Recovery journals continue to use workspace Mementos.
 
-Filesystem notifications refresh open dashboards; window focus refreshes again. **Refresh profiles** provides an explicit retry when notifications are unavailable. All reads use the current file rather than a cached profile list.
+Native filesystem notifications refresh open dashboards, with a one-second file-stat polling fallback for missed or unavailable events. Window focus refreshes again. **Refresh profiles** provides an explicit retry when notifications are unavailable. All reads use the current file rather than a cached profile list.
 
 ## Limits
 

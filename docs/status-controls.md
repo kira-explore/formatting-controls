@@ -1,13 +1,5 @@
 # Formatting status card
 
-## Approved interactive card: custom-editor prototype
-
-The approved design with real checkboxes, inline scope/language/formatter dropdowns, an outlined state and context box is implemented in the [isolated VS Code core prototype](../prototype/vscode/README.md). It uses the editor's internal components and hover service, with a private bridge to this extension for settings and workflows. The native card is shared by hover and click, without a docked view. The extension's fallback status item is hidden after the core handshake succeeds.
-
-This requires the patched VS Code 1.143.1 editor. It is not a capability of the normal Marketplace extension. The prototype documentation includes actual screenshots, pinned sources, build/run commands and validation details.
-
-## Ordinary VS Code compatibility
-
 Hover and click open the same native card above the Formatting status-bar item. Clicking focuses and keeps it open; moving the pointer away does not dismiss the pinned card. Escape dismisses it. Enter on the focused status item opens it. A normal status click creates neither a docked Panel view nor an editor tab.
 
 The extension listing is **Kira Formatting Controls**. The card and dashboard use the shorter **Formatting Controls** title. The refined app icon appears in the Extensions listing; the status item and card have no app icon. The package ID remains `rajudhami.formatting-controls`.
@@ -22,7 +14,7 @@ The extension listing is **Kira Formatting Controls**. The card and dashboard us
 - Use **Pause** at a workspace/folder destination to preview disabling only Save/Paste/Type. Save actions and the formatter selection remain unchanged. **Resume** restores unchanged values while preserving newer edits. The existing native JSON preview and confirmation are shown before applying or restoring preferences.
 - Open the existing dashboard for full controls, formatter selection, save actions, language rules, profiles and diagnostics, or open native Settings.
 
-The active-file context identifies the editor language and workspace. Multi-root workspaces also name the active folder. **Write to** and **Apply to language** identify the destination being edited, rather than changing the file's language mode. Source labels distinguish saved values, inherited settings and defaults. Overrides explain the effective value when it differs from the selected scope. The header reports the effective On/Off/Mixed combination.
+The active-file context identifies the editor language and workspace. Multi-root workspaces also name the active folder. **Write to** and **Apply to language** identify the destination being edited, rather than changing the file's language mode. Source labels distinguish saved values, inherited settings and defaults. Source and effective-override notes each reserve a row so a toggle does not move the card; long notes are shortened in the card and remain available in native hover titles. Overrides explain the effective value when it differs from the selected scope. The header reports the effective On/Off/Mixed combination.
 
 ## API boundary
 
@@ -37,3 +29,7 @@ Sources: [StatusBarItem](https://code.visualstudio.com/api/references/vscode-api
 Hovering changes no preferences. Command links carry a revision and accept only constrained scope/language, formatting, disclosure and pause actions. Changed settings or editor context invalidate stale links. Equivalent notifications retain the tooltip and revision. Pending operations are serialized, source strings are HTML-escaped, and the tooltip trusts only its control command, dashboard navigation and native Settings navigation. The dashboard retains its validated message protocol and nonce-based content security policy.
 
 **Formatting Controls: Quick Controls** retains the optional formatting-only native picker. **Native Quick Controls** retains the original full settings picker. **Open Dashboard** opens the existing editor dashboard. No command opens a docked Formatting Controls view.
+
+## Archived experiment
+
+The earlier internal-component experiment is preserved in [the merged prototype revision](https://github.com/kira-explore/formatting-controls/tree/eb908c364d3e6c954ed2c3edb0b426e9b2baee88/prototype/vscode). It required a custom editor and is not part of the shipping extension. The current extension has no core handshake, prototype commands or custom-editor dependency.

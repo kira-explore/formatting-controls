@@ -13,7 +13,6 @@ export class StatusControls {
   private languageOnly = false;
   private pending = false;
   private collapsed = false;
-  private coreMode = false;
   constructor(
     private readonly item: vscode.StatusBarItem,
     private readonly document: () => vscode.TextDocument | undefined,
@@ -21,14 +20,6 @@ export class StatusControls {
   ) {
     item.name = "Formatting Controls";
     item.command = "workbench.action.showHover";
-  }
-  setCoreMode(enabled: boolean): void {
-    this.coreMode = enabled;
-    if (enabled) this.item.hide();
-    else {
-      this.fingerprint = "";
-      this.refresh();
-    }
   }
   private selection(): Selection {
     const document = this.document();
@@ -87,6 +78,27 @@ export class StatusControls {
     } catch {
       /* The dashboard reports invalid recovery storage. */
     }
+    const sources = flags.map((key) => {
+      const source = settingSource(
+        {
+          configured: own(selection, key) !== undefined,
+          owned: own(selection, key),
+          effective: effective.get(key),
+          sources: effective.inspect(key) as unknown as Record<string, unknown>,
+        },
+        {
+          target:
+            selection.target === vscode.ConfigurationTarget.Global
+              ? "user"
+              : selection.target === vscode.ConfigurationTarget.Workspace
+                ? "workspace"
+                : "folder",
+          ...(selection.language ? { language: selection.language } : {}),
+        },
+        document?.languageId,
+      );
+      return source;
+    });
     const context = {
       paused,
       canPause:
@@ -102,32 +114,8 @@ export class StatusControls {
         ? { folder: folder.name }
         : {}),
       flags: values,
-      sources: flags.map((key) => {
-        const source = settingSource(
-          {
-            configured: own(selection, key) !== undefined,
-            owned: own(selection, key),
-            effective: effective.get(key),
-            sources: effective.inspect(key) as unknown as Record<
-              string,
-              unknown
-            >,
-          },
-          {
-            target:
-              selection.target === vscode.ConfigurationTarget.Global
-                ? "user"
-                : selection.target === vscode.ConfigurationTarget.Workspace
-                  ? "workspace"
-                  : "folder",
-            ...(selection.language ? { language: selection.language } : {}),
-          },
-          document?.languageId,
-        );
-        return source.override
-          ? `${source.label} · ${source.override}`
-          : source.label;
-      }),
+      sources: sources.map((source) => source.label),
+      overrides: sources.map((source) => source.override),
       owned: flags.map((key) => {
         const value = own(selection, key);
         return typeof value === "boolean" ? value : undefined;
@@ -165,8 +153,7 @@ export class StatusControls {
     this.item.accessibilityInformation = {
       label: this.item.text.replace("$(settings-gear) ", ""),
     };
-    if (this.coreMode) this.item.hide();
-    else this.item.show();
+    this.item.show();
   }
   private assertCurrent(revision: unknown): void {
     if (revision !== this.revision)

@@ -6,6 +6,7 @@ export interface HoverContext {
   flags: readonly boolean[];
   owned: readonly (boolean | undefined)[];
   sources?: readonly string[];
+  overrides?: readonly (string | undefined)[];
   formatter?: string;
   scope: string;
   languageScope: string;
@@ -31,6 +32,19 @@ const table = (rows: string) =>
   `<table width="400"><tbody>${rows}</tbody></table>`;
 const row = (label: string, value: string, height = 32) =>
   `<tr height="${height}"><td>${label}</td><td align="right">${value}</td></tr>`;
+// Keep visible notes short enough for one line; the native title retains detail.
+const compact = (value: string) => {
+  let width = 0;
+  let result = "";
+  for (const character of value) {
+    width += (character.codePointAt(0) ?? 0) >= 0x2e80 ? 2 : 1;
+    if (width > 40) return `${result}…`;
+    result += character;
+  }
+  return result;
+};
+const note = (value: string) =>
+  `<tr height="22"><td colspan="2"><small><span title="${text(value)}" style="color:var(--vscode-descriptionForeground);">${value ? text(compact(value)) : "&#160;"}</span></small></td></tr>`;
 export function statusHover(context: HoverContext): string {
   const state = context.flags.every(Boolean)
     ? "On"
@@ -50,14 +64,15 @@ export function statusHover(context: HoverContext): string {
       const checked = context.owned[i] ?? context.flags[i];
       const override =
         context.owned[i] !== undefined && context.owned[i] !== context.flags[i]
-          ? ` · Effective: ${context.flags[i] ? "On" : "Off"}`
+          ? `Effective: ${context.flags[i] ? "On" : "Off"} · ${context.overrides?.[i]?.replace(/ · effective:.*$/, "") ?? "Overridden"}`
           : "";
       return (
         row(
           `Format on ${label.toLowerCase()}`,
-          `<a href="${link(i)}" title="Turn ${checked ? "off" : "on"} format on ${label.toLowerCase()} at ${text(context.scope)} / ${text(context.languageScope)}">${checked ? "On" : "Off"}</a>`,
+          `<a href="${link(i)}" title="Turn ${checked ? "off" : "on"} format on ${label.toLowerCase()} at ${text(context.scope)} / ${text(context.languageScope)}. ${text(source)}${override ? `. ${text(override)}` : ""}">${checked ? "On" : "Off"}</a>`,
         ) +
-        `<tr height="22"><td colspan="2"><small>${muted(text(source + override))}</small></td></tr>`
+        note(source) +
+        note(override)
       );
     })
     .join("");

@@ -67,6 +67,8 @@ test("untrusted file, workspace and provider text cannot inject HTML or commands
     workspace: "<script>evil()</script>",
     formatter: "$(zap)<script>evil()</script>",
     scope: 'User" onmouseover="evil()',
+    sources: ['<img src=x onerror="evil()">'],
+    overrides: ['<a href="command:evil">bad</a>'],
   });
   assert.ok(html.includes("&lt;img"));
   assert.ok(!html.includes("<img"));
