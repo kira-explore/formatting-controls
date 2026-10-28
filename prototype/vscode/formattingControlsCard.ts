@@ -37,6 +37,9 @@ type UserAction = CoreAction extends infer T
 
 /** An interactive workbench hover; this is intentionally outside the extension API. */
 export class FormattingControlsCard extends Disposable {
+	private static nextIdentifier = 0;
+	private readonly identifier =
+		`kira-formatting-card-${FormattingControlsCard.nextIdentifier++}`;
 	readonly element = $('.kira-formatting-card');
 	private readonly badge = $('span.kira-formatting-state');
 	private readonly file = $('span.kira-formatting-file');
@@ -139,7 +142,7 @@ export class FormattingControlsCard extends Disposable {
 				this.renderDisclosure();
 			}),
 		);
-		for (const flag of initial.flags) {
+		for (const [index, flag] of initial.flags.entries()) {
 			const row = this.triggers.appendChild($('div.kira-formatting-trigger'));
 			const label = row.appendChild($('div.kira-formatting-trigger-label'));
 			const checkbox = this._register(
@@ -178,6 +181,13 @@ export class FormattingControlsCard extends Disposable {
 			);
 			const effective = row.appendChild($('span.kira-formatting-effective'));
 			const source = row.appendChild($('div.kira-formatting-source'));
+			source.id = `${this.identifier}-source-${index}`;
+			checkbox.domNode.setAttribute('aria-describedby', source.id);
+			this._register(
+				this.hoverService.setupDelayedHover(source, () => ({
+					content: this.state.flags[index].source,
+				})),
+			);
 			this.rows.push({ checkbox, source, effective });
 		}
 		const formatter = this.element.appendChild(

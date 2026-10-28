@@ -148,7 +148,9 @@
 .kira-formatting-card .kira-formatting-source {
 	grid-column: 1 / -1;
 	margin-left: var(--vscode-spacing-size320);
-	min-height: 16px;
+	height: var(--vscode-spacing-size360);
+	line-height: 18px;
+	overflow: hidden;
 	font-size: var(--vscode-fontSize-label1);
 }
 .kira-formatting-card .kira-formatting-formatter .kira-formatting-select-row {

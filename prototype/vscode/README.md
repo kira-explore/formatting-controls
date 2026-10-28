@@ -12,6 +12,7 @@ This implements the approved Formatting Controls card inside a custom VS Code bu
 - Blue outlined active-file/language/workspace context; multi-root workspaces also identify the active folder. The relative path is available on hover.
 - Inline native dropdowns for User/Workspace/active workspace folder, registered language rules and default formatter. macOS uses native menus; other platforms use VS Code's SelectBox implementation. No QuickPick is used for those dropdowns.
 - Real checkboxes for Save, Paste and Type, effective On/Off text, accurate saved/inherited/override sources and a collapsible section. Checkboxes edit the selected scope's value; the effective state can differ when another scope wins.
+- Source notes reserve two lines so adding/removing an override explanation does not move the card. Full notes remain available through native hover and checkbox descriptions for screen readers.
 - Reviewed formatting-only Pause/Resume, preserving save actions and newer edits. Pause is restricted to workspace/folder scopes. Its existing JSON preview and confirmation intentionally open before settings are written.
 - Separate Open dashboard and Settings footer actions. The approved app icon remains in the Extensions listing only.
 

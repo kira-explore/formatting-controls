@@ -276,7 +276,7 @@ diff --git a/src/vs/workbench/contrib/formattingControls/browser/formattingContr
 new file mode 100644
 --- /dev/null
 +++ b/src/vs/workbench/contrib/formattingControls/browser/formattingControlsCard.ts
-@@ -0,0 +1,409 @@
+@@ -0,0 +1,419 @@
 +/*---------------------------------------------------------------------------------------------
 + *  Copyright (c) Raju Dhami. All rights reserved.
 + *  Licensed under the MIT License. See the extension repository LICENSE for license information.
@@ -316,6 +316,9 @@ new file mode 100644
 +
 +/** An interactive workbench hover; this is intentionally outside the extension API. */
 +export class FormattingControlsCard extends Disposable {
++	private static nextIdentifier = 0;
++	private readonly identifier =
++		`kira-formatting-card-${FormattingControlsCard.nextIdentifier++}`;
 +	readonly element = $('.kira-formatting-card');
 +	private readonly badge = $('span.kira-formatting-state');
 +	private readonly file = $('span.kira-formatting-file');
@@ -418,7 +421,7 @@ new file mode 100644
 +				this.renderDisclosure();
 +			}),
 +		);
-+		for (const flag of initial.flags) {
++		for (const [index, flag] of initial.flags.entries()) {
 +			const row = this.triggers.appendChild($('div.kira-formatting-trigger'));
 +			const label = row.appendChild($('div.kira-formatting-trigger-label'));
 +			const checkbox = this._register(
@@ -457,6 +460,13 @@ new file mode 100644
 +			);
 +			const effective = row.appendChild($('span.kira-formatting-effective'));
 +			const source = row.appendChild($('div.kira-formatting-source'));
++			source.id = `${this.identifier}-source-${index}`;
++			checkbox.domNode.setAttribute('aria-describedby', source.id);
++			this._register(
++				this.hoverService.setupDelayedHover(source, () => ({
++					content: this.state.flags[index].source,
++				})),
++			);
 +			this.rows.push({ checkbox, source, effective });
 +		}
 +		const formatter = this.element.appendChild(
@@ -690,7 +700,7 @@ diff --git a/src/vs/workbench/contrib/formattingControls/browser/formattingContr
 new file mode 100644
 --- /dev/null
 +++ b/src/vs/workbench/contrib/formattingControls/browser/formattingControls.css
-@@ -0,0 +1,200 @@
+@@ -0,0 +1,202 @@
 +/* Copyright (c) Raju Dhami. Licensed under the MIT License. */
 +
 +.kira-formatting-card {
@@ -841,7 +851,9 @@ new file mode 100644
 +.kira-formatting-card .kira-formatting-source {
 +	grid-column: 1 / -1;
 +	margin-left: var(--vscode-spacing-size320);
-+	min-height: 16px;
++	height: var(--vscode-spacing-size360);
++	line-height: 18px;
++	overflow: hidden;
 +	font-size: var(--vscode-fontSize-label1);
 +}
 +.kira-formatting-card .kira-formatting-formatter .kira-formatting-select-row {

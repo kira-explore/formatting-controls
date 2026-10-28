@@ -47,6 +47,7 @@ export async function run(): Promise<void> {
   await write(workspace, "editor.formatOnSave", true);
   await write(workspace, "editor.formatOnPaste", false);
   await write(user, "editor.formatOnType", true);
+  await write({ ...user, language: "typescript" }, "editor.formatOnType", true);
   await write(workspace, "editor.codeActionsOnSave", {
     "source.fixAll": "explicit",
   });
