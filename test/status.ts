@@ -14,59 +14,84 @@ export async function reviewStatus(
   });
   const hover = page
     .locator(".monaco-hover")
-    .filter({ hasText: "Formatting Controls" });
-  const editorTabs = () => page.locator(".editor-group-container .tab").count();
-  const panels = () => page.locator(".part.panel:visible").count();
+    .filter({ has: page.getByRole("img", { name: /^Formatting Controls\./ }) });
+  const tabs = await page.locator(".editor-group-container .tab").count();
+  const panels = await page.locator(".part.panel:visible").count();
+  const loaded = async () => {
+    await hover.waitFor({ state: "visible" });
+    await page.waitForFunction(
+      `(() => { const images = Array.from(document.querySelectorAll('.monaco-hover img')); return images.length >= 6 && images.every(img => img.complete && img.naturalWidth > 0); })()`,
+    );
+  };
   await button.waitFor();
-  const tabs = await editorTabs();
-  const panelCount = await panels();
   await button.hover();
-  await hover.waitFor({ state: "visible" });
+  await loaded();
   const hovered = await hover.boundingBox();
-  const hoveredText = await hover.textContent();
+  const labels = await hover
+    .locator("img")
+    .evaluateAll((images) => images.map((img) => img.getAttribute("alt")));
   await page.screenshot({
     animations: "disabled",
     path: join(directory, "status-hover-window.png"),
   });
   await page.mouse.move(10, 200);
+  await page.keyboard.press("Escape");
   await hover.waitFor({ state: "hidden" });
   await button.click();
-  await hover.waitFor({ state: "visible" });
-  const clicked = await hover.boundingBox();
-  assert.ok(clicked);
+  await loaded();
+  assert.deepEqual(
+    await hover.boundingBox(),
+    hovered,
+    "Hover and click have identical bounds after images load",
+  );
+  assert.deepEqual(
+    await hover
+      .locator("img")
+      .evaluateAll((images) => images.map((img) => img.getAttribute("alt"))),
+    labels,
+  );
   assert.equal(
-    await editorTabs(),
+    await page.locator(".editor-group-container .tab").count(),
     tabs,
-    "A cold status click must not open an editor tab",
   );
-  assert.equal(
-    await panels(),
-    panelCount,
-    "A cold status click must not open the Panel",
-  );
+  assert.equal(await page.locator(".part.panel:visible").count(), panels);
   assert.equal(
     await hover.locator("input,select,button,script,style").count(),
     0,
   );
-  const text = await hover.textContent();
-  assert.deepEqual(
-    clicked,
-    hovered,
-    "Hover and click share the same placement",
+  assert.ok(labels.some((label) => label?.includes("Active file:")));
+  assert.ok(labels.some((label) => label?.includes("Format on save:")));
+  const context = hover.getByRole("img", { name: /^Formatting Controls\./ });
+  const flags = hover.getByRole("img", { name: /^Format on save:/ });
+  const formatter = hover.getByRole("img", { name: /^Default formatter:/ });
+  for (const image of [context, flags, formatter])
+    assert.equal(
+      await image.evaluate((element) => !!element.closest("a")),
+      false,
+      "Read-only checkbox/dropdown artwork has no command link",
+    );
+  await context.click({ position: { x: 330, y: 160 } });
+  await flags.click({ position: { x: 30, y: 14 } });
+  await formatter.click({ position: { x: 320, y: 30 } });
+  assert.equal(
+    await page.locator(".quick-input-widget:visible").count(),
+    0,
+    "Read-only displays do not launch pickers",
   );
-  assert.equal(text, hoveredText);
-  assert.ok(text?.includes("Active file:"));
-  assert.ok(text?.includes("Apply to language"));
-  assert.ok(!text?.includes("Set here"));
+  assert.deepEqual(await hover.boundingBox(), hovered);
   await page.mouse.move(5, 5);
   await page.waitForTimeout(650);
   assert.ok(
     await hover.isVisible(),
-    "Click pins the status hover after the pointer leaves",
+    "Click pins the card after the pointer leaves",
   );
   await page.screenshot({
     animations: "disabled",
     path: join(directory, "status-click-window.png"),
+  });
+  await hover.screenshot({
+    animations: "disabled",
+    path: join(directory, "status-card.png"),
   });
   await page.evaluate(axe.source);
   const accessibility = await page.evaluate<{ violations: unknown[] }>(
@@ -79,109 +104,29 @@ export async function reviewStatus(
   assert.deepEqual(
     accessibility.violations,
     [],
-    "Native status card accessibility",
-  );
-  const row = hover.getByRole("row").filter({ hasText: "Format on paste" });
-  const before = (await row.locator("td").last().textContent())?.trim() ?? "";
-  await hover
-    .getByRole("link", { name: "Change formatting…", exact: true })
-    .click();
-  const quickInput = page.locator(".quick-input-widget");
-  await quickInput.waitFor({ state: "visible" });
-  await page.screenshot({
-    animations: "disabled",
-    path: join(directory, "formatting-picker.png"),
-  });
-  const typeChoice = quickInput
-    .locator(".monaco-list-row")
-    .filter({ hasText: "Format on paste" });
-  await typeChoice.locator(".monaco-checkbox").click();
-  await quickInput.getByRole("button", { name: "OK", exact: true }).click();
-  await quickInput.waitFor({ state: "hidden" });
-  await button.click();
-  await hover.waitFor({ state: "visible" });
-  await row
-    .locator("td")
-    .last()
-    .filter({ hasText: before === "On" ? /^Off$/ : /^On$/ })
-    .waitFor();
-  assert.equal(
-    (await row.locator("td").last().textContent())?.trim(),
-    before === "On" ? "Off" : "On",
-  );
-  assert.deepEqual(
-    await hover.boundingBox(),
-    clicked,
-    "Formatting changes keep the card in position",
+    "Artwork has accessible names and action links",
   );
   await hover
-    .getByRole("link", { name: "Change formatting…", exact: true })
+    .getByRole("link", { name: "Automatic formatting expanded", exact: true })
     .click();
-  await quickInput.waitFor({ state: "visible" });
-  await typeChoice.locator(".monaco-checkbox").click();
-  await quickInput.getByRole("button", { name: "OK", exact: true }).click();
-  await quickInput.waitFor({ state: "hidden" });
-  await button.click();
-  await hover.waitFor({ state: "visible" });
-  await row
-    .locator("td")
-    .last()
-    .filter({ hasText: new RegExp(`^${before}$`) })
-    .waitFor();
-  assert.equal((await row.locator("td").last().textContent())?.trim(), before);
-  await hover.getByRole("link", { name: /Automatic formatting/ }).click();
-  await row.waitFor({ state: "hidden" });
-  await hover.getByRole("link", { name: /Automatic formatting/ }).click();
-  await row.waitFor();
-  await page.screenshot({
-    animations: "disabled",
-    path: join(directory, "status-card.png"),
-  });
-  await hover.getByRole("link", { name: /Folder:/ }).click();
-  await quickInput.waitFor({ state: "visible" });
-  await page.screenshot({
-    animations: "disabled",
-    path: join(directory, "scope-picker.png"),
-  });
-  await page.getByRole("option", { name: "Workspace", exact: true }).click();
-  await button.click();
-  await hover.waitFor({ state: "visible" });
-  await hover.getByRole("link", { name: /^Workspace/ }).waitFor();
-  await hover.getByRole("link", { name: /All languages/ }).click();
-  await page.getByRole("option", { name: "typescript", exact: true }).click();
-  await button.click();
-  await hover.waitFor({ state: "visible" });
-  await hover.getByRole("link", { name: /^typescript/ }).waitFor();
+  await flags.waitFor({ state: "hidden" });
   await hover
-    .getByRole("link", { name: "Not configured", exact: true })
+    .getByRole("link", { name: "Automatic formatting collapsed", exact: true })
     .click();
-  await page.getByRole("option", { name: /TypeScript \/ JavaScript/ }).click();
-  await button.click();
-  await hover.waitFor({ state: "visible" });
-  await hover
-    .getByRole("link", {
-      name: "TypeScript / JavaScript",
-      exact: true,
-    })
-    .waitFor();
-  await hover.screenshot({
-    animations: "disabled",
-    path: join(directory, "status-card.png"),
-  });
+  await flags.waitFor();
   await page.keyboard.press("Escape");
+  await hover.waitFor({ state: "hidden" });
   await button.focus();
   await page.keyboard.press("Enter");
-  await hover.waitFor({ state: "visible" });
-  assert.equal(await editorTabs(), tabs);
-  assert.equal(await panels(), panelCount);
+  await loaded();
   await hover
-    .getByRole("link", { name: "Open dashboard ↗", exact: true })
+    .getByRole("link", { name: "Open dashboard", exact: true })
     .click();
   await page
     .getByRole("tab", { name: /Formatting Controls/ })
     .first()
     .waitFor();
   console.log(
-    "Anchored card verified: cold click, pinning, identical hover/click placement, no dock or editor tab, repeated stable toggles, disclosure, native pickers, keyboard access, accessibility and separate dashboard navigation.",
+    "Reference-style card verified: loaded local artwork, identical hover/click bounds, pinning, read-only checkbox/dropdown displays, no picker or extra surface, disclosure, keyboard access, accessible descriptions and working dashboard navigation.",
   );
 }

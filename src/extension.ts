@@ -289,6 +289,7 @@ export function activate(context: vscode.ExtensionContext): void {
       if (focused) refresh();
     }),
     vscode.window.onDidChangeActiveTextEditor(refresh),
+    vscode.window.onDidChangeActiveColorTheme(refresh),
   );
   refresh();
   try {

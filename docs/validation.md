@@ -108,8 +108,16 @@ The Node 24 suite has 53 passing tests. A profile-notification regression verifi
 
 The regular build also passed the two-window suite on unmodified VS Code 1.143.1 with shared User data and a workspace folder: shared settings, preserving other-window edits during resume, concurrent profile saves, stale operations and overlapping pause protection. Packaging verifies all 34 VSIX entries, metadata and bundle budgets; the dependency audit reports no vulnerabilities or advisory exceptions.
 
-### Detailed hover refinement
+### Earlier detailed hover refinement
 
 The detailed hover and native checkbox/formatter pickers pass real UI checks on VS Code 1.140.0 and 1.143.1 (Dark Modern), plus 1.144.0 (Dark Modern, Light Modern and Default High Contrast). The checks compare hover/click content and bounds, pinning, scoped checkbox changes, disclosure, formatter selection, scope/language pickers, keyboard activation and separate dashboard navigation. Automated hover accessibility scans report zero violations. Integration coverage also rejects stale formatter actions when a same-effective-value scope edit changes the value that would be reset.
 
 All 53 unit tests pass on Node 24.22.1, with TypeScript and Biome checks passing. The README card screenshot is captured from the running extension; hover symbols are read-only, and editable checkboxes appear in the native picker.
+
+### Reference-style read-only card
+
+The approved reference layout is now drawn as local, inert SVG images inside the regular Markdown status tooltip. Images show live effective formatting, scope, language, formatter, file and workspace values. Checkbox and dropdown artwork has no command link and launches no picker. Automatic formatting disclosure, Pause/Resume and dashboard/Settings navigation remain links.
+
+Actual editor checks on VS Code 1.140.0 and 1.144.0 verify that all images load, hover and click have identical bounds and descriptions, the card stays pinned after click, read-only displays open no picker or additional surface, keyboard/Escape works, disclosure works and dashboard navigation still opens the existing dashboard. Latest-editor tests cover Dark Modern, Light Modern and Default High Contrast. Axe scans report zero violations; each image has its full value description as alternative text. This does not replace hands-on screen-reader testing.
+
+All 54 unit tests pass on Node 24.22.1, along with TypeScript and Biome checks. Artwork tests verify effective-state rendering, source descriptions, XML escaping, allowlisted actions, four theme-kind palettes and disabled pause behavior at User scope. The fixed internal artwork dimensions reserve layout while images load. VS Code still owns the outer frame, pointer and hover delay; custom themes use the nearest supported theme-kind palette.

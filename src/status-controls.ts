@@ -145,6 +145,7 @@ export class StatusControls {
       uri: selection.uri?.toString(),
       language: selection.language,
       ownedFormatter: own(selection, "editor.defaultFormatter"),
+      theme: vscode.window.activeColorTheme.kind,
       folders: vscode.workspace.workspaceFolders?.map((folder) =>
         folder.uri.toString(),
       ),
