@@ -22,6 +22,8 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
   const actions = own(selection, "editor.codeActionsOnSave");
   const originalSave = own(selection, "editor.formatOnSave");
   const originalType = own(selection, "editor.formatOnType");
+  const originalFormatter = own(selection, "editor.defaultFormatter");
+  const originalLanguageFormatter = own(language, "editor.defaultFormatter");
   const revision = () =>
     JSON.parse(
       decodeURIComponent(
@@ -93,6 +95,24 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     assert.match((item.tooltip as vscode.MarkdownString).value, /Resume/);
     await controls.control(revision(), "pause");
     assert.equal(own(selection, "editor.formatOnPaste"), true);
+    await write(
+      language,
+      "editor.defaultFormatter",
+      "vscode.typescript-language-features",
+    );
+    controls.refresh();
+    const inheritedFormatter = revision();
+    await write(
+      selection,
+      "editor.defaultFormatter",
+      "vscode.typescript-language-features",
+    );
+    controls.refresh();
+    await assert.rejects(
+      controls.control(inheritedFormatter, "formatter"),
+      /changed/,
+      "A same-effective-value edit must invalidate a pending formatter reset",
+    );
     assert.equal(
       vscode.extensions.getExtension("rajudhami.formatting-controls")
         ?.packageJSON.contributes.views,
@@ -112,6 +132,8 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     await write(language, key, originalLanguage);
     await write(selection, "editor.formatOnSave", originalSave);
     await write(selection, "editor.formatOnType", originalType);
+    await write(selection, "editor.defaultFormatter", originalFormatter);
+    await write(language, "editor.defaultFormatter", originalLanguageFormatter);
     workflows.dispose();
     item.dispose();
   }

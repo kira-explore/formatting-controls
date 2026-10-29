@@ -100,10 +100,16 @@ The private extension-host bridge is covered by stale session/revision rejection
 
 ## Regular VS Code release — 29 October 2026
 
-Removed the custom-editor bridge, private commands, core sources, prototype tooling and its CI job. Historical sources remain linked from status-controls.md. The release uses a single native Markdown card for hover and click; click pins it. Scope/language links open native pickers, On/Off links edit only formatting, and the existing dashboard retains real form controls. No docked view or editor tab is opened by the status item.
+Removed the custom-editor bridge, private commands, core sources, prototype tooling and its CI job. Historical sources remain linked from status-controls.md. The release uses a single native Markdown card for hover and click; click pins it. The detailed card shows effective-state symbols and source notes. **Change formatting…** opens a native checkbox picker; scope/language/formatter links open native pickers. The existing dashboard retains real form controls. No docked view or editor tab is opened by the status item.
 
 Unmodified VS Code 1.143.1 passes status UI checks in Dark Modern, Light Modern and Default High Contrast; minimum VS Code 1.140.0 passes the same checks. Tests verify identical hover/click bounds and content, cold clicks, pinning, native scope/language pickers, stable toggles with a higher-priority language override, disclosure, keyboard access, zero automated card-accessibility violations and separate dashboard navigation. The eight-page dashboard and sixteen wide/narrow accessibility checks pass.
 
 The Node 24 suite has 53 passing tests. A profile-notification regression verifies cross-instance updates with native watching disabled; file-stat polling provides a fallback for missed startup/atomic-rename events. The actual extension host also verifies that no custom-editor bridge commands are registered.
 
 The regular build also passed the two-window suite on unmodified VS Code 1.143.1 with shared User data and a workspace folder: shared settings, preserving other-window edits during resume, concurrent profile saves, stale operations and overlapping pause protection. Packaging verifies all 34 VSIX entries, metadata and bundle budgets; the dependency audit reports no vulnerabilities or advisory exceptions.
+
+### Detailed hover refinement
+
+The detailed hover and native checkbox/formatter pickers pass real UI checks on VS Code 1.140.0 and 1.143.1 (Dark Modern), plus 1.144.0 (Dark Modern, Light Modern and Default High Contrast). The checks compare hover/click content and bounds, pinning, scoped checkbox changes, disclosure, formatter selection, scope/language pickers, keyboard activation and separate dashboard navigation. Automated hover accessibility scans report zero violations. Integration coverage also rejects stale formatter actions when a same-effective-value scope edit changes the value that would be reset.
+
+All 53 unit tests pass on Node 24.22.1, with TypeScript and Biome checks passing. The README card screenshot is captured from the running extension; hover symbols are read-only, and editable checkboxes appear in the native picker.

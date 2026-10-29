@@ -19,23 +19,25 @@ const context: HoverContext = {
   revision: 7,
   canPause: true,
 };
-test("anchored card offers constrained actions without fake form inputs", () => {
+test("detailed hover shows effective states and opens constrained native controls", () => {
   const html = statusHover(context);
-  assert.match(html, /<code>Mixed<\/code>/);
-  assert.match(html, /Effective: Off/);
+  assert.match(html, /Mixed&#160;<\/span>/);
+  assert.match(html, /Overridden · saved: On/);
+  assert.match(html, /<td>Format on save<\/td><td align="right">Off/);
+  assert.match(html, /☑/);
+  assert.match(html, /☐/);
+  assert.match(html, /Change formatting…/);
   assert.match(html, /Inherited from User settings/);
   assert.match(html, /Workspace: project/);
   assert.ok(!html.includes("formattingControls.quickControls"));
-  assert.ok(
-    !/save actions|codeActions|<input|<select|<button|Set here/.test(html),
-  );
+  assert.ok(!/codeActions|<input|<select|<button|Set here/.test(html));
   assert.match(
     statusHover({ ...context, flags: [true, true, true] }),
-    /<code>On<\/code>/,
+    /On&#160;<\/span>/,
   );
   assert.match(
     statusHover({ ...context, flags: [false, false, false] }),
-    /<code>Off<\/code>/,
+    /Off&#160;<\/span>/,
   );
 });
 test("only automatic formatting rows collapse; context and footer remain", () => {
@@ -57,6 +59,9 @@ test("only automatic formatting rows collapse; context and footer remain", () =>
     [7, "scope"],
     [7, "language"],
     [7, "collapse"],
+    [7, "formatter"],
+    [7, "formatting"],
+    [7, "scope"],
     [7, "pause"],
   ]);
 });

@@ -8,17 +8,19 @@ The extension listing is **Kira Formatting Controls**. The card and dashboard us
 
 ## Quick actions
 
-- Click an On/Off value to change Save, Paste or Type formatting at the displayed destination.
+- Read the state symbols and On/Off values as effective formatting for the active editor. They are display values, not form inputs.
+- Choose **Change formatting…** to open a native multi-select QuickPick with checkboxes for Save, Paste and Type. Check the triggers to enable, then choose **OK**. Only changed triggers are saved; unchanged inherited values stay inherited. Escape cancels without saving.
 - Click the write destination or language rule to choose it with a native QuickPick.
+- Click the default formatter to choose an installed known integration for the active language, or **Use inherited formatter** to remove the value saved at the selected scope. Other formatters remain configurable through the dashboard or Settings; presence in this picker does not verify a provider's runtime availability.
 - Expand/collapse **Automatic formatting** without leaving the card.
 - Use **Pause** at a workspace/folder destination to preview disabling only Save/Paste/Type. Save actions and the formatter selection remain unchanged. **Resume** restores unchanged values while preserving newer edits. The existing native JSON preview and confirmation are shown before applying or restoring preferences.
 - Open the existing dashboard for full controls, formatter selection, save actions, language rules, profiles and diagnostics, or open native Settings.
 
-The active-file context identifies the editor language and workspace. Multi-root workspaces also name the active folder. **Write to** and **Apply to language** identify the destination being edited, rather than changing the file's language mode. Source labels distinguish saved values, inherited settings and defaults. Source and effective-override notes each reserve a row so a toggle does not move the card; long notes are shortened in the card and remain available in native hover titles. Overrides explain the effective value when it differs from the selected scope. The header reports the effective On/Off/Mixed combination.
+The active-file context identifies the editor language and workspace. Multi-root workspaces also name the active folder. **Write to** and **Apply to language** identify the destination being edited, rather than changing the file's language mode. Source labels distinguish saved values, inherited settings and defaults. Each formatting row has one source note; long notes are shortened in the card and remain available in native hover titles. Overrides explain when the saved value differs from the effective value. The header reports the effective On/Off/Mixed combination, or Paused during a recorded formatting pause.
 
 ## API boundary
 
-These are text and command-link controls, not HTML checkbox/select widgets. VS Code’s public `StatusBarItem.tooltip` API accepts text/Markdown and disables real checkbox inputs. Inline select widgets and Copilot's internal workbench components are unavailable in extension tooltips. Full interactive controls remain in the existing dashboard. No additional docked surface is contributed.
+The hover contains text, state symbols and command links. Its checkbox-shaped symbols are read-only. VS Code’s public `StatusBarItem.tooltip` API accepts text/Markdown and disables real checkbox inputs. The editable checkboxes are in a native QuickPick opened from the card. Inline select widgets and Copilot's internal workbench components are unavailable in extension tooltips. Full interactive controls remain in the existing dashboard. No additional docked surface is contributed.
 
 VS Code controls the tooltip's frame, pointer, hover delay and sanitized appearance. Click-to-focus uses the built-in `workbench.action.showHover` command. This is a compatibility dependency checked on the minimum and current editor versions, rather than a dedicated public “pin this status item” API.
 

@@ -2,6 +2,8 @@
 
 ## 0.5.0 — Unreleased
 
+Refined the detailed status hover with effective-state symbols, compact source notes and a native checkbox picker for Save/Paste/Type. Added default formatter selection and inheritance reset from the card. The card reports effective values even when a saved value is overridden; picker changes affect only the chosen scope and changed triggers.
+
 Prepared the 0.5.0 release for regular VS Code: removed the custom-editor connection, private commands, prototype sources and build/CI tooling. Hover and click use the same anchored Markdown card; interactive checkbox/dropdown controls remain in the separate dashboard. Source notes reserve space for overrides so formatting changes keep the card in position. Added a polling fallback for missed native profile notifications.
 
 Hover and click now share one anchored Formatting Controls card, with click pinning the card instead of opening a docked view. Added constrained On/Off actions, clearer saved/inherited/override labels, active-file/workspace context and an expandable formatting section. Full interactive controls remain in the existing dashboard; the docked-view draft was removed.
