@@ -36,10 +36,14 @@ export async function reviewDashboard(
     const targetDeadline = Date.now() + 15000;
     while (!target && Date.now() < targetDeadline) {
       const { targetInfos } = await session.send("Target.getTargets");
-      target = targetInfos.find((t) => t.type === "iframe");
+      target = targetInfos.find(
+        (t) =>
+          t.type === "iframe" &&
+          t.url.includes("extensionId=rajudhami.formatting-controls"),
+      );
       if (!target) await delay(50);
     }
-    assert.ok(target);
+    assert.ok(target, "The extension's dashboard webview must exist");
     const { sessionId } = await session.send("Target.attachToTarget", {
       targetId: target.targetId,
       flatten: false,
