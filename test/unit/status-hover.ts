@@ -82,17 +82,17 @@ test("collapsing removes only the flags and keeps context, formatter and footer 
 test("untrusted labels remain inert text inside SVG and HTML image descriptions", () => {
   const malicious = {
     ...context,
-    file: '[Run](command:evil)\n<img src=x onerror="evil()">',
-    workspace: "<script>evil()</script>",
-    formatter: "$(zap)<script>evil()</script>",
-    scope: 'User" onmouseover="evil()',
+    file: '[Run](command:evil)\n<IMG SRC=x ONERROR="evil()">',
+    workspace: "<SCRIPT>evil()</SCRIPT>",
+    formatter: "$(zap)<ScRiPt>evil()</ScRiPt>",
+    scope: 'User" ONMOUSEOVER="evil()',
     sources: ['<image href="https://evil.example"/>'],
-    overrides: ['<a href="command:evil">bad</a>'],
+    overrides: ['<A HREF="command:evil">bad</A>'],
   };
   const html = statusHover(malicious);
   for (const part of Object.values(statusArtwork(malicious))) {
     assert.ok(
-      !/<(?:script|image|foreignObject|a)\b|<[^>]+\s(?:onerror|onmouseover)\s*=/.test(
+      !/<(?:script|image|foreignObject|a)\b|<[^>]+\s(?:onerror|onmouseover)\s*=/i.test(
         part.svg,
       ),
     );
@@ -108,7 +108,7 @@ test("untrusted labels remain inert text inside SVG and HTML image descriptions"
       "workbench.action.openSettings",
     ]),
   );
-  assert.ok(!html.includes("<script>"));
+  assert.doesNotMatch(html, /<script\b/i);
 });
 
 test("theme palettes change the artwork and read-only User pause has no action", () => {
