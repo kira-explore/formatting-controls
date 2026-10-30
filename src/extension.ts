@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { validValue } from "../shared/protocol";
+import { statusHelp } from "../shared/status-help";
 import {
   configuration,
   own,
@@ -250,7 +251,6 @@ export function activate(context: vscode.ExtensionContext): void {
       }),
     ),
     dashboard,
-    controls,
     vscode.commands.registerCommand(
       "formattingControls.quickControls",
       guarded(() => controls.open()),
@@ -259,6 +259,14 @@ export function activate(context: vscode.ExtensionContext): void {
       "formattingControls.statusControl",
       (revision: unknown, action: unknown) =>
         guarded(() => controls.control(revision, action))(),
+    ),
+    vscode.commands.registerCommand(
+      "formattingControls.statusInfo",
+      (topic: unknown) => {
+        if (topic === "file" || topic === "formatting")
+          return vscode.window.showInformationMessage(statusHelp[topic]);
+        throw new Error("Unknown formatting help topic.");
+      },
     ),
     vscode.commands.registerCommand(
       "formattingControls.dashboard",

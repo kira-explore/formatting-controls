@@ -3,31 +3,140 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import axe from "axe-core";
 import type { Page } from "playwright-core";
+import { statusArtwork } from "../shared/status-artwork";
+import { issueUrl, statusHelp } from "../shared/status-help";
 
 export async function reviewStatus(
   page: Page,
   directory: string,
 ): Promise<void> {
   mkdirSync(directory, { recursive: true });
+  const fixtures = [
+    { flags: [true, true, true], paused: false },
+    { flags: [false, false, false], paused: false },
+    { flags: [true, false, true], paused: false },
+    { flags: [false, false, false], paused: true },
+  ].map((state) =>
+    statusArtwork({
+      ...state,
+      file: "app.ts",
+      language: "typescript",
+      workspace: "project",
+      scope: "Workspace",
+      languageScope: "All languages",
+      owned: [],
+      revision: 1,
+      canPause: true,
+    }),
+  );
+  const alignment = await page.evaluate<
+    Array<{
+      badgeOffsetX: number;
+      badgeOffsetY: number;
+      contextOffsetY: number;
+      pauseOffsetX: number;
+      pauseOffsetY: number;
+      headerFits: boolean;
+      captionFits: boolean;
+    }>
+  >(`(fixtures => {
+    const namespace = "http://www.w3.org/2000/svg";
+    function mount(part) {
+      const stack = [];
+      let root;
+      for (const match of part.svg.matchAll(/<\\/?([a-z]+)\\b([^>]*)>|([^<]+)/gi)) {
+        if (match[3]) {
+          if (stack.length) stack[stack.length-1].append(document.createTextNode(match[3]));
+          continue;
+        }
+        if (match[0].startsWith("</")) { stack.pop(); continue; }
+        if (!["svg","g","text","tspan","rect","circle","path"].includes(match[1])) throw new Error("Unexpected SVG node");
+        const element = document.createElementNS(namespace, match[1]);
+        for (const attr of match[2].matchAll(/([\\w-]+)="([^"]*)"/g)) element.setAttribute(attr[1], attr[2]);
+        if (stack.length) stack[stack.length-1].append(element); else root = element;
+        if (!match[0].endsWith("/>")) stack.push(element);
+      }
+      document.body.append(root);
+      return root;
+    }
+    return fixtures.map(art => {
+      const badge = mount(art.state), context = mount(art.context), pause = mount(art.pause), captionImage = mount(art.pauseCaption), header = mount(art.header);
+      try {
+        const badgeText = badge.querySelector("text").getBBox();
+        const file = Array.from(context.querySelectorAll("text")).find(text => text.textContent.startsWith("Active file:")).getBBox();
+        const workspace = Array.from(context.querySelectorAll("text")).find(text => text.textContent.startsWith("Workspace:")).getBBox();
+        const pauseText = pause.querySelector("text").getBBox();
+        const caption = captionImage.querySelector("text").getBBox();
+        const title = header.querySelector("text").getBBox();
+        return {
+          badgeOffsetX: badgeText.x + badgeText.width/2 - 39,
+          badgeOffsetY: badgeText.y + badgeText.height/2 - 13,
+          contextOffsetY: (file.y + workspace.y + workspace.height)/2 - 34,
+          pauseOffsetX: pauseText.x + pauseText.width/2 - 29,
+          pauseOffsetY: pauseText.y + pauseText.height/2 - 11,
+          headerFits: title.x + title.width <= art.header.width,
+          captionFits: caption.x + caption.width <= art.pauseCaption.width - 2,
+        };
+      } finally { badge.remove(); context.remove(); pause.remove(); captionImage.remove(); header.remove(); }
+    });
+  })(${JSON.stringify(fixtures)})`);
+  writeFileSync(
+    join(directory, "status-alignment.json"),
+    JSON.stringify(alignment, null, 2),
+  );
+  for (const measurement of alignment) {
+    for (const offset of [
+      measurement.badgeOffsetX,
+      measurement.badgeOffsetY,
+      measurement.contextOffsetY,
+      measurement.pauseOffsetX,
+      measurement.pauseOffsetY,
+    ])
+      assert.ok(
+        Math.abs(offset) <= 1,
+        "Status, context and Pause/Resume text stay centered",
+      );
+    assert.ok(measurement.headerFits, "Full extension name fits");
+    assert.ok(measurement.captionFits, "Both Pause/Resume captions fit");
+  }
+
   const button = page.getByRole("button", {
     name: /^Formatting: (ON|OFF|MIXED)$/,
   });
-  const hover = page
-    .locator(".monaco-hover")
-    .filter({ has: page.getByRole("img", { name: /^Formatting Controls\./ }) });
-  const tabs = await page.locator(".editor-group-container .tab").count();
-  const panels = await page.locator(".part.panel:visible").count();
+  const hover = page.locator(".monaco-hover").filter({
+    has: page.getByRole("img", { name: /^Kira Formatting Controls/ }),
+  });
   const loaded = async () => {
     await hover.waitFor({ state: "visible" });
-    await page.waitForFunction(
-      `(() => { const images = Array.from(document.querySelectorAll('.monaco-hover img')); return images.length >= 6 && images.every(img => img.complete && img.naturalWidth > 0); })()`,
-    );
+    await page.waitForFunction(`(() => {
+      const images = Array.from(document.querySelectorAll('.monaco-hover img'));
+      return images.length >= 13 && images.every(img => img.complete && img.naturalWidth > 0);
+    })()`);
   };
+  const dismiss = async () => {
+    // A transient hover may already have closed after a screenshot. Focus it
+    // only if present so native pointer dismissal cannot race a locator wait.
+    await page.evaluate(
+      `document.querySelector('.monaco-hover:has(img[alt="Kira Formatting Controls"])')?.focus()`,
+    );
+    await page.keyboard.press("Escape");
+    await page.mouse.move(10, 200);
+    await hover.waitFor({ state: "hidden" });
+  };
+  const tabs = await page.locator(".editor-group-container .tab").count();
+  const panels = await page.locator(".part.panel:visible").count();
   await button.waitFor();
   await page.mouse.move(10, 200);
   await button.hover();
   await loaded();
   const hovered = await hover.boundingBox();
+  await hover.screenshot({
+    path: join(directory, "status-implementation-probe.png"),
+  });
+  writeFileSync(
+    join(directory, "status-rendered.html"),
+    await hover.innerHTML(),
+  );
   const labels = await hover
     .locator("img")
     .evaluateAll((images) => images.map((img) => img.getAttribute("alt")));
@@ -35,15 +144,13 @@ export async function reviewStatus(
     animations: "disabled",
     path: join(directory, "status-hover-window.png"),
   });
-  await page.mouse.move(10, 200);
-  await page.keyboard.press("Escape");
-  await hover.waitFor({ state: "hidden" });
+  await dismiss();
   await button.click();
   await loaded();
   assert.deepEqual(
     await hover.boundingBox(),
     hovered,
-    "Hover and click have identical bounds after images load",
+    "Hover and click have identical bounds",
   );
   assert.deepEqual(
     await hover
@@ -60,31 +167,101 @@ export async function reviewStatus(
     await hover.locator("input,select,button,script,style").count(),
     0,
   );
-  assert.ok(labels.some((label) => label?.includes("Active file:")));
-  assert.ok(labels.some((label) => label?.includes("Format on save:")));
-  const context = hover.getByRole("img", { name: /^Formatting Controls\./ });
+  const scopes = hover.getByRole("img", { name: /^Write to:/ });
   const flags = hover.getByRole("img", { name: /^Format on save:/ });
-  for (const image of [context, flags])
+  const formatter = hover.getByRole("img", { name: /^Default formatter:/ });
+  for (const image of [scopes, flags, formatter])
     assert.equal(
-      await image.evaluate((element) => !!element.closest("a")),
+      await image.evaluate((el) => !!el.closest("a")),
       false,
-      "Read-only checkbox/dropdown artwork has no command link",
+      "Read-only values have no command",
     );
-  await context.click({ position: { x: 330, y: 160 } });
-  await flags.click({ position: { x: 14, y: 14 } });
-  await flags.click({ position: { x: 320, y: 170 } });
-  assert.equal(
-    await page.locator(".quick-input-widget:visible").count(),
-    0,
-    "Read-only displays do not launch pickers",
-  );
+  await scopes.click({ position: { x: 330, y: 45 } });
+  await flags.click({ position: { x: 14, y: 18 } });
+  await formatter.click({ position: { x: 320, y: 26 } });
+  assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
   assert.deepEqual(await hover.boundingBox(), hovered);
+
+  const fileInfo = hover
+    .getByRole("img", { name: /^Active file:/ })
+    .locator("..");
+  assert.equal(await fileInfo.getAttribute("title"), statusHelp.file);
+  const formattingInfo = hover
+    .getByRole("img", { name: "About automatic formatting", exact: true })
+    .locator("..");
+  assert.equal(
+    await formattingInfo.getAttribute("title"),
+    statusHelp.formatting,
+  );
+  const settings = hover.getByRole("link", {
+    name: "Open VS Code Settings",
+    exact: true,
+  });
+  assert.equal(
+    await settings
+      .getByRole("img", { name: "Open VS Code Settings", exact: true })
+      .count(),
+    1,
+  );
+  writeFileSync(
+    join(directory, "status-accessible-names.txt"),
+    await hover.ariaSnapshot(),
+  );
+  const dashboard = hover.getByRole("link", { name: /^Open dashboard/ });
+  const issue = hover.getByRole("link", { name: /^Report an issue/ });
+  assert.equal(await issue.getAttribute("data-href"), issueUrl);
+  for (const link of [dashboard, issue])
+    assert.equal(await link.getAttribute("title"), null);
+  const pauseLink = hover.getByRole("link", { name: "Pause", exact: true });
+  assert.equal(await pauseLink.getAttribute("title"), null);
+  const pauseImage = pauseLink.getByRole("img", { name: "Pause", exact: true });
+  assert.equal(await pauseImage.getAttribute("title"), null);
+  assert.equal((await pauseImage.boundingBox())?.width, 58);
+  assert.equal((await pauseImage.boundingBox())?.height, 22);
+  const caption = hover.getByRole("img", {
+    name: "Pause automatic formatting until you resume.",
+    exact: true,
+  });
+  assert.equal(await caption.evaluate((el) => !!el.closest("a")), false);
+  await caption.click();
+  assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
+  assert.deepEqual(await hover.boundingBox(), hovered);
+  const feedback = [];
+  for (const link of [settings, dashboard, issue]) {
+    await page.mouse.move(5, 5);
+    const before = await link.evaluate((el) => {
+      const style = el.ownerDocument.defaultView?.getComputedStyle(el);
+      if (!style) throw new Error("Missing rendered styles");
+      return {
+        color: style.color,
+        decoration: style.textDecorationLine,
+        background: style.backgroundColor,
+      };
+    });
+    await link.hover();
+    const after = await link.evaluate((el) => {
+      const style = el.ownerDocument.defaultView?.getComputedStyle(el);
+      if (!style) throw new Error("Missing rendered styles");
+      return {
+        color: style.color,
+        decoration: style.textDecorationLine,
+        background: style.backgroundColor,
+      };
+    });
+    feedback.push({ name: await link.getAttribute("title"), before, after });
+    assert.deepEqual(
+      await hover.boundingBox(),
+      hovered,
+      "Hover feedback cannot move the card",
+    );
+  }
+  writeFileSync(
+    join(directory, "status-hover-feedback.json"),
+    JSON.stringify(feedback, null, 2),
+  );
   await page.mouse.move(5, 5);
   await page.waitForTimeout(650);
-  assert.ok(
-    await hover.isVisible(),
-    "Click pins the card after the pointer leaves",
-  );
+  assert.ok(await hover.isVisible(), "Click pins the card");
   await page.screenshot({
     animations: "disabled",
     path: join(directory, "status-click-window.png"),
@@ -93,6 +270,7 @@ export async function reviewStatus(
     animations: "disabled",
     path: join(directory, "status-card.png"),
   });
+
   await page.evaluate(axe.source);
   const accessibility = await page.evaluate<{ violations: unknown[] }>(
     `axe.run(document.querySelector('.monaco-hover'),{runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa']}}).then(r=>({violations:r.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>n.target)}))}))`,
@@ -101,91 +279,61 @@ export async function reviewStatus(
     join(directory, "status-accessibility.json"),
     JSON.stringify(accessibility, null, 2),
   );
-  assert.deepEqual(
-    accessibility.violations,
-    [],
-    "Artwork has accessible names and action links",
-  );
-  const motion = async (expanded: boolean) => {
-    await page.evaluate(`(() => {
-      window.cardMotion = [];
-      const start = performance.now();
-      const frame = () => {
-        const card = Array.from(document.querySelectorAll('.monaco-hover')).find(el => el.querySelector('img[alt^="Formatting Controls."]'));
-        const bounds = card?.getBoundingClientRect();
-        if (bounds) window.cardMotion.push({time:performance.now()-start,x:bounds.x,width:bounds.width,height:bounds.height,bottom:bounds.bottom});
-        if (performance.now()-start < 700) requestAnimationFrame(frame);
-      }; requestAnimationFrame(frame);
-    })()`);
-    await hover
-      .getByRole("link", {
-        name: `Automatic formatting ${expanded ? "expanded" : "collapsed"}`,
-        exact: true,
-      })
-      .click();
-    await page.waitForTimeout(750);
-    const frames =
-      await page.evaluate<
-        Array<{
-          time: number;
-          x: number;
-          width: number;
-          height: number;
-          bottom: number;
-        }>
-      >("window.cardMotion");
-    writeFileSync(
-      join(directory, `status-${expanded ? "collapse" : "expand"}-motion.json`),
-      JSON.stringify(frames, null, 2),
-    );
-    const heights = [...new Set(frames.map((frame) => frame.height))];
-    console.log(
-      `Status ${expanded ? "collapse" : "expand"} animation: ${JSON.stringify(heights)}`,
-    );
-    assert.ok(
-      heights.length > 3,
-      "Disclosure renders intermediate card heights",
-    );
-    assert.ok(
-      frames.every(
-        (frame, index) =>
-          index === 0 ||
-          (expanded
-            ? frame.height <= (frames[index - 1]?.height ?? frame.height)
-            : frame.height >= (frames[index - 1]?.height ?? frame.height)),
-      ),
-      "Disclosure height moves smoothly in one direction",
-    );
-    assert.ok(
-      Math.max(...frames.map((frame) => frame.width)) -
-        Math.min(...frames.map((frame) => frame.width)) <=
-        1,
-      "Animation keeps card width stable",
-    );
-    assert.ok(
-      Math.max(...frames.map((frame) => frame.bottom)) -
-        Math.min(...frames.map((frame) => frame.bottom)) <=
-        1,
-      "Animation keeps card anchored above the status bar",
-    );
-  };
-  await motion(true);
-  await flags.waitFor({ state: "hidden" });
-  await motion(false);
+  assert.deepEqual(accessibility.violations, []);
+  await hover
+    .getByRole("img", { name: "Automatic formatting", exact: true })
+    .click();
   await flags.waitFor();
-  await page.keyboard.press("Escape");
-  await hover.waitFor({ state: "hidden" });
+  assert.deepEqual(
+    await hover.boundingBox(),
+    hovered,
+    "Formatting stays visible",
+  );
+
+  // Exercise the unchanged confirmation workflow through its real native picker.
+  const originalFlags = await flags.getAttribute("alt");
+  for (const action of ["Pause", "Resume"]) {
+    await hover.getByRole("link", { name: action, exact: true }).click();
+    const picker = page.locator(".quick-input-widget:visible");
+    await picker.waitFor();
+    await picker.getByText("Continue", { exact: true }).click();
+    await picker.waitFor({ state: "hidden" });
+    await page.waitForTimeout(500);
+    await button.click();
+    await loaded();
+    const nextAction = action === "Pause" ? "Resume" : "Pause";
+    await hover.getByRole("img", { name: nextAction, exact: true }).waitFor();
+    const bounds = await hover.boundingBox();
+    assert.equal(
+      bounds?.width,
+      hovered?.width,
+      "Pause/Resume keeps the card width",
+    );
+    assert.equal(
+      bounds?.height,
+      hovered?.height,
+      "Pause/Resume keeps the card height",
+    );
+    await hover.screenshot({
+      path: join(directory, `status-${action.toLowerCase()}-complete.png`),
+    });
+  }
+  assert.equal(
+    await flags.getAttribute("alt"),
+    originalFlags,
+    "Resume restores the previous formatting snapshot",
+  );
+
+  await dismiss();
   await button.focus();
   await page.keyboard.press("Enter");
   await loaded();
-  await hover
-    .getByRole("link", { name: "Open dashboard", exact: true })
-    .click();
+  await dashboard.click();
   await page
     .getByRole("tab", { name: /Formatting Controls/ })
     .first()
     .waitFor();
   console.log(
-    "Reference-style card verified: loaded local artwork, identical hover/click bounds, pinning, read-only checkbox/dropdown displays, no picker or extra surface, animated disclosure with stable width and bottom anchor, keyboard access, accessible descriptions and working dashboard navigation.",
+    "Approved status card verified: full title, stable hover/click and Pause/Resume bounds, button-only pause action without hover text, fixed status badge, read-only fields, stable info, native settings/issue links, keyboard access and accessible descriptions.",
   );
 }

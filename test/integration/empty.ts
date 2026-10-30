@@ -59,16 +59,19 @@ export async function run(): Promise<void> {
     try {
       const controls = new StatusControls(item, () => undefined);
       controls.refresh();
-      assert.ok((item.tooltip as vscode.MarkdownString).value.includes("User"));
-      const revision = JSON.parse(
-        decodeURIComponent(
-          (item.tooltip as vscode.MarkdownString).value.match(
-            /statusControl\?([^"]*)/,
-          )?.[1] ?? "",
-        ),
-      )[0];
-      await controls.control(revision, 0);
-      assert.equal(own(user, "editor.formatOnSave"), true);
+      const tooltip = (item.tooltip as vscode.MarkdownString).value;
+      assert.ok(tooltip.includes("User"));
+      assert.equal(item.command, "workbench.action.showHover");
+      assert.doesNotMatch(
+        tooltip,
+        /href="command:formattingControls.statusControl\?/,
+        "An empty window exposes no workspace Pause or formatting edits",
+      );
+      assert.equal(
+        own(user, "editor.formatOnSave"),
+        false,
+        "Rendering the read-only card must preserve User settings",
+      );
     } finally {
       item.dispose();
     }

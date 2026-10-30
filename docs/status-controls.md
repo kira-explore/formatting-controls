@@ -1,39 +1,48 @@
 # Formatting status card
 
-Hover and click open the same native card above the Formatting status-bar item. Clicking focuses and keeps it open; moving the pointer away does not dismiss the pinned card. Escape dismisses it. Enter on the focused status item opens it. A normal status click creates neither a docked Panel view nor an editor tab.
+Hover and click open the same anchored card above the Formatting status-bar item. Click focuses and pins it; Escape dismisses it. Enter on the focused status item opens it. A normal status click creates neither a docked Panel view nor an editor tab.
 
-The extension listing is **Kira Formatting Controls**. The card and dashboard use the shorter **Formatting Controls** title. The refined app icon appears in the Extensions listing; the status item and card have no app icon. The package ID remains `rajudhami.formatting-controls`.
+The header shows **Kira Formatting Controls** with a compact 16px Settings/sliders icon. Version details remain in the Extensions listing. The app icon appears in that listing; the card has no app logo. The package ID remains `rajudhami.formatting-controls`.
 
 ![Anchored formatting controls](assets/status-card-dark.png)
 
-## Quick actions
+## Read-only formatting summary
 
-- Read the outlined checkboxes and On/Off values as effective formatting for the active editor. These are read-only visual displays.
-- Read the dropdown-shaped scope, language and formatter fields as current values. Clicking them does nothing and opens no picker.
-- Expand/collapse **Automatic formatting** without leaving the card.
-- Use **Pause** at a workspace/folder destination to preview disabling only Save/Paste/Type. Save actions and the formatter selection remain unchanged. **Resume** restores unchanged values while preserving newer edits. The existing native JSON preview and confirmation are shown before applying or restoring preferences.
-- Open the existing dashboard for full controls, formatter selection, save actions, language rules, profiles and diagnostics, or open native Settings.
+- The file/workspace box identifies the editor whose effective settings are shown. Multi-root workspaces also name its folder.
+- **Write to** and **Apply to language** identify the selected destination, rather than changing the file's language mode. Use the dashboard or optional Quick Controls command to change them.
+- **Automatic formatting** is always visible. Its fixed-width badge reports **Enabled** when all three triggers are enabled, **Disabled** when none are enabled, or **Mixed** when they differ. A pause record does not replace this truthful effective-state label.
+- Checkboxes show effective Save/Paste/Type settings without redundant Enabled/Disabled text. Source notes distinguish saved values, inherited settings and defaults. Checkbox and dropdown displays are read-only and open no picker.
+- The default formatter is shown below the three settings.
+- The footer provides **Open dashboard ↗** and **Report an issue ↗**. Issue reporting opens [this repository's new-issue form](https://github.com/kira-explore/formatting-controls/issues/new); it does not submit an issue or upload diagnostics automatically.
 
-The blue context box identifies the editor language and workspace. Multi-root workspaces also name the active folder. **Write to** and **Apply to language** identify the selected destination, rather than changing the file's language mode. The optional Quick Controls command can change that destination. Source labels distinguish saved values, inherited settings and defaults. Long visible labels are shortened, while full descriptions are retained in image alternatives for assistive technology. The header reports the effective On/Off/Mixed combination, or Paused during a recorded formatting pause.
+The file box and formatting info icon have stable explanatory hover text. Clicking either opens the same explanation in a native information message. Dynamic values remain in the card rather than changing the help text. Settings retains a descriptive hover title. Pause/Resume and footer links have no redundant hover titles; their accessible names remain available. Long visible labels are shortened while full values remain in image alternatives.
 
-## API boundary
+## Manual Pause/Resume
 
-VS Code’s public `StatusBarItem.tooltip` API accepts Markdown, images and command links; arbitrary form styling is sanitized. The approved visual design is rendered as inert SVG images embedded as data URIs in that tooltip. All values come from the live configuration snapshot. There are no scripts, external images, network calls or files written for rendering. The context box, checkboxes, dropdowns, badge, separators and typography are drawn locally. Checkbox and dropdown images have no command link; only disclosure and footer images are wrapped in allowlisted links.
+At a workspace/folder destination, **Pause** previews disabling only Save/Paste/Type. Its caption is **Pause automatic formatting until you resume.**
 
-This is a read-only illustration of controls, not native form widgets. Full editable controls remain in the dashboard and optional Quick Controls command. Typography and sizing follow the compact Copilot card: 13px regular-weight title/disclosure, 12px body/control text, 22px dropdowns/buttons and compact checkbox gaps. Transparent image backgrounds allow VS Code's native hover surface to show through. Dark, light, high-contrast and high-contrast-light foreground/control palettes follow VS Code's theme kind; custom theme colors and font choices cannot be read through this public API and therefore do not reproduce every custom theme exactly. Each image has descriptive alternative text with its full values. No additional docked surface is contributed.
+After confirmation and successful application, the button becomes **Resume**, with **Restore your previous formatting settings.** Only the 58px by 22px button is linked; clicking its caption does nothing. Resume restores unchanged pre-pause preferences while preserving newer edits; it does not enable every trigger automatically. After successful restoration the button and caption return to Pause. Both states reserve identical dimensions. Cancellation retains the prior state.
 
-VS Code controls the tooltip's outer frame, pointer and hover delay. Explicit image dimensions reserve the same layout before and after images load. Click-to-focus uses the built-in `workbench.action.showHover` command. This is a compatibility dependency checked on the minimum and current editor versions, rather than a dedicated public “pin this status item” API.
+The existing native JSON preview, confirmation and durable recovery workflow are unchanged. Save actions and the formatter selection remain unchanged. No timer or automatic resumption is introduced.
 
-The checkbox and On/Off value are vertically centered against each two-line setting label and source note. Disclosure clips the settings over a 200ms eased transition and rotates the chevron while keeping the formatter, card width and bottom anchor stable. A second click reverses from the current height, and disposal cancels pending frames. Setting **Workbench: Reduce Motion** to **On** skips the transition; the OS preference behind **Auto** is not exposed to this extension. This uses finite tooltip artwork updates through the public API, so frame timing also depends on the local or remote extension host.
+## Rendering and compatibility
+
+VS Code's public `StatusBarItem.tooltip` accepts Markdown, images and command links; arbitrary form styling is sanitized. Locally generated inert SVG images preserve the approved layout, with native links for navigation and help. No scripts, external images, rendering network calls or rendering files are used.
+
+The title and section heading use 13px regular text and body/control text 12px. Read-only fields and the status badge have 22px outlines. Setting rows use a compact 38px rhythm. Checkbox and button labels are centered; the file/workspace block and enlarged 12px context info icon are vertically centered. The status badge and Pause/Resume button retain fixed dimensions across all states.
+
+Transparent artwork reveals the native hover surface. Dark, light, high-contrast and high-contrast-light palettes follow the theme kind; arbitrary custom theme colors/fonts are not available inside the image renderer. Native links follow the editor's own hover/focus styling. The public Markdown tooltip cannot reproduce Copilot's custom grey icon-button hover fill or enforce a custom hover underline. This limitation does not change layout or actions.
+
+VS Code controls the outer frame, pointer and hover delay. Explicit image dimensions reserve space while images load. Click-to-focus uses the built-in `workbench.action.showHover` command, checked on minimum and current editor versions; this is a compatibility dependency rather than a dedicated public status-item pinning API.
 
 Sources: [StatusBarItem](https://code.visualstudio.com/api/references/vscode-api#StatusBarItem), [Markdown input handling](https://github.com/microsoft/vscode/blob/1.143.1/src/vs/base/browser/markdownRenderer.ts).
 
-## Safety and compatibility
+## Safety
 
-Hovering or clicking read-only fields changes no preferences. Command links carry a revision; the card exposes only disclosure and pause actions plus dashboard and Settings navigation. Changed settings or editor context invalidate stale links. Equivalent notifications retain the tooltip and revision. Pending operations are serialized, and dynamic strings are XML/HTML-escaped. The dashboard retains its validated message protocol and nonce-based content security policy.
+Pause command links carry a revision. Changes to settings/editor context invalidate stale actions; equivalent notifications retain the active tooltip/revision. Setting workflows are serialized. Help accepts only the two known topics. XML/HTML text is escaped, command URIs are allowlisted and the issue URL is fixed.
 
-**Formatting Controls: Quick Controls** retains the optional formatting-only native picker. **Native Quick Controls** retains the original full settings picker. **Open Dashboard** opens the existing editor dashboard. No command opens a docked Formatting Controls view.
+The separate dashboard retains its validated message protocol and nonce-based content security policy. **Formatting Controls: Quick Controls** keeps its formatting-only native picker; **Native Quick Controls** keeps the full settings picker. No command opens a docked Formatting Controls view.
 
 ## Archived experiment
 
-The earlier internal-component experiment is preserved in [the merged prototype revision](https://github.com/kira-explore/formatting-controls/tree/eb908c364d3e6c954ed2c3edb0b426e9b2baee88/prototype/vscode). It required a custom editor and is not part of the shipping extension. The current extension has no core handshake, prototype commands or custom-editor dependency.
+The earlier internal-component experiment remains in [the merged prototype revision](https://github.com/kira-explore/formatting-controls/tree/eb908c364d3e6c954ed2c3edb0b426e9b2baee88/prototype/vscode). It required a custom editor and is not part of the shipping extension. The extension has no core handshake, prototype commands or custom-editor dependency.
