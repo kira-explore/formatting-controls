@@ -2,7 +2,9 @@
 
 ## 0.5.0 — Unreleased
 
-Centered the active-file/workspace text block and info icon within the context box, and centered every status badge label. Automatic formatting is always visible; removed the collapse toggle and animation. Checkbox and On/Off indicators align with the vertical center of each setting's label and source note. Pause behavior is unchanged.
+Implemented the approved Kira Formatting Controls card: installed version beside its full title, top-right sliders Settings icon, stable explanatory help, fixed-width Enabled/Disabled/Mixed badge beside Automatic formatting, checkbox-only states and readable source notes. Added repository issue reporting beside Open dashboard. Pause/Resume now uses the agreed manual-resume captions with identical geometry. Native links retain the editor's hover/focus styling; custom Copilot icon-button hover fills remain outside the public tooltip API.
+
+Centered the active-file/workspace text block, context info icon and status badge labels. Automatic formatting is always visible; removed the collapse toggle and animation. Checkboxes align with the vertical center of each setting's label and source note. Pause confirmation and restoration behavior is unchanged.
 
 Aligned the read-only status card with Copilot's compact styling: 13px regular-weight title/section heading, 12px body and controls, 22px dropdowns/buttons, smaller checkbox spacing and a narrower card. Matched the supplied reference's muted dark colours and lighter outlines. Transparent artwork now uses the native hover background instead of drawing separate opaque blocks behind image sections.
 

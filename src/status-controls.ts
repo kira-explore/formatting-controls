@@ -101,6 +101,10 @@ export class StatusControls {
       return source;
     });
     const context = {
+      version: String(
+        vscode.extensions.getExtension("rajudhami.formatting-controls")
+          ?.packageJSON.version ?? "",
+      ),
       paused,
       canPause:
         !!this.workflows &&

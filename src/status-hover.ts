@@ -15,6 +15,7 @@ export function statusTooltip(context: HoverContext): vscode.MarkdownString {
   tooltip.isTrusted = {
     enabledCommands: [
       "formattingControls.statusControl",
+      "formattingControls.statusInfo",
       "formattingControls.dashboard",
       "workbench.action.openSettings",
     ],

@@ -21,7 +21,7 @@ export type CardTheme = "dark" | "light" | "contrast" | "contrast-light";
 const palettes = {
   dark: {
     fg: "#bfbfbf",
-    muted: "#8c8c8c",
+    muted: "#a0a0a0",
     line: "#2b2b2c",
     accent: "#47a1c7",
     focus: "#347490",
@@ -131,13 +131,11 @@ export function statusArtwork(
     `<path d="M350 ${y + 9}l4 4 4-4" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
   const svg = (height: number, contents: string, width = 366) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g font-family="-apple-system, BlinkMacSystemFont, Segoe WPC, Segoe UI, system-ui, Ubuntu, Droid Sans, sans-serif" font-weight="400">${contents}</g></svg>`;
-  const state = context.paused
-    ? "Paused"
-    : context.flags.every(Boolean)
-      ? "On"
-      : context.flags.some(Boolean)
-        ? "Mixed"
-        : "Off";
+  const state = context.flags.every(Boolean)
+    ? "Enabled"
+    : context.flags.some(Boolean)
+      ? "Mixed"
+      : "Disabled";
   const file =
     context.file === "No active file"
       ? context.file
@@ -165,93 +163,107 @@ export function statusArtwork(
   ) => ({ svg: svg(height, contents, width), alt, width, height });
   const flagContents = ["save", "paste", "type"]
     .map((label, i) => {
-      const y = i * 44 + 3;
+      const y = i * 38;
       return (
-        rect(5, y + 8, 18, 18, p.checkboxBorder, p.checkbox, 3) +
+        rect(5, y + 9, 18, 18, p.checkboxBorder, p.checkbox, 3) +
         (context.flags[i]
-          ? `<path d="M8 ${y + 17}l4 4 8-9" stroke="${p.muted}" stroke-width="1.4" fill="none"/>`
+          ? `<path d="M8 ${y + 18}l4 4 8-9" stroke="${p.muted}" stroke-width="1.4" fill="none"/>`
           : "") +
-        text(28, y + 14, `Format on ${label}`) +
-        text(345, y + 22, context.flags[i] ? "On" : "Off", 12, p.muted) +
-        text(28, y + 33, shortened(sourceNotes[i] ?? "", 57), 12, p.muted)
+        text(28, y + 13, `Format on ${label}`) +
+        text(28, y + 30, shortened(sourceNotes[i] ?? "", 57), 12, p.muted)
       );
     })
     .join("");
   const flagDescription = ["save", "paste", "type"]
     .map(
       (label, i) =>
-        `Format on ${label}: ${context.flags[i] ? "On" : "Off"}. ${sourceNotes[i]}.`,
+        `Format on ${label}: ${context.flags[i] ? "Enabled" : "Disabled"}. ${sourceNotes[i]}.`,
     )
     .join(" ");
-  const formatterContents =
-    line(1) +
-    text(5, 34, "Default formatter") +
-    dropdown(19, context.formatter ?? "Not configured") +
-    line(53);
+  const pauseCaption = context.paused
+    ? "Restore your previous formatting settings."
+    : context.canPause
+      ? "Pause automatic formatting until you resume."
+      : "Choose a project scope in the dashboard";
   return {
+    settings: image(
+      24,
+      `<g fill="none" stroke="${p.fg}" stroke-width="1.2"><path d="M4 7h4m4 0h8M4 17h8m4 0h4"/><circle cx="10" cy="7" r="2"/><circle cx="14" cy="17" r="2"/></g>`,
+      "Open VS Code Settings",
+      24,
+    ),
+    info: image(
+      20,
+      `<circle cx="8" cy="10" r="5" stroke="${p.muted}" fill="none"/>` +
+        centeredText(8, 10, "i", 9, p.muted, "middle"),
+      "About automatic formatting",
+      16,
+    ),
+    header: image(
+      28,
+      `<text x="5" y="14" dominant-baseline="central" font-size="13" fill="${p.fg}">Kira Formatting Controls${context.version ? `<tspan dx="6" font-size="11" fill="${p.muted}">· v${escapeText(shortened(context.version, 16))}</tspan>` : ""}</text>`,
+      `Kira Formatting Controls${context.version ? ` · v${context.version}` : ""}`,
+      236,
+    ),
     context: image(
-      185,
-      text(5, 23, "Formatting Controls", 13) +
-        rect(313, 6, 52, 22, p.border, "none") +
-        centeredText(339, 17, state, 12, p.fg, "middle") +
-        line(41) +
-        rect(5, 48, 360, 52, p.focus, p.info, 6) +
-        `<circle cx="22" cy="74" r="5" stroke="${p.focus}" fill="none"/>` +
-        centeredText(22, 74, "i", 9, p.focus, "middle") +
-        centeredText(34, 65, shortened(file, 52)) +
-        centeredText(34, 83, shortened(workspace, 54), 12, p.muted) +
-        text(5, 129, "Write to") +
-        dropdown(114, scope) +
-        text(5, 161, "Apply to language") +
-        dropdown(146, language) +
-        line(184),
-      `Formatting Controls. ${state}. ${file}. ${workspace}. Write to: ${scope}. Apply to language: ${language}. Scope and language displays are read-only.`,
+      64,
+      line(1) +
+        rect(5, 8, 360, 52, p.focus, p.info, 6) +
+        `<circle cx="22" cy="34" r="5" stroke="${p.focus}" fill="none"/>` +
+        centeredText(22, 34, "i", 9, p.focus, "middle") +
+        centeredText(34, 25, shortened(file, 52)) +
+        centeredText(34, 43, shortened(workspace, 54), 12, p.muted),
+      `${file}. ${workspace}.`,
+    ),
+    scopes: image(
+      80,
+      text(5, 21, "Write to") +
+        dropdown(6, scope) +
+        text(5, 53, "Apply to language") +
+        dropdown(38, language) +
+        line(79),
+      `Write to: ${scope}. Apply to language: ${language}. Read-only.`,
     ),
     heading: image(
-      36,
-      text(5, 22, "Automatic formatting", 13),
+      26,
+      text(5, 18, "Automatic formatting", 13),
       "Automatic formatting",
+      136,
+    ),
+    state: image(
+      26,
+      rect(0, 2, 78, 22, p.border, "none") +
+        centeredText(39, 13, state, 12, p.fg, "middle"),
+      `Automatic formatting: ${state}`,
+      78,
     ),
     formatting: image(
-      192,
-      `${flagContents}<g transform="translate(0 138)">${formatterContents}</g>`,
-      `${flagDescription} Checkbox displays are read-only. Default formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
+      114,
+      flagContents,
+      `${flagDescription} Checkbox displays are read-only.`,
+    ),
+    formatter: image(
+      44,
+      line(1) +
+        text(5, 30, "Default formatter") +
+        dropdown(15, context.formatter ?? "Not configured") +
+        line(43),
+      `Default formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
     ),
     pause: image(
-      50,
-      rect(5, 13, 58, 22, p.border, "none") +
-        text(
-          13,
-          28,
+      44,
+      rect(5, 8, 58, 22, p.border, "none") +
+        centeredText(
+          34,
+          19,
           context.paused ? "Resume" : "Pause",
           12,
           context.canPause ? p.fg : p.muted,
+          "middle",
         ) +
-        text(
-          76,
-          28,
-          context.paused
-            ? "Restore unchanged formatting preferences"
-            : context.canPause
-              ? "Temporarily stop automatic formatting"
-              : "Choose a project scope in the dashboard",
-          12,
-          p.muted,
-        ) +
-        line(49),
-      `${context.paused ? "Resume" : "Pause"}. ${context.paused ? "Restore unchanged formatting preferences" : context.canPause ? "Temporarily stop automatic formatting" : "Choose a project scope in the dashboard"}`,
-    ),
-    dashboard: image(
-      38,
-      text(5, 24, "Open dashboard ↗", 12, p.accent),
-      "Open dashboard",
-      183,
-    ),
-    settings: image(
-      38,
-      text(132, 24, "Settings", 12, p.accent),
-      "Settings",
-      183,
+        text(76, 23, pauseCaption, 12, p.muted) +
+        line(43),
+      `${context.paused ? "Resume" : "Pause"}. ${pauseCaption}`,
     ),
   };
 }

@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { statusArtwork } from "../../shared/status-artwork";
+import { issueUrl, statusHelp } from "../../shared/status-help";
 import { type HoverContext, statusHover } from "../../shared/status-hover";
 
 const context: HoverContext = {
   file: "app.ts",
+  version: "0.5.0",
   language: "typescript",
   workspace: "project",
   flags: [false, true, false],
@@ -26,15 +28,15 @@ test("reference artwork has live values, accessible descriptions and read-only f
   const art = statusArtwork(context);
   assert.match(
     art.context.alt,
-    /Mixed.*Active file: app.ts · TypeScript.*Workspace: project/,
+    /Active file: app.ts · TypeScript.*Workspace: project/,
   );
   assert.match(
     art.formatting.alt,
-    /Format on save: Off.*Overridden by User settings/,
+    /Format on save: Disabled.*Overridden by User settings/,
   );
   assert.match(
     art.formatting.alt,
-    /Format on paste: On.*Inherited from User settings/,
+    /Format on paste: Enabled.*Inherited from User settings/,
   );
   assert.equal(
     [...art.formatting.svg.matchAll(/stroke-width="1.4"/g)].length,
@@ -46,7 +48,9 @@ test("reference artwork has live values, accessible descriptions and read-only f
     JSON.parse(decodeURIComponent(match[1] ?? "")),
   );
   assert.deepEqual(actions, [[7, "pause"]]);
-  assert.match(html, /width="366" height="185"/);
+  assert.match(html, /width="366" height="64"/);
+  assert.match(art.header.alt, /Kira Formatting Controls · v0.5.0/);
+  assert.match(art.state.alt, /Mixed/);
   assert.match(html, /data:image\/svg\+xml;base64,/);
 });
 
@@ -65,20 +69,20 @@ test("formatting stays visible with context, formatter and footer actions", () =
   ])
     assert.ok(html.includes(label));
   assert.match(
-    statusArtwork({ ...context, paused: true }).context.alt,
-    /Paused/,
+    statusArtwork({ ...context, paused: true }).pause.alt,
+    /Resume.*Restore your previous formatting settings/,
   );
   assert.match(
     statusArtwork({ ...context, paused: true }).pause.alt,
     /^Resume/,
   );
   assert.match(
-    statusArtwork({ ...context, flags: [true, true, true] }).context.alt,
-    /Controls\. On\./,
+    statusArtwork({ ...context, flags: [true, true, true] }).state.alt,
+    /formatting: Enabled/,
   );
   assert.match(
-    statusArtwork({ ...context, flags: [false, false, false] }).context.alt,
-    /Controls\. Off\./,
+    statusArtwork({ ...context, flags: [false, false, false] }).state.alt,
+    /formatting: Disabled/,
   );
 });
 
@@ -88,6 +92,7 @@ test("untrusted labels remain inert text inside SVG and HTML image descriptions"
     file: '[Run](command:evil)\n<IMG SRC=x ONERROR="evil()">',
     workspace: "<SCRIPT>evil()</SCRIPT>",
     formatter: "$(zap)<ScRiPt>evil()</ScRiPt>",
+    version: "<SCRIPT>evil()</SCRIPT>",
     scope: 'User" ONMOUSEOVER="evil()',
     sources: ['<image href="https://evil.example"/>'],
     overrides: ['<A HREF="command:evil">bad</A>'],
@@ -107,11 +112,45 @@ test("untrusted labels remain inert text inside SVG and HTML image descriptions"
     ),
     new Set([
       "formattingControls.statusControl",
+      "formattingControls.statusInfo",
       "formattingControls.dashboard",
       "workbench.action.openSettings",
     ]),
   );
+  assert.deepEqual(
+    [...html.matchAll(/href="https:([^"]+)"/g)].map(
+      (match) => `https:${match[1]}`,
+    ),
+    [issueUrl],
+  );
   assert.doesNotMatch(html, /<script\b/i);
+});
+
+test("status and pause/resume reserve identical geometry and preserve truthful effective state", () => {
+  const variants = [
+    { flags: [true, true, true], paused: false },
+    { flags: [false, false, false], paused: false },
+    { flags: [true, false, true], paused: false },
+    { flags: [false, false, false], paused: true },
+    { flags: [true, false, true], paused: true },
+  ].map((variant) => statusArtwork({ ...context, ...variant }));
+  assert.equal(
+    new Set(variants.map((art) => `${art.state.width}x${art.state.height}`))
+      .size,
+    1,
+  );
+  assert.equal(
+    new Set(variants.map((art) => `${art.pause.width}x${art.pause.height}`))
+      .size,
+    1,
+  );
+  assert.match(variants[3]?.state.alt ?? "", /Disabled/);
+  assert.match(variants[4]?.state.alt ?? "", /Mixed/);
+  assert.match(
+    variants[0]?.pause.alt ?? "",
+    /Pause automatic formatting until you resume\./,
+  );
+  assert.ok(statusHover(context).includes(statusHelp.file));
 });
 
 test("theme palettes change the artwork and read-only User pause has no action", () => {
