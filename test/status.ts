@@ -64,8 +64,7 @@ export async function reviewStatus(
   assert.ok(labels.some((label) => label?.includes("Format on save:")));
   const context = hover.getByRole("img", { name: /^Formatting Controls\./ });
   const flags = hover.getByRole("img", { name: /^Format on save:/ });
-  const formatter = hover.getByRole("img", { name: /^Default formatter:/ });
-  for (const image of [context, flags, formatter])
+  for (const image of [context, flags])
     assert.equal(
       await image.evaluate((element) => !!element.closest("a")),
       false,
@@ -73,7 +72,7 @@ export async function reviewStatus(
     );
   await context.click({ position: { x: 330, y: 160 } });
   await flags.click({ position: { x: 14, y: 14 } });
-  await formatter.click({ position: { x: 320, y: 30 } });
+  await flags.click({ position: { x: 320, y: 170 } });
   assert.equal(
     await page.locator(".quick-input-widget:visible").count(),
     0,
@@ -107,13 +106,72 @@ export async function reviewStatus(
     [],
     "Artwork has accessible names and action links",
   );
-  await hover
-    .getByRole("link", { name: "Automatic formatting expanded", exact: true })
-    .click();
+  const motion = async (expanded: boolean) => {
+    await page.evaluate(`(() => {
+      window.cardMotion = [];
+      const start = performance.now();
+      const frame = () => {
+        const card = Array.from(document.querySelectorAll('.monaco-hover')).find(el => el.querySelector('img[alt^="Formatting Controls."]'));
+        const bounds = card?.getBoundingClientRect();
+        if (bounds) window.cardMotion.push({time:performance.now()-start,x:bounds.x,width:bounds.width,height:bounds.height,bottom:bounds.bottom});
+        if (performance.now()-start < 700) requestAnimationFrame(frame);
+      }; requestAnimationFrame(frame);
+    })()`);
+    await hover
+      .getByRole("link", {
+        name: `Automatic formatting ${expanded ? "expanded" : "collapsed"}`,
+        exact: true,
+      })
+      .click();
+    await page.waitForTimeout(750);
+    const frames =
+      await page.evaluate<
+        Array<{
+          time: number;
+          x: number;
+          width: number;
+          height: number;
+          bottom: number;
+        }>
+      >("window.cardMotion");
+    writeFileSync(
+      join(directory, `status-${expanded ? "collapse" : "expand"}-motion.json`),
+      JSON.stringify(frames, null, 2),
+    );
+    const heights = [...new Set(frames.map((frame) => frame.height))];
+    console.log(
+      `Status ${expanded ? "collapse" : "expand"} animation: ${JSON.stringify(heights)}`,
+    );
+    assert.ok(
+      heights.length > 3,
+      "Disclosure renders intermediate card heights",
+    );
+    assert.ok(
+      frames.every(
+        (frame, index) =>
+          index === 0 ||
+          (expanded
+            ? frame.height <= (frames[index - 1]?.height ?? frame.height)
+            : frame.height >= (frames[index - 1]?.height ?? frame.height)),
+      ),
+      "Disclosure height moves smoothly in one direction",
+    );
+    assert.ok(
+      Math.max(...frames.map((frame) => frame.width)) -
+        Math.min(...frames.map((frame) => frame.width)) <=
+        1,
+      "Animation keeps card width stable",
+    );
+    assert.ok(
+      Math.max(...frames.map((frame) => frame.bottom)) -
+        Math.min(...frames.map((frame) => frame.bottom)) <=
+        1,
+      "Animation keeps card anchored above the status bar",
+    );
+  };
+  await motion(true);
   await flags.waitFor({ state: "hidden" });
-  await hover
-    .getByRole("link", { name: "Automatic formatting collapsed", exact: true })
-    .click();
+  await motion(false);
   await flags.waitFor();
   await page.keyboard.press("Escape");
   await hover.waitFor({ state: "hidden" });
@@ -128,6 +186,6 @@ export async function reviewStatus(
     .first()
     .waitFor();
   console.log(
-    "Reference-style card verified: loaded local artwork, identical hover/click bounds, pinning, read-only checkbox/dropdown displays, no picker or extra surface, disclosure, keyboard access, accessible descriptions and working dashboard navigation.",
+    "Reference-style card verified: loaded local artwork, identical hover/click bounds, pinning, read-only checkbox/dropdown displays, no picker or extra surface, animated disclosure with stable width and bottom anchor, keyboard access, accessible descriptions and working dashboard navigation.",
   );
 }

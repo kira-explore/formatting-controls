@@ -1,6 +1,8 @@
+import { setTimeout as delay } from "node:timers/promises";
 import * as vscode from "vscode";
 import { adapters } from "../shared/providers";
 import { settingSource } from "../shared/setting-source";
+import type { HoverContext } from "../shared/status-hover";
 import { own, type Selection, write } from "./configuration";
 import { flags, status } from "./model";
 import { providersFor } from "./providers";
@@ -15,6 +17,10 @@ export class StatusControls {
   private languageOnly = false;
   private pending = false;
   private collapsed = false;
+  private formattingHeight = 138;
+  private hoverContext: HoverContext | undefined;
+  private motion: AbortController | undefined;
+  private disposed = false;
   constructor(
     private readonly item: vscode.StatusBarItem,
     private readonly document: () => vscode.TextDocument | undefined,
@@ -60,6 +66,7 @@ export class StatusControls {
     );
   }
   refresh(): void {
+    if (this.disposed) return;
     const document = this.document();
     const selection = this.selection();
     const effective = this.effective();
@@ -154,11 +161,76 @@ export class StatusControls {
     this.fingerprint = fingerprint;
     this.revision++;
     this.item.text = `Formatting: ${status(values)}`;
-    this.item.tooltip = statusTooltip({ ...context, revision: this.revision });
+    this.hoverContext = { ...context, revision: this.revision };
+    this.renderTooltip();
     this.item.accessibilityInformation = {
       label: this.item.text.replace("$(settings-gear) ", ""),
     };
     this.item.show();
+  }
+  private renderTooltip(): void {
+    if (!this.disposed && this.hoverContext)
+      this.item.tooltip = statusTooltip({
+        ...this.hoverContext,
+        formattingHeight: this.formattingHeight,
+      });
+  }
+  private async toggleDisclosure(): Promise<void> {
+    this.motion?.abort();
+    const motion = new AbortController();
+    this.motion = motion;
+    const from = this.formattingHeight;
+    this.collapsed = !this.collapsed;
+    const to = this.collapsed ? 0 : 138;
+    if (
+      vscode.workspace.getConfiguration("workbench").get("reduceMotion") ===
+      "on"
+    ) {
+      this.formattingHeight = to;
+      this.refresh();
+      this.motion = undefined;
+      return;
+    }
+    this.refresh();
+    const started = performance.now();
+    try {
+      while (true) {
+        const progress = Math.min(1, (performance.now() - started) / 200);
+        // Match CSS `ease`: cubic-bezier(0.25, 0.1, 0.25, 1).
+        let low = 0,
+          high = 1;
+        for (let i = 0; i < 12; i++) {
+          const t = (low + high) / 2;
+          const x = 0.75 * (1 - t) * t + t ** 3;
+          if (x < progress) low = t;
+          else high = t;
+        }
+        const t = (low + high) / 2;
+        const eased =
+          progress === 1
+            ? 1
+            : 0.3 * (1 - t) ** 2 * t + 3 * (1 - t) * t ** 2 + t ** 3;
+        this.formattingHeight = from + (to - from) * eased;
+        this.renderTooltip();
+        if (progress === 1) break;
+        await delay(16, undefined, { signal: motion.signal });
+      }
+    } catch (error) {
+      if (!motion.signal.aborted) throw error;
+    } finally {
+      if (this.motion === motion) {
+        this.motion = undefined;
+        if (!motion.signal.aborted) {
+          this.formattingHeight = to;
+          this.renderTooltip();
+        }
+      }
+    }
+  }
+  dispose(): void {
+    this.disposed = true;
+    this.motion?.abort();
+    this.motion = undefined;
   }
   private assertCurrent(revision: unknown): void {
     if (revision !== this.revision)
@@ -170,6 +242,10 @@ export class StatusControls {
     this.assertCurrent(revision);
     if (this.pending)
       throw new Error("Finish the current formatting control first.");
+    if (action === "collapse") {
+      await this.toggleDisclosure();
+      return;
+    }
     this.pending = true;
     try {
       await this.applyControl(revision, action);
@@ -182,9 +258,7 @@ export class StatusControls {
     revision: unknown,
     action: unknown,
   ): Promise<void> {
-    if (action === "collapse") {
-      this.collapsed = !this.collapsed;
-    } else if (action === "pause") {
+    if (action === "pause") {
       if (!this.workflows) throw new Error("Pause storage is unavailable.");
       if (this.workflows.recovery()?.kind === "pause")
         await this.workflows.restore();

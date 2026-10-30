@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { setTimeout as delay } from "node:timers/promises";
 import * as vscode from "vscode";
 import { own, write } from "../../src/configuration";
 import { StatusControls } from "../../src/status-controls";
@@ -24,6 +25,14 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
   const originalType = own(selection, "editor.formatOnType");
   const originalFormatter = own(selection, "editor.defaultFormatter");
   const originalLanguageFormatter = own(language, "editor.defaultFormatter");
+  const workbench = vscode.workspace.getConfiguration("workbench");
+  const originalMotion = workbench.inspect("reduceMotion")?.globalValue;
+  const formattingHeight = () =>
+    Number(
+      (item.tooltip as vscode.MarkdownString).value.match(
+        /height="(\d+)" alt="(?:Format on save|Default formatter):/,
+      )?.[1],
+    );
   const revision = () =>
     JSON.parse(
       decodeURIComponent(
@@ -87,6 +96,46 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
       !(item.tooltip as vscode.MarkdownString).value.includes("Format on save"),
     );
     await controls.control(revision(), "collapse");
+    await workbench.update(
+      "reduceMotion",
+      "off",
+      vscode.ConfigurationTarget.Global,
+    );
+    const collapsing = controls.control(revision(), "collapse");
+    await delay(45);
+    assert.ok(
+      formattingHeight() > 54 && formattingHeight() < 192,
+      "Disclosure clips through intermediate heights",
+    );
+    const duringMotion = revision();
+    await controls.control(duringMotion, "collapse");
+    await collapsing;
+    assert.equal(formattingHeight(), 192, "Rapid reversal finishes expanded");
+    const afterMotion = revision();
+    await delay(40);
+    assert.equal(
+      revision(),
+      afterMotion,
+      "Cancelled frames cannot change the final revision",
+    );
+    await workbench.update(
+      "reduceMotion",
+      "on",
+      vscode.ConfigurationTarget.Global,
+    );
+    const reduced = controls.control(revision(), "collapse");
+    assert.equal(
+      formattingHeight(),
+      54,
+      "Reduce Motion skips intermediate frames",
+    );
+    await reduced;
+    await controls.control(revision(), "collapse");
+    await workbench.update(
+      "reduceMotion",
+      originalMotion,
+      vscode.ConfigurationTarget.Global,
+    );
     await controls.control(revision(), "pause");
     assert.equal(own(selection, "editor.formatOnSave"), false);
     assert.equal(own(selection, "editor.formatOnPaste"), false);
@@ -128,6 +177,12 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
       /No active file/,
     );
   } finally {
+    controls.dispose();
+    await workbench.update(
+      "reduceMotion",
+      originalMotion,
+      vscode.ConfigurationTarget.Global,
+    );
     await write(selection, key, original);
     await write(language, key, originalLanguage);
     await write(selection, "editor.formatOnSave", originalSave);
@@ -136,5 +191,30 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     await write(language, "editor.defaultFormatter", originalLanguageFormatter);
     workflows.dispose();
     item.dispose();
+  }
+  const disposableItem = vscode.window.createStatusBarItem();
+  const disposableControls = new StatusControls(disposableItem, () => document);
+  try {
+    disposableControls.refresh();
+    const current = JSON.parse(
+      decodeURIComponent(
+        (disposableItem.tooltip as vscode.MarkdownString).value.match(
+          /statusControl\?([^"]*)/,
+        )?.[1] ?? "",
+      ),
+    )[0];
+    const closing = disposableControls.control(current, "collapse");
+    disposableControls.dispose();
+    const finalTooltip = disposableItem.tooltip;
+    await closing;
+    disposableControls.refresh();
+    assert.equal(
+      disposableItem.tooltip,
+      finalTooltip,
+      "Disposal cancels pending animation updates",
+    );
+  } finally {
+    disposableControls.dispose();
+    disposableItem.dispose();
   }
 }

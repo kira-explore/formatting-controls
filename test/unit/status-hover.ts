@@ -29,14 +29,17 @@ test("reference artwork has live values, accessible descriptions and read-only f
     /Mixed.*Active file: app.ts · TypeScript.*Workspace: project/,
   );
   assert.match(
-    art.flags.alt,
+    art.formatting.alt,
     /Format on save: Off.*Overridden by User settings/,
   );
   assert.match(
-    art.flags.alt,
+    art.formatting.alt,
     /Format on paste: On.*Inherited from User settings/,
   );
-  assert.equal([...art.flags.svg.matchAll(/stroke-width="1.4"/g)].length, 1);
+  assert.equal(
+    [...art.formatting.svg.matchAll(/stroke-width="1.4"/g)].length,
+    1,
+  );
   const html = statusHover(context);
   assert.ok(!/<input|<select|<button|<script|<style/.test(html));
   const actions = [...html.matchAll(/statusControl\?([^"]*)/g)].map((match) =>

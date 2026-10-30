@@ -24,6 +24,8 @@ This is a read-only illustration of controls, not native form widgets. Full edit
 
 VS Code controls the tooltip's outer frame, pointer and hover delay. Explicit image dimensions reserve the same layout before and after images load. Click-to-focus uses the built-in `workbench.action.showHover` command. This is a compatibility dependency checked on the minimum and current editor versions, rather than a dedicated public “pin this status item” API.
 
+The checkbox and On/Off value are vertically centered against each two-line setting label and source note. Disclosure clips the settings over a 200ms eased transition and rotates the chevron while keeping the formatter, card width and bottom anchor stable. A second click reverses from the current height, and disposal cancels pending frames. Setting **Workbench: Reduce Motion** to **On** skips the transition; the OS preference behind **Auto** is not exposed to this extension. This uses finite tooltip artwork updates through the public API, so frame timing also depends on the local or remote extension host.
+
 Sources: [StatusBarItem](https://code.visualstudio.com/api/references/vscode-api#StatusBarItem), [Markdown input handling](https://github.com/microsoft/vscode/blob/1.143.1/src/vs/base/browser/markdownRenderer.ts).
 
 ## Safety and compatibility

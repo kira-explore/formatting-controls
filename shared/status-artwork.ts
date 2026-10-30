@@ -97,6 +97,12 @@ export function statusArtwork(
   theme: CardTheme = "dark",
 ) {
   const p = palettes[theme];
+  const formattingHeight = Math.round(
+    Math.max(
+      0,
+      Math.min(138, context.formattingHeight ?? (context.collapsed ? 0 : 138)),
+    ),
+  );
   const text = (
     x: number,
     y: number,
@@ -154,6 +160,31 @@ export function statusArtwork(
     alt: string,
     width = 366,
   ) => ({ svg: svg(height, contents, width), alt, width, height });
+  const flagContents = ["save", "paste", "type"]
+    .map((label, i) => {
+      const y = i * 44 + 3;
+      return (
+        rect(5, y + 8, 18, 18, p.checkboxBorder, p.checkbox, 3) +
+        (context.flags[i]
+          ? `<path d="M8 ${y + 17}l4 4 8-9" stroke="${p.muted}" stroke-width="1.4" fill="none"/>`
+          : "") +
+        text(28, y + 14, `Format on ${label}`) +
+        text(345, y + 22, context.flags[i] ? "On" : "Off", 12, p.muted) +
+        text(28, y + 33, shortened(sourceNotes[i] ?? "", 57), 12, p.muted)
+      );
+    })
+    .join("");
+  const flagDescription = ["save", "paste", "type"]
+    .map(
+      (label, i) =>
+        `Format on ${label}: ${context.flags[i] ? "On" : "Off"}. ${sourceNotes[i]}.`,
+    )
+    .join(" ");
+  const formatterContents =
+    line(1) +
+    text(5, 34, "Default formatter") +
+    dropdown(19, context.formatter ?? "Not configured") +
+    line(53);
   return {
     context: image(
       185,
@@ -176,41 +207,15 @@ export function statusArtwork(
     disclosure: image(
       36,
       text(5, 22, "Automatic formatting", 13) +
-        (context.collapsed
-          ? `<path d="M141 14l4 4-4 4" fill="none" stroke="${p.muted}" stroke-width="1.2"/>`
-          : `<path d="M139 16l4 4 4-4" fill="none" stroke="${p.muted}" stroke-width="1.2"/>`),
+        `<path d="M139 16l4 4 4-4" transform="rotate(${-90 * (1 - formattingHeight / 138)} 143 18)" fill="none" stroke="${p.muted}" stroke-width="1.2"/>`,
       `Automatic formatting ${context.collapsed ? "collapsed" : "expanded"}`,
     ),
-    flags: image(
-      138,
-      ["save", "paste", "type"]
-        .map((label, i) => {
-          const y = i * 44 + 3;
-          return (
-            rect(5, y, 18, 18, p.checkboxBorder, p.checkbox, 3) +
-            (context.flags[i]
-              ? `<path d="M8 ${y + 9}l4 4 8-9" stroke="${p.muted}" stroke-width="1.4" fill="none"/>`
-              : "") +
-            text(28, y + 14, `Format on ${label}`) +
-            text(345, y + 14, context.flags[i] ? "On" : "Off", 12, p.muted) +
-            text(28, y + 33, shortened(sourceNotes[i] ?? "", 57), 12, p.muted)
-          );
-        })
-        .join(""),
-      `${["save", "paste", "type"]
-        .map(
-          (label, i) =>
-            `Format on ${label}: ${context.flags[i] ? "On" : "Off"}. ${sourceNotes[i]}.`,
-        )
-        .join(" ")} Checkbox displays are read-only.`,
-    ),
-    formatter: image(
-      54,
-      line(1) +
-        text(5, 34, "Default formatter") +
-        dropdown(19, context.formatter ?? "Not configured") +
-        line(53),
-      `Default formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
+    // Keep one image row through the transition: removing an inline-image row
+    // otherwise snaps its minimum line height and cell padding at the endpoint.
+    formatting: image(
+      formattingHeight + 54,
+      `<svg width="366" height="${formattingHeight}" viewBox="0 0 366 ${Math.max(1, formattingHeight)}">${flagContents}</svg><g transform="translate(0 ${formattingHeight})">${formatterContents}</g>`,
+      `${formattingHeight > 0 ? `${flagDescription} Checkbox displays are read-only. ` : ""}Default formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
     ),
     pause: image(
       50,
