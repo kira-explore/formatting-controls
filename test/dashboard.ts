@@ -32,37 +32,26 @@ export async function reviewDashboard(
       return;
     }
     const session = await browser.newBrowserCDPSession();
-    let target: { targetId: string } | undefined;
-    const targetDeadline = Date.now() + 15000;
-    while (!target && Date.now() < targetDeadline) {
-      const { targetInfos } = await session.send("Target.getTargets");
-      target = targetInfos.find(
-        (t) =>
-          t.type === "iframe" &&
-          t.url.includes("extensionId=rajudhami.formatting-controls"),
-      );
-      if (!target) await delay(50);
-    }
-    assert.ok(target, "The extension's dashboard webview must exist");
-    const { sessionId } = await session.send("Target.attachToTarget", {
-      targetId: target.targetId,
-      flatten: false,
-    });
+    let sessionId = "";
     let sequence = 0;
     const contexts: Context[] = [];
     const pending = new Map<number, (reply: Reply) => void>();
-    session.on("Target.receivedMessageFromTarget", ({ message }) => {
-      const reply: Reply = JSON.parse(message);
-      if (
-        reply.method === "Runtime.executionContextCreated" &&
-        reply.params?.context
-      )
-        contexts.push(reply.params.context);
-      if (reply.id) {
-        pending.get(reply.id)?.(reply);
-        pending.delete(reply.id);
-      }
-    });
+    session.on(
+      "Target.receivedMessageFromTarget",
+      ({ sessionId: source, message }) => {
+        if (source !== sessionId) return;
+        const reply: Reply = JSON.parse(message);
+        if (
+          reply.method === "Runtime.executionContextCreated" &&
+          reply.params?.context
+        )
+          contexts.push(reply.params.context);
+        if (reply.id) {
+          pending.get(reply.id)?.(reply);
+          pending.delete(reply.id);
+        }
+      },
+    );
     const send = (method: string, params: object = {}): Promise<Reply> =>
       new Promise((resolve, reject) => {
         const id = ++sequence;
@@ -81,17 +70,39 @@ export async function reviewDashboard(
           })
           .catch(reject);
       });
-    await send("Runtime.enable");
     let contextId: number | undefined;
     const readyDeadline = Date.now() + 15000;
     while (!contextId && Date.now() < readyDeadline) {
-      for (const context of contexts.filter((c) => c.auxData?.isDefault)) {
-        const reply = await send("Runtime.evaluate", {
-          contextId: context.id,
-          expression: '!!document.querySelector(".app")',
-          returnByValue: true,
+      const { targetInfos } = await session.send("Target.getTargets");
+      // Earlier integration steps open/close webviews. Inspect all matching
+      // targets rather than attaching permanently to a disposed/loading one.
+      for (const target of targetInfos.filter(
+        (t) =>
+          t.type === "iframe" &&
+          t.url.includes("extensionId=rajudhami.formatting-controls"),
+      )) {
+        ({ sessionId } = await session.send("Target.attachToTarget", {
+          targetId: target.targetId,
+          flatten: false,
+        }));
+        contexts.length = 0;
+        await send("Runtime.enable");
+        const candidateDeadline = Math.min(Date.now() + 1000, readyDeadline);
+        while (!contextId && Date.now() < candidateDeadline) {
+          for (const context of contexts.filter((c) => c.auxData?.isDefault)) {
+            const reply = await send("Runtime.evaluate", {
+              contextId: context.id,
+              expression: '!!document.querySelector(".app")',
+              returnByValue: true,
+            });
+            if (reply.result?.result?.value) contextId = context.id;
+          }
+          if (!contextId) await delay(50);
+        }
+        if (contextId) break;
+        await session.send("Target.detachFromTarget", {
+          sessionId,
         });
-        if (reply.result?.result?.value) contextId = context.id;
       }
       if (!contextId) await delay(50);
     }
