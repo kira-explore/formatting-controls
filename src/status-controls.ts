@@ -1,7 +1,9 @@
 import * as vscode from "vscode";
+import { adapters } from "../shared/providers";
 import { settingSource } from "../shared/setting-source";
 import { own, type Selection, write } from "./configuration";
 import { flags, status } from "./model";
+import { providersFor } from "./providers";
 import { statusTooltip } from "./status-hover";
 import type { Workflows } from "./workflows";
 
@@ -13,7 +15,6 @@ export class StatusControls {
   private languageOnly = false;
   private pending = false;
   private collapsed = false;
-  private coreMode = false;
   constructor(
     private readonly item: vscode.StatusBarItem,
     private readonly document: () => vscode.TextDocument | undefined,
@@ -21,14 +22,6 @@ export class StatusControls {
   ) {
     item.name = "Formatting Controls";
     item.command = "workbench.action.showHover";
-  }
-  setCoreMode(enabled: boolean): void {
-    this.coreMode = enabled;
-    if (enabled) this.item.hide();
-    else {
-      this.fingerprint = "";
-      this.refresh();
-    }
   }
   private selection(): Selection {
     const document = this.document();
@@ -87,6 +80,27 @@ export class StatusControls {
     } catch {
       /* The dashboard reports invalid recovery storage. */
     }
+    const sources = flags.map((key) => {
+      const source = settingSource(
+        {
+          configured: own(selection, key) !== undefined,
+          owned: own(selection, key),
+          effective: effective.get(key),
+          sources: effective.inspect(key) as unknown as Record<string, unknown>,
+        },
+        {
+          target:
+            selection.target === vscode.ConfigurationTarget.Global
+              ? "user"
+              : selection.target === vscode.ConfigurationTarget.Workspace
+                ? "workspace"
+                : "folder",
+          ...(selection.language ? { language: selection.language } : {}),
+        },
+        document?.languageId,
+      );
+      return source;
+    });
     const context = {
       paused,
       canPause:
@@ -102,32 +116,8 @@ export class StatusControls {
         ? { folder: folder.name }
         : {}),
       flags: values,
-      sources: flags.map((key) => {
-        const source = settingSource(
-          {
-            configured: own(selection, key) !== undefined,
-            owned: own(selection, key),
-            effective: effective.get(key),
-            sources: effective.inspect(key) as unknown as Record<
-              string,
-              unknown
-            >,
-          },
-          {
-            target:
-              selection.target === vscode.ConfigurationTarget.Global
-                ? "user"
-                : selection.target === vscode.ConfigurationTarget.Workspace
-                  ? "workspace"
-                  : "folder",
-            ...(selection.language ? { language: selection.language } : {}),
-          },
-          document?.languageId,
-        );
-        return source.override
-          ? `${source.label} · ${source.override}`
-          : source.label;
-      }),
+      sources: sources.map((source) => source.label),
+      overrides: sources.map((source) => source.override),
       owned: flags.map((key) => {
         const value = own(selection, key);
         return typeof value === "boolean" ? value : undefined;
@@ -135,7 +125,8 @@ export class StatusControls {
       ...(formatter
         ? {
             formatter:
-              typeof displayName === "string" ? displayName : formatter,
+              adapters.find((adapter) => adapter.id === formatter)?.name ??
+              (typeof displayName === "string" ? displayName : formatter),
           }
         : {}),
       scope:
@@ -153,6 +144,8 @@ export class StatusControls {
       target: selection.target,
       uri: selection.uri?.toString(),
       language: selection.language,
+      ownedFormatter: own(selection, "editor.defaultFormatter"),
+      theme: vscode.window.activeColorTheme.kind,
       folders: vscode.workspace.workspaceFolders?.map((folder) =>
         folder.uri.toString(),
       ),
@@ -165,8 +158,7 @@ export class StatusControls {
     this.item.accessibilityInformation = {
       label: this.item.text.replace("$(settings-gear) ", ""),
     };
-    if (this.coreMode) this.item.hide();
-    else this.item.show();
+    this.item.show();
   }
   private assertCurrent(revision: unknown): void {
     if (revision !== this.revision)
@@ -239,7 +231,7 @@ export class StatusControls {
           : []),
       ];
       const choice = await vscode.window.showQuickPick(choices, {
-        title: "Formatting · Write to",
+        title: "Formatting Controls · Write to",
       });
       if (!choice) return;
       this.assertCurrent(revision);
@@ -248,11 +240,85 @@ export class StatusControls {
       const language = this.document()?.languageId;
       const choice = await vscode.window.showQuickPick(
         language ? ["All languages", language] : ["All languages"],
-        { title: "Formatting · Language scope" },
+        { title: "Formatting Controls · Apply to language" },
       );
       if (!choice) return;
       this.assertCurrent(revision);
       this.languageOnly = choice !== "All languages";
+    } else if (action === "formatting") {
+      const selection = this.selection();
+      const effective = this.effective();
+      const before = flags.map((key) => own(selection, key));
+      const initial = flags.map(
+        (key, index) => before[index] ?? effective.get<boolean>(key, false),
+      );
+      const choices = flags.map((key, index) => ({
+        label: `Format on ${["save", "paste", "type"][index]}`,
+        key,
+        picked: initial[index] === true,
+        description:
+          before[index] === undefined
+            ? "Inherited at this scope"
+            : "Saved at this scope",
+        detail: `Effective for the active editor: ${effective.get<boolean>(key, false) ? "On" : "Off"}`,
+      }));
+      const picked = await vscode.window.showQuickPick(choices, {
+        title: `Formatting Controls · ${this.scopeLabel(selection)} · ${selection.language ?? "All languages"}`,
+        placeHolder:
+          "Select enabled formatting triggers, then choose OK to save",
+        canPickMany: true,
+      });
+      if (!picked) return;
+      this.assertCurrent(revision);
+      const enabled = new Set(picked.map((choice) => choice.key));
+      for (let index = 0; index < flags.length; index++) {
+        const key = flags[index];
+        if (!key || enabled.has(key) === initial[index]) continue;
+        if (own(selection, key) !== before[index])
+          throw new Error(
+            "Formatting settings changed. Reopen the controls and try again.",
+          );
+        await write(selection, key, enabled.has(key));
+      }
+    } else if (action === "formatter") {
+      const selection = this.selection();
+      const effective = this.effective();
+      const selected = effective.get<string>("editor.defaultFormatter");
+      const choices = providersFor(
+        effective,
+        this.document()?.languageId ?? "",
+        selected,
+      )
+        .filter(
+          (provider) =>
+            provider.installed &&
+            ((provider.formatting && provider.knownLanguage) ||
+              provider.id === selected),
+        )
+        .map((provider) => ({
+          label: provider.name,
+          description:
+            provider.id === selected
+              ? "Current effective formatter"
+              : "Known formatter integration",
+          detail: provider.id,
+          id: provider.id as string | undefined,
+        }));
+      choices.unshift({
+        label: "Use inherited formatter",
+        description: "Remove the formatter saved at this scope",
+        detail:
+          "Other installed formatters can be configured in the dashboard or VS Code Settings.",
+        id: undefined,
+      });
+      const choice = await vscode.window.showQuickPick(choices, {
+        title: `Formatting Controls · Default formatter · ${this.scopeLabel(selection)}`,
+        placeHolder: "Choose a known formatter for the active language",
+        matchOnDetail: true,
+      });
+      if (!choice) return;
+      this.assertCurrent(revision);
+      await write(selection, "editor.defaultFormatter", choice.id);
     } else if (
       typeof action === "number" &&
       Number.isInteger(action) &&
@@ -269,15 +335,21 @@ export class StatusControls {
       throw new Error("Unknown formatting control.");
     }
   }
+  private scopeLabel(selection: Selection): string {
+    return selection.target === vscode.ConfigurationTarget.Global
+      ? "User settings"
+      : selection.target === vscode.ConfigurationTarget.Workspace
+        ? "Workspace"
+        : "Workspace folder";
+  }
   async open(): Promise<void> {
     const revision = this.revision;
     const choice = await vscode.window.showQuickPick(
       [
-        { label: "Toggle format on save", action: 0 },
-        { label: "Toggle format on paste", action: 1 },
-        { label: "Toggle format on type", action: 2 },
+        { label: "Change automatic formatting", action: "formatting" },
         { label: "Choose write scope", action: "scope" },
         { label: "Choose language scope", action: "language" },
+        { label: "Choose default formatter", action: "formatter" },
       ],
       {
         title: `Formatting · ${this.selection().target === vscode.ConfigurationTarget.Global ? "User" : vscode.ConfigurationTarget[this.selection().target]} · ${this.selection().language ?? "All languages"}`,

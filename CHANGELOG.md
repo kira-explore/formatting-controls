@@ -2,11 +2,13 @@
 
 ## 0.5.0 — Unreleased
 
-Added an isolated VS Code 1.143.1 core prototype implementing the approved anchored card with genuine Checkbox/SelectBox components, outlined state/context, collapsible formatting details, direct formatter selection, Pause/Resume and separate footer navigation. Added a constrained extension-host settings bridge, pinned/apply-checked portable core patch, build instructions and real custom-editor UI/accessibility coverage. This UI requires the custom editor; it is not enabled by installing the VSIX in ordinary VS Code.
+Matched the approved read-only status card using locally generated SVG artwork: outlined checkbox/dropdown displays, blue file/workspace context box, status badge, separators and typography. Hover and click have identical bounds. Values remain live; checkbox/dropdown displays open no picker. Pause/Resume, disclosure and dashboard/Settings navigation remain actionable. The optional native Quick Controls command retains scope, language, checkbox and formatter pickers.
 
-Hover and click now share one anchored Formatting Controls card, with click pinning the card instead of opening a docked view. Added constrained On/Off actions, clearer saved/inherited/override labels, active-file/workspace context and an expandable formatting section. Full interactive controls remain in the existing dashboard; the docked-view draft was removed.
+Prepared the 0.5.0 release for regular VS Code: removed the custom-editor connection, private commands, prototype sources and build/CI tooling. Hover and click use the same anchored Markdown card; interactive checkbox/dropdown controls remain in the separate dashboard. Source notes reserve space for overrides so formatting changes keep the card in position. Added a polling fallback for missed native profile notifications.
 
-Added formatting-only Pause/Resume with reviewed, durable recovery that preserves save actions and newer edits. Native tooltip actions use command links and native scope/language pickers; real checkbox/select widgets are not exposed by VS Code's tooltip API. Added cold-click, hover/click placement, pinning, keyboard, no-new-surface and pause-preservation regression coverage.
+Hover and click now share one anchored Formatting Controls card, with click pinning the card instead of opening a docked view. Added clearer saved/inherited/override labels, active-file/workspace context and an expandable formatting section. Full interactive controls remain in the existing dashboard; the docked-view draft was removed.
+
+Added formatting-only Pause/Resume with reviewed, durable recovery that preserves save actions and newer edits. Native tooltip actions use command links; the optional Quick Controls command provides native scope/language pickers. Real checkbox/select widgets are not exposed by VS Code's tooltip API. Added cold-click, hover/click placement, pinning, keyboard, no-new-surface and pause-preservation regression coverage.
 
 Renamed the Extensions display name to Kira Formatting Controls, retained the stable package/publisher identity, and replaced the app icon with the approved centered blue/white control symbol on a black background. The status item and card have no app icon.
 

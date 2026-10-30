@@ -17,14 +17,22 @@ const profile = (name: string): Profile => ({
   name,
   settings: { "editor.formatOnSave": true },
 });
-function fixture(legacy: Profile[] = []) {
+function fixture(legacy: Profile[] = [], nativeWatching = true) {
   const directory = mkdtempSync(join(tmpdir(), "fc-profiles-"));
   const source = {
     get<T>(): T | undefined {
       return structuredClone(legacy) as T;
     },
   };
-  const a = new FileProfiles({ scheme: "file", fsPath: directory }, source);
+  const a = new FileProfiles(
+    { scheme: "file", fsPath: directory },
+    source,
+    nativeWatching
+      ? undefined
+      : () => {
+          throw new Error("Native notifications unavailable");
+        },
+  );
   const b = new FileProfiles(
     { scheme: "vscode-userdata", fsPath: directory },
     source,
@@ -158,6 +166,36 @@ test("an open repository receives changes committed by another instance", async 
     await f.b.commit("From B", undefined, profile("From B"));
     await updated;
     assert.deepEqual(f.a.read(), [profile("From B")]);
+  } finally {
+    clearTimeout(timeout);
+    subscription?.dispose();
+    f.dispose();
+  }
+});
+
+test("profile updates arrive when native filesystem notifications are unavailable", async () => {
+  const f = fixture([], false);
+  let subscription: { dispose(): void } | undefined;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    f.a.read();
+    const updated = new Promise<void>((resolve, reject) => {
+      timeout = setTimeout(
+        () => reject(new Error("Fallback notification was not received")),
+        5000,
+      );
+      subscription = f.a.onDidChange(() => {
+        if (f.a.read().some((p) => p.name === "Without native events"))
+          resolve();
+      });
+    });
+    await f.b.commit(
+      "Without native events",
+      undefined,
+      profile("Without native events"),
+    );
+    await updated;
+    assert.deepEqual(f.a.read(), [profile("Without native events")]);
   } finally {
     clearTimeout(timeout);
     subscription?.dispose();

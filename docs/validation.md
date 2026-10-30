@@ -89,10 +89,35 @@ The release uses one native card for hover and click, plus the existing editor d
 Source-precedence tests cover regular/language scopes and organisation policy. Host tests verify formatting-only Pause/Resume preserves save actions and newer edits, and no docked view is contributed. The refined icon and Kira Formatting Controls display name retain the stable `rajudhami.formatting-controls` identity. Surface limits and the built-in hover-command compatibility dependency are documented in [status controls](status-controls.md).
 
 
-## Interactive core prototype — 28 October 2026
+## Archived interactive core prototype — 28 October 2026
 
-Built the pinned VS Code 1.143.1 source (e646868227c3e3a9e3f24277c8c7220be42c0be7), its built-in extensions and matching Electron runtime in an isolated checkout under Node 24.21.0. The targeted upstream TypeScript check includes the card contribution and its transitive status/hover dependencies. A portable patch and guarded apply/check scripts reproduce the core changes. CI also verifies patch applicability and regeneration against the pinned upstream revision.
+Built the pinned VS Code 1.143.1 source (e646868227c3e3a9e3f24277c8c7220be42c0be7), its built-in extensions and matching Electron runtime in an isolated checkout under Node 24.21.0. The targeted upstream TypeScript check includes the card contribution and its transitive status/hover dependencies. A portable patch and guarded apply/check scripts reproduce the core changes. The archived revision also verified patch applicability and regeneration against the pinned upstream revision; this prototype CI job is removed from the regular-extension release.
 
 Real macOS editor tests pass in Dark Modern, Light Modern and Default High Contrast, with the theme kind verified before capture. Each run checks a single status entry, identical native anchored hover/click geometry and pointer, click pinning, genuine Checkbox and SelectBox controls, inline scope/language/formatter changes without a QuickPick, stable repeated toggles, disclosure, reviewed Pause/Resume, keyboard activation/Escape and separate dashboard navigation. Axe reports zero violations in each card scan. The core button's Escape event explicitly dismisses the hover after native confirmation workflows.
 
-The private extension-host bridge is covered by stale session/revision rejection, option allowlisting, scoped flag writes, formatter reset, language selection and save-action preservation checks. The ordinary-editor integration suite passes with the bridge dormant. The expanded pure suite has 55 passing tests. The [prototype documentation](../prototype/vscode/README.md) includes actual screenshots, build/run commands and the custom-editor requirement. Installing the VSIX in ordinary VS Code does not enable this interactive UI.
+The private extension-host bridge is covered by stale session/revision rejection, option allowlisting, scoped flag writes, formatter reset, language selection and save-action preservation checks. The ordinary-editor integration suite passes with the bridge dormant. The expanded pure suite has 55 passing tests. The [archived prototype documentation](https://github.com/kira-explore/formatting-controls/tree/eb908c364d3e6c954ed2c3edb0b426e9b2baee88/prototype/vscode) includes actual screenshots, build/run commands and the custom-editor requirement. Installing the VSIX in ordinary VS Code does not enable this interactive UI.
+
+
+## Regular VS Code release — 29 October 2026
+
+Removed the custom-editor bridge, private commands, core sources, prototype tooling and its CI job. Historical sources remain linked from status-controls.md. The release uses a single native Markdown card for hover and click; click pins it. The detailed card shows effective-state symbols and source notes. **Change formatting…** opens a native checkbox picker; scope/language/formatter links open native pickers. The existing dashboard retains real form controls. No docked view or editor tab is opened by the status item.
+
+Unmodified VS Code 1.143.1 passes status UI checks in Dark Modern, Light Modern and Default High Contrast; minimum VS Code 1.140.0 passes the same checks. Tests verify identical hover/click bounds and content, cold clicks, pinning, native scope/language pickers, stable toggles with a higher-priority language override, disclosure, keyboard access, zero automated card-accessibility violations and separate dashboard navigation. The eight-page dashboard and sixteen wide/narrow accessibility checks pass.
+
+The Node 24 suite has 53 passing tests. A profile-notification regression verifies cross-instance updates with native watching disabled; file-stat polling provides a fallback for missed startup/atomic-rename events. The actual extension host also verifies that no custom-editor bridge commands are registered.
+
+The regular build also passed the two-window suite on unmodified VS Code 1.143.1 with shared User data and a workspace folder: shared settings, preserving other-window edits during resume, concurrent profile saves, stale operations and overlapping pause protection. Packaging verifies all 34 VSIX entries, metadata and bundle budgets; the dependency audit reports no vulnerabilities or advisory exceptions.
+
+### Earlier detailed hover refinement
+
+The detailed hover and native checkbox/formatter pickers pass real UI checks on VS Code 1.140.0 and 1.143.1 (Dark Modern), plus 1.144.0 (Dark Modern, Light Modern and Default High Contrast). The checks compare hover/click content and bounds, pinning, scoped checkbox changes, disclosure, formatter selection, scope/language pickers, keyboard activation and separate dashboard navigation. Automated hover accessibility scans report zero violations. Integration coverage also rejects stale formatter actions when a same-effective-value scope edit changes the value that would be reset.
+
+All 53 unit tests pass on Node 24.22.1, with TypeScript and Biome checks passing. The README card screenshot is captured from the running extension; hover symbols are read-only, and editable checkboxes appear in the native picker.
+
+### Reference-style read-only card
+
+The approved reference layout is now drawn as local, inert SVG images inside the regular Markdown status tooltip. Images show live effective formatting, scope, language, formatter, file and workspace values. Checkbox and dropdown artwork has no command link and launches no picker. Automatic formatting disclosure, Pause/Resume and dashboard/Settings navigation remain links.
+
+Actual editor checks on VS Code 1.140.0 and 1.144.0 verify that all images load, hover and click have identical bounds and descriptions, the card stays pinned after click, read-only displays open no picker or additional surface, keyboard/Escape works, disclosure works and dashboard navigation still opens the existing dashboard. Latest-editor tests cover Dark Modern, Light Modern and Default High Contrast. Axe scans report zero violations; each image has its full value description as alternative text. This does not replace hands-on screen-reader testing.
+
+All 54 unit tests pass on Node 24.22.1, along with TypeScript and Biome checks. Artwork tests verify effective-state rendering, source descriptions, XML escaping, allowlisted actions, four theme-kind palettes and disabled pause behavior at User scope. The fixed internal artwork dimensions reserve layout while images load. VS Code still owns the outer frame, pointer and hover delay; custom themes use the nearest supported theme-kind palette.

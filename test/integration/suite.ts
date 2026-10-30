@@ -11,7 +11,6 @@ import {
 } from "../../src/configuration";
 import { Dashboard } from "../../src/dashboard";
 import { Workflows } from "../../src/workflows";
-import { runCoreBridgeTests } from "./core-bridge";
 import { profileDashboard } from "./performance";
 import { runStatusTests } from "./status-controls";
 import { MemoryStore, runWorkflowTests } from "./workflows";
@@ -305,7 +304,6 @@ export async function run(): Promise<void> {
     } finally {
       await changeFolders(1, 0, { uri: other.uri, name: other.name });
     }
-    await runCoreBridgeTests(uri);
     await runStatusTests(uri);
     await runWorkflowTests(ext.extensionUri, uri);
     await profileDashboard(dashboard);
@@ -323,6 +321,12 @@ export async function run(): Promise<void> {
         );
         await vscode.window.showTextDocument(document);
         await write(first, "editor.formatOnPaste", false);
+        await write(
+          { ...user, language: "typescript" },
+          "editor.formatOnType",
+          true,
+        );
+        await write(first, "editor.formatOnType", undefined);
       } else {
         await dashboard.open();
       }
@@ -361,6 +365,7 @@ export async function run(): Promise<void> {
         "editor.formatOnSave",
         "editor.codeActionsOnSave",
         "editor.formatOnPaste",
+        "editor.formatOnType",
       ] as const)
         await write(s, k, undefined);
   }

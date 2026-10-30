@@ -6,13 +6,13 @@
 
 A control center for VS Code formatting, save actions, and language settings. Make quick adjustments from the status bar, or open the dashboard to choose a formatter, manage source actions, and understand which settings apply.
 
-**0.5.0 interactive-card prototype:** the approved status-bar card with real checkboxes and inline dropdowns is implemented as a [VS Code core patch](prototype/vscode/README.md). It requires a custom editor build. Ordinary VS Code uses the existing Markdown card; installing the VSIX alone does not enable the interactive prototype.
+**Status card in regular VS Code:** hover and click open the same reference-style card; click pins it. The outlined checkboxes and dropdowns show live settings and are read-only. **Pause**, **Automatic formatting**, **Open dashboard** and **Settings** remain working links. Edit individual settings in the dashboard or through the optional **Formatting Controls: Quick Controls** command.
 
 ![Formatting Controls Overview in VS Code Dark Modern](docs/assets/dashboard.png)
 
 ## What you can do
 
-- **Keep quick controls at the status bar.** Hover to open the anchored card; click to pin the same card. Use command links to change formatting, choose a destination/language and preview formatting-only Pause/Resume. Full controls remain in the existing dashboard.
+- **Keep a clear summary at the status bar.** Hover to open the anchored card; click to pin the same card. Read effective formatting, scopes, source notes and formatter details. Use reviewed formatting-only Pause/Resume, or open the dashboard for individual changes.
 
 - **See the effective state.** The status bar shows ON, OFF, or MIXED for Format on Save, Paste, and Type in the active editor.
 - **Choose where changes belong.** Write to User, Workspace, or a specific workspace folder. Select a VS Code language ID for language overrides.
@@ -111,7 +111,7 @@ In VS Code, run **Extensions: Install from VSIX…** and select `formatting-cont
 
 ## Find your flow
 
-Hover the status-bar item to open the anchored **Formatting Controls** card. Click it to focus and keep that same card open above the status bar; no docked panel or editor tab is created. Use its On/Off links for quick changes and open the dashboard for full settings, save actions and advanced workflows. Scope/language choices use native pickers because public tooltip APIs do not host inline select widgets. See [surface details](docs/status-controls.md). Command Palette entries:
+Hover the status-bar item to open the anchored **Formatting Controls** card. Click it to focus and keep that same card open above the status bar; no docked panel or editor tab is created. Its checkbox and dropdown displays are read-only. Open the dashboard for edits, save actions and advanced workflows, or use the optional native Quick Controls command. See [surface details](docs/status-controls.md). Command Palette entries:
 
 | Command                                             | Purpose                                                          |
 | --------------------------------------------------- | ---------------------------------------------------------------- |
@@ -124,7 +124,7 @@ Hover the status-bar item to open the anchored **Formatting Controls** card. Cli
 
 The welcome page appears once on first activation. It introduces the workflow and links to settings, documentation, and GitHub; it does not apply a preset automatically.
 
-Hover and click use one wider formatting card in the same location, with On/Off command links and aligned scope/language choices. Those choices open native pickers; VS Code controls the outer appearance, pointer and hover delay. See [status controls and scope behavior](docs/status-controls.md).
+The card uses locally generated SVG images inside the standard Markdown tooltip to preserve the approved layout. Values update with the active editor and configuration. The illustrated checkboxes and dropdowns are read-only; disclosure and footer links remain actionable. VS Code controls the outer frame, pointer and hover delay. See [status controls and scope behavior](docs/status-controls.md).
 
 ![Native formatting summary above the status bar in Dark Modern](docs/assets/status-card-dark.png)
 

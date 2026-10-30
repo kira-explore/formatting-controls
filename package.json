@@ -16,11 +16,7 @@
     "release:check": "bun run scripts/release-check.ts",
     "security:check": "bun run scripts/audit.ts",
     "test:multi-window": "bun run build && bun run test/run-multi-window.ts",
-    "test:remote": "bun run build && bun run test/run-remote.ts",
-    "prototype:apply": "bun run scripts/core-prototype.ts apply",
-    "prototype:check": "bun run scripts/core-prototype.ts check",
-    "prototype:patch": "bun run scripts/core-prototype.ts patch",
-    "test:core-prototype": "bun run build && bun run test/core-prototype.ts"
+    "test:remote": "bun run build && bun run test/run-remote.ts"
   },
   "author": {
     "name": "Raju Dhami",
