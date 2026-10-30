@@ -3,12 +3,89 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import axe from "axe-core";
 import type { Page } from "playwright-core";
+import { statusArtwork } from "../shared/status-artwork";
 
 export async function reviewStatus(
   page: Page,
   directory: string,
 ): Promise<void> {
   mkdirSync(directory, { recursive: true });
+  const stateArtwork = [
+    { label: "On", flags: [true, true, true] },
+    { label: "Off", flags: [false, false, false] },
+    { label: "Mixed", flags: [true, false, true] },
+    { label: "Paused", flags: [false, false, false], paused: true },
+  ].map((state) => ({
+    label: state.label,
+    svg: statusArtwork({
+      ...state,
+      file: "app.ts",
+      language: "typescript",
+      workspace: "project",
+      scope: "Workspace",
+      languageScope: "All languages",
+      owned: [],
+      revision: 1,
+    }).context.svg,
+  }));
+  const alignment = await page.evaluate<
+    Array<{
+      state: string;
+      badgeHorizontalOffset: number;
+      badgeVerticalOffset: number;
+      contextVerticalOffset: number;
+    }>
+  >(`(artworks => artworks.map(artwork => {
+    const namespace = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(namespace, "svg");
+    const group = document.createElementNS(namespace, "g");
+    const attributes = (element, source) => {
+      for (const match of source.matchAll(/([\\w-]+)="([^"]*)"/g)) element.setAttribute(match[1], match[2]);
+    };
+    attributes(group, artwork.svg.match(/<g\\s([^>]+)>/i)?.[1] ?? "");
+    for (const match of artwork.svg.matchAll(/<text\\s([^>]+)>([^<]*)<\\/text>/gi)) {
+      const text = document.createElementNS(namespace, "text");
+      attributes(text, match[1]);
+      text.textContent = match[2];
+      group.append(text);
+    }
+    svg.append(group);
+    document.body.append(svg);
+    try {
+      const texts = Array.from(svg.querySelectorAll("text"));
+      const badge = texts.find(text => text.textContent === artwork.label);
+      const fileText = texts.find(text => text.textContent?.startsWith("Active file:"));
+      const workspaceText = texts.find(text => text.textContent?.startsWith("Workspace:"));
+      if (!badge || !fileText || !workspaceText) throw new Error("Missing alignment text");
+      const file = fileText.getBBox();
+      const workspace = workspaceText.getBBox();
+      const bounds = badge.getBBox();
+      return {
+        state: artwork.label,
+        badgeHorizontalOffset: bounds.x + bounds.width / 2 - 339,
+        badgeVerticalOffset: bounds.y + bounds.height / 2 - 17,
+        contextVerticalOffset: (file.y + workspace.y + workspace.height) / 2 - 74,
+      };
+    } finally { svg.remove(); }
+  }))(${JSON.stringify(stateArtwork)})`);
+  writeFileSync(
+    join(directory, "status-alignment.json"),
+    JSON.stringify(alignment, null, 2),
+  );
+  for (const measurement of alignment) {
+    assert.ok(
+      Math.abs(measurement.badgeHorizontalOffset) <= 1,
+      `${measurement.state} badge text is horizontally centered`,
+    );
+    assert.ok(
+      Math.abs(measurement.badgeVerticalOffset) <= 1,
+      `${measurement.state} badge text is vertically centered`,
+    );
+    assert.ok(
+      Math.abs(measurement.contextVerticalOffset) <= 1,
+      "Active file and workspace text are vertically centered",
+    );
+  }
   const button = page.getByRole("button", {
     name: /^Formatting: (ON|OFF|MIXED)$/,
   });
@@ -106,73 +183,21 @@ export async function reviewStatus(
     [],
     "Artwork has accessible names and action links",
   );
-  const motion = async (expanded: boolean) => {
-    await page.evaluate(`(() => {
-      window.cardMotion = [];
-      const start = performance.now();
-      const frame = () => {
-        const card = Array.from(document.querySelectorAll('.monaco-hover')).find(el => el.querySelector('img[alt^="Formatting Controls."]'));
-        const bounds = card?.getBoundingClientRect();
-        if (bounds) window.cardMotion.push({time:performance.now()-start,x:bounds.x,width:bounds.width,height:bounds.height,bottom:bounds.bottom});
-        if (performance.now()-start < 700) requestAnimationFrame(frame);
-      }; requestAnimationFrame(frame);
-    })()`);
-    await hover
-      .getByRole("link", {
-        name: `Automatic formatting ${expanded ? "expanded" : "collapsed"}`,
-        exact: true,
-      })
-      .click();
-    await page.waitForTimeout(750);
-    const frames =
-      await page.evaluate<
-        Array<{
-          time: number;
-          x: number;
-          width: number;
-          height: number;
-          bottom: number;
-        }>
-      >("window.cardMotion");
-    writeFileSync(
-      join(directory, `status-${expanded ? "collapse" : "expand"}-motion.json`),
-      JSON.stringify(frames, null, 2),
-    );
-    const heights = [...new Set(frames.map((frame) => frame.height))];
-    console.log(
-      `Status ${expanded ? "collapse" : "expand"} animation: ${JSON.stringify(heights)}`,
-    );
-    assert.ok(
-      heights.length > 3,
-      "Disclosure renders intermediate card heights",
-    );
-    assert.ok(
-      frames.every(
-        (frame, index) =>
-          index === 0 ||
-          (expanded
-            ? frame.height <= (frames[index - 1]?.height ?? frame.height)
-            : frame.height >= (frames[index - 1]?.height ?? frame.height)),
-      ),
-      "Disclosure height moves smoothly in one direction",
-    );
-    assert.ok(
-      Math.max(...frames.map((frame) => frame.width)) -
-        Math.min(...frames.map((frame) => frame.width)) <=
-        1,
-      "Animation keeps card width stable",
-    );
-    assert.ok(
-      Math.max(...frames.map((frame) => frame.bottom)) -
-        Math.min(...frames.map((frame) => frame.bottom)) <=
-        1,
-      "Animation keeps card anchored above the status bar",
-    );
-  };
-  await motion(true);
-  await flags.waitFor({ state: "hidden" });
-  await motion(false);
+  const heading = hover.getByRole("img", {
+    name: "Automatic formatting",
+    exact: true,
+  });
+  assert.equal(
+    await heading.evaluate((element) => !!element.closest("a")),
+    false,
+  );
+  await heading.click();
   await flags.waitFor();
+  assert.deepEqual(
+    await hover.boundingBox(),
+    hovered,
+    "Formatting remains visible when its heading is clicked",
+  );
   await page.keyboard.press("Escape");
   await hover.waitFor({ state: "hidden" });
   await button.focus();
@@ -186,6 +211,6 @@ export async function reviewStatus(
     .first()
     .waitFor();
   console.log(
-    "Reference-style card verified: loaded local artwork, identical hover/click bounds, pinning, read-only checkbox/dropdown displays, no picker or extra surface, animated disclosure with stable width and bottom anchor, keyboard access, accessible descriptions and working dashboard navigation.",
+    "Reference-style card verified: loaded local artwork, identical hover/click bounds, pinning, read-only checkbox/dropdown displays, no picker or extra surface, always-visible formatting, keyboard access, accessible descriptions and working dashboard navigation.",
   );
 }

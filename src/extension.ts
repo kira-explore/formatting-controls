@@ -250,7 +250,6 @@ export function activate(context: vscode.ExtensionContext): void {
       }),
     ),
     dashboard,
-    controls,
     vscode.commands.registerCommand(
       "formattingControls.quickControls",
       guarded(() => controls.open()),

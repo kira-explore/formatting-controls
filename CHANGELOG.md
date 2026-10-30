@@ -2,15 +2,15 @@
 
 ## 0.5.0 — Unreleased
 
-Added a 200ms eased expand/collapse transition with a rotating chevron, stable card width and bottom anchor, and smooth reversal on a second click. Explicit Reduce Motion skips the transition. Checkbox and On/Off indicators now align with the vertical center of each setting's label and source note. Pause behavior is unchanged.
+Centered the active-file/workspace text block and info icon within the context box, and centered every status badge label. Automatic formatting is always visible; removed the collapse toggle and animation. Checkbox and On/Off indicators align with the vertical center of each setting's label and source note. Pause behavior is unchanged.
 
-Aligned the read-only status card with Copilot's compact styling: 13px regular-weight title/disclosure, 12px body and controls, 22px dropdowns/buttons, smaller checkbox spacing and a narrower card. Matched the supplied reference's muted dark colours and lighter outlines. Transparent artwork now uses the native hover background instead of drawing separate opaque blocks behind image sections.
+Aligned the read-only status card with Copilot's compact styling: 13px regular-weight title/section heading, 12px body and controls, 22px dropdowns/buttons, smaller checkbox spacing and a narrower card. Matched the supplied reference's muted dark colours and lighter outlines. Transparent artwork now uses the native hover background instead of drawing separate opaque blocks behind image sections.
 
-Matched the approved read-only status card using locally generated SVG artwork: outlined checkbox/dropdown displays, blue file/workspace context box, status badge, separators and typography. Hover and click have identical bounds. Values remain live; checkbox/dropdown displays open no picker. Pause/Resume, disclosure and dashboard/Settings navigation remain actionable. The optional native Quick Controls command retains scope, language, checkbox and formatter pickers.
+Matched the approved read-only status card using locally generated SVG artwork: outlined checkbox/dropdown displays, blue file/workspace context box, status badge, separators and typography. Hover and click have identical bounds. Values remain live; checkbox/dropdown displays open no picker. Pause/Resume and dashboard/Settings navigation remain actionable. The optional native Quick Controls command retains scope, language, checkbox and formatter pickers.
 
 Prepared the 0.5.0 release for regular VS Code: removed the custom-editor connection, private commands, prototype sources and build/CI tooling. Hover and click use the same anchored Markdown card; interactive checkbox/dropdown controls remain in the separate dashboard. Source notes reserve space for overrides so formatting changes keep the card in position. Added a polling fallback for missed native profile notifications.
 
-Hover and click now share one anchored Formatting Controls card, with click pinning the card instead of opening a docked view. Added clearer saved/inherited/override labels, active-file/workspace context and an expandable formatting section. Full interactive controls remain in the existing dashboard; the docked-view draft was removed.
+Hover and click now share one anchored Formatting Controls card, with click pinning the card instead of opening a docked view. Added clearer saved/inherited/override labels, active-file/workspace context and an always-visible formatting section. Full interactive controls remain in the existing dashboard; the docked-view draft was removed.
 
 Added formatting-only Pause/Resume with reviewed, durable recovery that preserves save actions and newer edits. Native tooltip actions use command links; the optional Quick Controls command provides native scope/language pickers. Real checkbox/select widgets are not exposed by VS Code's tooltip API. Added cold-click, hover/click placement, pinning, keyboard, no-new-surface and pause-preservation regression coverage.
 

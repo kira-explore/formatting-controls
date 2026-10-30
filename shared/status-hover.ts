@@ -13,8 +13,6 @@ export interface HoverContext {
   formatter?: string;
   scope: string;
   languageScope: string;
-  collapsed?: boolean;
-  formattingHeight?: number;
   paused?: boolean;
   canPause?: boolean;
   revision: number;
@@ -32,7 +30,7 @@ export function statusHover(
     `<tr><td colspan="2">${contents}</td></tr>`;
   return `<table width="${art.context.width}"><tbody>${[
     fullRow(image(art.context)),
-    fullRow(`<a href="${link("collapse")}">${image(art.disclosure)}</a>`),
+    fullRow(image(art.heading)),
     fullRow(image(art.formatting)),
     fullRow(
       context.canPause

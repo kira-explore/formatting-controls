@@ -45,19 +45,19 @@ test("reference artwork has live values, accessible descriptions and read-only f
   const actions = [...html.matchAll(/statusControl\?([^"]*)/g)].map((match) =>
     JSON.parse(decodeURIComponent(match[1] ?? "")),
   );
-  assert.deepEqual(actions, [
-    [7, "collapse"],
-    [7, "pause"],
-  ]);
+  assert.deepEqual(actions, [[7, "pause"]]);
   assert.match(html, /width="366" height="185"/);
   assert.match(html, /data:image\/svg\+xml;base64,/);
 });
 
-test("collapsing removes only the flags and keeps context, formatter and footer actions", () => {
-  const html = statusHover({ ...context, collapsed: true });
-  assert.ok(!html.includes("Format on save:"));
+test("formatting stays visible with context, formatter and footer actions", () => {
+  const html = statusHover(context);
   for (const label of [
     "Active file",
+    "Automatic formatting",
+    "Format on save:",
+    "Format on paste:",
+    "Format on type:",
     "Default formatter",
     "Open dashboard",
     "Pause",

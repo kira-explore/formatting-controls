@@ -97,12 +97,6 @@ export function statusArtwork(
   theme: CardTheme = "dark",
 ) {
   const p = palettes[theme];
-  const formattingHeight = Math.round(
-    Math.max(
-      0,
-      Math.min(138, context.formattingHeight ?? (context.collapsed ? 0 : 138)),
-    ),
-  );
   const text = (
     x: number,
     y: number,
@@ -111,6 +105,15 @@ export function statusArtwork(
     color: string = p.fg,
   ) =>
     `<text x="${x}" y="${y}" font-size="${size}" fill="${color}">${escapeText(value)}</text>`;
+  const centeredText = (
+    x: number,
+    y: number,
+    value: string,
+    size = 12,
+    color: string = p.fg,
+    anchor: "start" | "middle" = "start",
+  ) =>
+    `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" text-anchor="${anchor}" dominant-baseline="central">${escapeText(value)}</text>`;
   const line = (y: number) => `<path d="M5 ${y}H365" stroke="${p.line}"/>`;
   const rect = (
     x: number,
@@ -190,13 +193,13 @@ export function statusArtwork(
       185,
       text(5, 23, "Formatting Controls", 13) +
         rect(313, 6, 52, 22, p.border, "none") +
-        text(322, 21, state) +
+        centeredText(339, 17, state, 12, p.fg, "middle") +
         line(41) +
         rect(5, 48, 360, 52, p.focus, p.info, 6) +
-        `<circle cx="22" cy="63" r="5" stroke="${p.focus}" fill="none"/>` +
-        text(21, 66, "i", 9, p.focus) +
-        text(34, 65, shortened(file, 52)) +
-        text(34, 83, shortened(workspace, 54), 12, p.muted) +
+        `<circle cx="22" cy="74" r="5" stroke="${p.focus}" fill="none"/>` +
+        centeredText(22, 74, "i", 9, p.focus, "middle") +
+        centeredText(34, 65, shortened(file, 52)) +
+        centeredText(34, 83, shortened(workspace, 54), 12, p.muted) +
         text(5, 129, "Write to") +
         dropdown(114, scope) +
         text(5, 161, "Apply to language") +
@@ -204,18 +207,15 @@ export function statusArtwork(
         line(184),
       `Formatting Controls. ${state}. ${file}. ${workspace}. Write to: ${scope}. Apply to language: ${language}. Scope and language displays are read-only.`,
     ),
-    disclosure: image(
+    heading: image(
       36,
-      text(5, 22, "Automatic formatting", 13) +
-        `<path d="M139 16l4 4 4-4" transform="rotate(${-90 * (1 - formattingHeight / 138)} 143 18)" fill="none" stroke="${p.muted}" stroke-width="1.2"/>`,
-      `Automatic formatting ${context.collapsed ? "collapsed" : "expanded"}`,
+      text(5, 22, "Automatic formatting", 13),
+      "Automatic formatting",
     ),
-    // Keep one image row through the transition: removing an inline-image row
-    // otherwise snaps its minimum line height and cell padding at the endpoint.
     formatting: image(
-      formattingHeight + 54,
-      `<svg width="366" height="${formattingHeight}" viewBox="0 0 366 ${Math.max(1, formattingHeight)}">${flagContents}</svg><g transform="translate(0 ${formattingHeight})">${formatterContents}</g>`,
-      `${formattingHeight > 0 ? `${flagDescription} Checkbox displays are read-only. ` : ""}Default formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
+      192,
+      `${flagContents}<g transform="translate(0 138)">${formatterContents}</g>`,
+      `${flagDescription} Checkbox displays are read-only. Default formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
     ),
     pause: image(
       50,

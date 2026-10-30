@@ -6,7 +6,7 @@
 
 A control center for VS Code formatting, save actions, and language settings. Make quick adjustments from the status bar, or open the dashboard to choose a formatter, manage source actions, and understand which settings apply.
 
-**Status card in regular VS Code:** hover and click open the same reference-style card; click pins it. The outlined checkboxes and dropdowns show live settings and are read-only. **Pause**, **Automatic formatting**, **Open dashboard** and **Settings** remain working links. Edit individual settings in the dashboard or through the optional **Formatting Controls: Quick Controls** command.
+**Status card in regular VS Code:** hover and click open the same reference-style card; click pins it. The outlined checkboxes and dropdowns show live settings and are read-only. Formatting settings remain visible at all times. **Pause**, **Open dashboard** and **Settings** remain working links. Edit individual settings in the dashboard or through the optional **Formatting Controls: Quick Controls** command.
 
 ![Formatting Controls Overview in VS Code Dark Modern](docs/assets/dashboard.png)
 
@@ -124,7 +124,7 @@ Hover the status-bar item to open the anchored **Formatting Controls** card. Cli
 
 The welcome page appears once on first activation. It introduces the workflow and links to settings, documentation, and GitHub; it does not apply a preset automatically.
 
-The card uses locally generated SVG images inside the standard Markdown tooltip to preserve the approved layout. Values update with the active editor and configuration. The illustrated checkboxes and dropdowns are read-only; disclosure and footer links remain actionable. VS Code controls the outer frame, pointer and hover delay. See [status controls and scope behavior](docs/status-controls.md).
+The card uses locally generated SVG images inside the standard Markdown tooltip to preserve the approved layout. Values update with the active editor and configuration. The illustrated checkboxes and dropdowns are read-only; formatting stays visible and footer links remain actionable. VS Code controls the outer frame, pointer and hover delay. See [status controls and scope behavior](docs/status-controls.md).
 
 ![Native formatting summary above the status bar in Dark Modern](docs/assets/status-card-dark.png)
 
