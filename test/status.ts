@@ -26,7 +26,6 @@ export async function reviewStatus(
       languageScope: "All languages",
       owned: [],
       revision: 1,
-      version: "0.5.0",
       canPause: true,
     }),
   );
@@ -61,24 +60,24 @@ export async function reviewStatus(
       return root;
     }
     return fixtures.map(art => {
-      const badge = mount(art.state), context = mount(art.context), pause = mount(art.pause), header = mount(art.header);
+      const badge = mount(art.state), context = mount(art.context), pause = mount(art.pause), captionImage = mount(art.pauseCaption), header = mount(art.header);
       try {
         const badgeText = badge.querySelector("text").getBBox();
         const file = Array.from(context.querySelectorAll("text")).find(text => text.textContent.startsWith("Active file:")).getBBox();
         const workspace = Array.from(context.querySelectorAll("text")).find(text => text.textContent.startsWith("Workspace:")).getBBox();
         const pauseText = pause.querySelector("text").getBBox();
-        const caption = pause.querySelectorAll("text")[1].getBBox();
+        const caption = captionImage.querySelector("text").getBBox();
         const title = header.querySelector("text").getBBox();
         return {
           badgeOffsetX: badgeText.x + badgeText.width/2 - 39,
           badgeOffsetY: badgeText.y + badgeText.height/2 - 13,
           contextOffsetY: (file.y + workspace.y + workspace.height)/2 - 34,
-          pauseOffsetX: pauseText.x + pauseText.width/2 - 34,
-          pauseOffsetY: pauseText.y + pauseText.height/2 - 19,
+          pauseOffsetX: pauseText.x + pauseText.width/2 - 29,
+          pauseOffsetY: pauseText.y + pauseText.height/2 - 11,
           headerFits: title.x + title.width <= art.header.width,
-          captionFits: caption.x + caption.width <= art.pause.width - 2,
+          captionFits: caption.x + caption.width <= art.pauseCaption.width - 2,
         };
-      } finally { badge.remove(); context.remove(); pause.remove(); header.remove(); }
+      } finally { badge.remove(); context.remove(); pause.remove(); captionImage.remove(); header.remove(); }
     });
   })(${JSON.stringify(fixtures)})`);
   writeFileSync(
@@ -97,7 +96,7 @@ export async function reviewStatus(
         Math.abs(offset) <= 1,
         "Status, context and Pause/Resume text stay centered",
       );
-    assert.ok(measurement.headerFits, "Full extension name and version fit");
+    assert.ok(measurement.headerFits, "Full extension name fits");
     assert.ok(measurement.captionFits, "Both Pause/Resume captions fit");
   }
 
@@ -111,8 +110,18 @@ export async function reviewStatus(
     await hover.waitFor({ state: "visible" });
     await page.waitForFunction(`(() => {
       const images = Array.from(document.querySelectorAll('.monaco-hover img'));
-      return images.length >= 10 && images.every(img => img.complete && img.naturalWidth > 0);
+      return images.length >= 13 && images.every(img => img.complete && img.naturalWidth > 0);
     })()`);
+  };
+  const dismiss = async () => {
+    // A transient hover may already have closed after a screenshot. Focus it
+    // only if present so native pointer dismissal cannot race a locator wait.
+    await page.evaluate(
+      `document.querySelector('.monaco-hover:has(img[alt="Kira Formatting Controls"])')?.focus()`,
+    );
+    await page.keyboard.press("Escape");
+    await page.mouse.move(10, 200);
+    await hover.waitFor({ state: "hidden" });
   };
   const tabs = await page.locator(".editor-group-container .tab").count();
   const panels = await page.locator(".part.panel:visible").count();
@@ -135,10 +144,7 @@ export async function reviewStatus(
     animations: "disabled",
     path: join(directory, "status-hover-window.png"),
   });
-  await hover.focus();
-  await page.keyboard.press("Escape");
-  await page.mouse.move(10, 200);
-  await hover.waitFor({ state: "hidden" });
+  await dismiss();
   await button.click();
   await loaded();
   assert.deepEqual(
@@ -204,6 +210,22 @@ export async function reviewStatus(
   const dashboard = hover.getByRole("link", { name: /^Open dashboard/ });
   const issue = hover.getByRole("link", { name: /^Report an issue/ });
   assert.equal(await issue.getAttribute("data-href"), issueUrl);
+  for (const link of [dashboard, issue])
+    assert.equal(await link.getAttribute("title"), null);
+  const pauseLink = hover.getByRole("link", { name: "Pause", exact: true });
+  assert.equal(await pauseLink.getAttribute("title"), null);
+  const pauseImage = pauseLink.getByRole("img", { name: "Pause", exact: true });
+  assert.equal(await pauseImage.getAttribute("title"), null);
+  assert.equal((await pauseImage.boundingBox())?.width, 58);
+  assert.equal((await pauseImage.boundingBox())?.height, 22);
+  const caption = hover.getByRole("img", {
+    name: "Pause automatic formatting until you resume.",
+    exact: true,
+  });
+  assert.equal(await caption.evaluate((el) => !!el.closest("a")), false);
+  await caption.click();
+  assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
+  assert.deepEqual(await hover.boundingBox(), hovered);
   const feedback = [];
   for (const link of [settings, dashboard, issue]) {
     await page.mouse.move(5, 5);
@@ -271,9 +293,7 @@ export async function reviewStatus(
   // Exercise the unchanged confirmation workflow through its real native picker.
   const originalFlags = await flags.getAttribute("alt");
   for (const action of ["Pause", "Resume"]) {
-    await hover
-      .getByRole("link", { name: new RegExp(`^${action}\\.`) })
-      .click();
+    await hover.getByRole("link", { name: action, exact: true }).click();
     const picker = page.locator(".quick-input-widget:visible");
     await picker.waitFor();
     await picker.getByText("Continue", { exact: true }).click();
@@ -282,9 +302,7 @@ export async function reviewStatus(
     await button.click();
     await loaded();
     const nextAction = action === "Pause" ? "Resume" : "Pause";
-    await hover
-      .getByRole("img", { name: new RegExp(`^${nextAction}\\.`) })
-      .waitFor();
+    await hover.getByRole("img", { name: nextAction, exact: true }).waitFor();
     const bounds = await hover.boundingBox();
     assert.equal(
       bounds?.width,
@@ -306,9 +324,7 @@ export async function reviewStatus(
     "Resume restores the previous formatting snapshot",
   );
 
-  await hover.focus();
-  await page.keyboard.press("Escape");
-  await hover.waitFor({ state: "hidden" });
+  await dismiss();
   await button.focus();
   await page.keyboard.press("Enter");
   await loaded();
@@ -318,6 +334,6 @@ export async function reviewStatus(
     .first()
     .waitFor();
   console.log(
-    "Approved status card verified: full title/version, stable hover/click and Pause/Resume bounds, fixed status badge, read-only fields, stable info, native settings/issue links, hover feedback, keyboard access and accessible descriptions.",
+    "Approved status card verified: full title, stable hover/click and Pause/Resume bounds, button-only pause action without hover text, fixed status badge, read-only fields, stable info, native settings/issue links, keyboard access and accessible descriptions.",
   );
 }

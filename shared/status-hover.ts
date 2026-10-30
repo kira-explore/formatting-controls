@@ -4,7 +4,6 @@ import { issueUrl, statusHelp } from "./status-help";
 
 export interface HoverContext {
   file: string;
-  version?: string;
   language?: string;
   workspace?: string;
   folder?: string;
@@ -40,10 +39,13 @@ export function statusHover(
     fullRow(image(art.formatting)),
     fullRow(image(art.formatter)),
     fullRow(
-      context.canPause
-        ? `<a href="${link("pause")}" title="${escapeText(art.pause.alt)}">${image(art.pause)}</a>`
-        : image(art.pause),
+      image(art.pauseInset) +
+        (context.canPause
+          ? `<a href="${link("pause")}">${image(art.pause)}</a>`
+          : image(art.pause)) +
+        image(art.pauseCaption),
     ),
-    `<tr><td height="28"><a href="command:formattingControls.dashboard" title="Open formatting dashboard">Open dashboard ↗</a></td><td align="right"><a href="${issueUrl}" title="Report an issue on GitHub">Report an issue ↗</a></td></tr>`,
+    fullRow(image(art.separator)),
+    `<tr><td height="28"><a href="command:formattingControls.dashboard">Open dashboard ↗</a></td><td align="right"><a href="${issueUrl}">Report an issue ↗</a></td></tr>`,
   ].join("")}</tbody></table>`;
 }

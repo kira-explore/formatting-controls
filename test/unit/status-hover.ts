@@ -6,7 +6,6 @@ import { type HoverContext, statusHover } from "../../shared/status-hover";
 
 const context: HoverContext = {
   file: "app.ts",
-  version: "0.5.0",
   language: "typescript",
   workspace: "project",
   flags: [false, true, false],
@@ -49,7 +48,7 @@ test("reference artwork has live values, accessible descriptions and read-only f
   );
   assert.deepEqual(actions, [[7, "pause"]]);
   assert.match(html, /width="366" height="64"/);
-  assert.match(art.header.alt, /Kira Formatting Controls · v0.5.0/);
+  assert.equal(art.header.alt, "Kira Formatting Controls");
   assert.match(art.state.alt, /Mixed/);
   assert.match(html, /data:image\/svg\+xml;base64,/);
 });
@@ -69,8 +68,8 @@ test("formatting stays visible with context, formatter and footer actions", () =
   ])
     assert.ok(html.includes(label));
   assert.match(
-    statusArtwork({ ...context, paused: true }).pause.alt,
-    /Resume.*Restore your previous formatting settings/,
+    statusArtwork({ ...context, paused: true }).pauseCaption.alt,
+    /Restore your previous formatting settings/,
   );
   assert.match(
     statusArtwork({ ...context, paused: true }).pause.alt,
@@ -92,7 +91,6 @@ test("untrusted labels remain inert text inside SVG and HTML image descriptions"
     file: '[Run](command:evil)\n<IMG SRC=x ONERROR="evil()">',
     workspace: "<SCRIPT>evil()</SCRIPT>",
     formatter: "$(zap)<ScRiPt>evil()</ScRiPt>",
-    version: "<SCRIPT>evil()</SCRIPT>",
     scope: 'User" ONMOUSEOVER="evil()',
     sources: ['<image href="https://evil.example"/>'],
     overrides: ['<A HREF="command:evil">bad</A>'],
@@ -147,10 +145,30 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
   assert.match(variants[3]?.state.alt ?? "", /Disabled/);
   assert.match(variants[4]?.state.alt ?? "", /Mixed/);
   assert.match(
-    variants[0]?.pause.alt ?? "",
+    variants[0]?.pauseCaption.alt ?? "",
     /Pause automatic formatting until you resume\./,
   );
   assert.ok(statusHover(context).includes(statusHelp.file));
+});
+
+test("only the Pause/Resume button is linked and descriptive captions have no hover title", () => {
+  for (const paused of [false, true]) {
+    const html = statusHover({ ...context, paused });
+    const button = html.match(
+      /<a href="command:formattingControls.statusControl\?[^"]*"([^>]*)>(.*?)<\/a>/,
+    );
+    assert.ok(button);
+    assert.equal(button[1], "");
+    assert.match(button[2] ?? "", /width="58" height="22"/);
+    assert.doesNotMatch(
+      button[2] ?? "",
+      /until you resume|previous formatting/,
+    );
+    for (const link of html.matchAll(
+      /<a href="(?:command:formattingControls.dashboard|https:[^"]*)"([^>]*)>/g,
+    ))
+      assert.equal(link[1], "");
+  }
 });
 
 test("theme palettes change the artwork and read-only User pause has no action", () => {

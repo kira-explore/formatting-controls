@@ -187,10 +187,10 @@ export function statusArtwork(
       : "Choose a project scope in the dashboard";
   return {
     settings: image(
-      24,
-      `<g fill="none" stroke="${p.fg}" stroke-width="1.2"><path d="M4 7h4m4 0h8M4 17h8m4 0h4"/><circle cx="10" cy="7" r="2"/><circle cx="14" cy="17" r="2"/></g>`,
+      16,
+      `<g fill="none" stroke="${p.fg}" stroke-width="1"><path d="M1 4h3m4 0h7M1 12h7m4 0h3"/><circle cx="6" cy="4" r="2"/><circle cx="10" cy="12" r="2"/></g>`,
       "Open VS Code Settings",
-      24,
+      16,
     ),
     info: image(
       20,
@@ -201,16 +201,16 @@ export function statusArtwork(
     ),
     header: image(
       28,
-      `<text x="5" y="14" dominant-baseline="central" font-size="13" fill="${p.fg}">Kira Formatting Controls${context.version ? `<tspan dx="6" font-size="11" fill="${p.muted}">· v${escapeText(shortened(context.version, 16))}</tspan>` : ""}</text>`,
-      `Kira Formatting Controls${context.version ? ` · v${context.version}` : ""}`,
+      centeredText(5, 14, "Kira Formatting Controls", 13),
+      "Kira Formatting Controls",
       236,
     ),
     context: image(
       64,
       line(1) +
         rect(5, 8, 360, 52, p.focus, p.info, 6) +
-        `<circle cx="22" cy="34" r="5" stroke="${p.focus}" fill="none"/>` +
-        centeredText(22, 34, "i", 9, p.focus, "middle") +
+        `<circle cx="22" cy="34" r="6" stroke="${p.focus}" fill="none"/>` +
+        centeredText(22, 34, "i", 10, p.focus, "middle") +
         centeredText(34, 25, shortened(file, 52)) +
         centeredText(34, 43, shortened(workspace, 54), 12, p.muted),
       `${file}. ${workspace}.`,
@@ -251,19 +251,26 @@ export function statusArtwork(
       `Default formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
     ),
     pause: image(
-      44,
-      rect(5, 8, 58, 22, p.border, "none") +
+      22,
+      rect(0.5, 0.5, 57, 21, p.border, "none") +
         centeredText(
-          34,
-          19,
+          29,
+          11,
           context.paused ? "Resume" : "Pause",
           12,
           context.canPause ? p.fg : p.muted,
           "middle",
-        ) +
-        text(76, 23, pauseCaption, 12, p.muted) +
-        line(43),
-      `${context.paused ? "Resume" : "Pause"}. ${pauseCaption}`,
+        ),
+      context.paused ? "Resume" : "Pause",
+      58,
     ),
+    pauseInset: image(22, "", "", 5),
+    pauseCaption: image(
+      22,
+      text(13, 15, pauseCaption, 12, p.muted),
+      pauseCaption,
+      303,
+    ),
+    separator: image(1, line(0.5), ""),
   };
 }
