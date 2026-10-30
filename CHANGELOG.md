@@ -2,6 +2,10 @@
 
 ## 0.5.0 — Unreleased
 
+Added a 200ms eased expand/collapse transition with a rotating chevron, stable card width and bottom anchor, and smooth reversal on a second click. Explicit Reduce Motion skips the transition. Checkbox and On/Off indicators now align with the vertical center of each setting's label and source note. Pause behavior is unchanged.
+
+Aligned the read-only status card with Copilot's compact styling: 13px regular-weight title/disclosure, 12px body and controls, 22px dropdowns/buttons, smaller checkbox spacing and a narrower card. Matched the supplied reference's muted dark colours and lighter outlines. Transparent artwork now uses the native hover background instead of drawing separate opaque blocks behind image sections.
+
 Matched the approved read-only status card using locally generated SVG artwork: outlined checkbox/dropdown displays, blue file/workspace context box, status badge, separators and typography. Hover and click have identical bounds. Values remain live; checkbox/dropdown displays open no picker. Pause/Resume, disclosure and dashboard/Settings navigation remain actionable. The optional native Quick Controls command retains scope, language, checkbox and formatter pickers.
 
 Prepared the 0.5.0 release for regular VS Code: removed the custom-editor connection, private commands, prototype sources and build/CI tooling. Hover and click use the same anchored Markdown card; interactive checkbox/dropdown controls remain in the separate dashboard. Source notes reserve space for overrides so formatting changes keep the card in position. Added a polling fallback for missed native profile notifications.

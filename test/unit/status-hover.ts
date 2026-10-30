@@ -29,14 +29,17 @@ test("reference artwork has live values, accessible descriptions and read-only f
     /Mixed.*Active file: app.ts · TypeScript.*Workspace: project/,
   );
   assert.match(
-    art.flags.alt,
+    art.formatting.alt,
     /Format on save: Off.*Overridden by User settings/,
   );
   assert.match(
-    art.flags.alt,
+    art.formatting.alt,
     /Format on paste: On.*Inherited from User settings/,
   );
-  assert.equal([...art.flags.svg.matchAll(/stroke-width="2"/g)].length, 1);
+  assert.equal(
+    [...art.formatting.svg.matchAll(/stroke-width="1.4"/g)].length,
+    1,
+  );
   const html = statusHover(context);
   assert.ok(!/<input|<select|<button|<script|<style/.test(html));
   const actions = [...html.matchAll(/statusControl\?([^"]*)/g)].map((match) =>
@@ -46,7 +49,7 @@ test("reference artwork has live values, accessible descriptions and read-only f
     [7, "collapse"],
     [7, "pause"],
   ]);
-  assert.match(html, /width="440" height="232"/);
+  assert.match(html, /width="366" height="185"/);
   assert.match(html, /data:image\/svg\+xml;base64,/);
 });
 
@@ -112,14 +115,14 @@ test("untrusted labels remain inert text inside SVG and HTML image descriptions"
 });
 
 test("theme palettes change the artwork and read-only User pause has no action", () => {
-  assert.match(statusArtwork(context, "light").context.svg, /fill="#f8f8f8"/);
+  assert.match(statusArtwork(context, "light").context.svg, /fill="#242424"/);
   assert.match(
     statusArtwork(context, "contrast").context.svg,
-    /fill="#000000"/,
+    /fill="#ffffff"/,
   );
   assert.match(
     statusArtwork(context, "contrast-light").context.svg,
-    /fill="#ffffff"/,
+    /fill="#000000"/,
   );
   assert.ok(
     !statusHover({ ...context, canPause: false }).includes(
