@@ -28,7 +28,7 @@ export function statusHover(
   const link = (action: string) =>
     `command:formattingControls.statusControl?${encodeURIComponent(JSON.stringify([context.revision, action]))}`;
   const info = (topic: keyof typeof statusHelp, contents = image(art.info)) =>
-    `<a href="command:formattingControls.statusInfo?${encodeURIComponent(JSON.stringify([topic]))}" title="${escapeText(statusHelp[topic])}">${contents}</a>`;
+    `<a href="command:formattingControls.statusInfo?${encodeURIComponent(JSON.stringify([topic]))}" title="${statusHelp[topic].split("\n").map(escapeText).join("&#10;")}">${contents}</a>`;
   const fullRow = (contents: string) =>
     `<tr><td colspan="2">${contents}</td></tr>`;
   return `<table width="366"><colgroup><col width="236"><col width="130"></colgroup><tbody>${[
