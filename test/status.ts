@@ -24,6 +24,7 @@ export async function reviewStatus(
     );
   };
   await button.waitFor();
+  await page.mouse.move(10, 200);
   await button.hover();
   await loaded();
   const hovered = await hover.boundingBox();
@@ -71,7 +72,7 @@ export async function reviewStatus(
       "Read-only checkbox/dropdown artwork has no command link",
     );
   await context.click({ position: { x: 330, y: 160 } });
-  await flags.click({ position: { x: 30, y: 14 } });
+  await flags.click({ position: { x: 14, y: 14 } });
   await formatter.click({ position: { x: 320, y: 30 } });
   assert.equal(
     await page.locator(".quick-input-widget:visible").count(),

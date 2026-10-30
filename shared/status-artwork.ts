@@ -20,44 +20,52 @@ export const escapeText = (value: string): string =>
 export type CardTheme = "dark" | "light" | "contrast" | "contrast-light";
 const palettes = {
   dark: {
-    bg: "#202020",
-    fg: "#eeeeee",
-    muted: "#aeb7c2",
-    line: "#424242",
-    accent: "#00b9f4",
-    info: "#1b272e",
-    input: "#1c1c1c",
-    border: "#555555",
+    fg: "#bfbfbf",
+    muted: "#8c8c8c",
+    line: "#2b2b2c",
+    accent: "#47a1c7",
+    focus: "#347490",
+    info: "#22262a",
+    input: "#181a1b",
+    border: "#333536",
+    checkbox: "#252526",
+    checkboxBorder: "#707070",
   },
   light: {
-    bg: "#f8f8f8",
     fg: "#242424",
     muted: "#555f6c",
     line: "#cccccc",
     accent: "#0070a8",
+    focus: "#0070a8",
     info: "#eaf4fa",
     input: "#ffffff",
     border: "#929292",
+    checkbox: "#ffffff",
+    checkboxBorder: "#929292",
   },
   contrast: {
-    bg: "#000000",
     fg: "#ffffff",
     muted: "#ffffff",
     line: "#ffffff",
     accent: "#5cdeff",
+    focus: "#5cdeff",
     info: "#000000",
     input: "#000000",
     border: "#ffffff",
+    checkbox: "#000000",
+    checkboxBorder: "#ffffff",
   },
   "contrast-light": {
-    bg: "#ffffff",
     fg: "#000000",
     muted: "#292929",
     line: "#000000",
     accent: "#004fa3",
+    focus: "#004fa3",
     info: "#ffffff",
     input: "#ffffff",
     border: "#000000",
+    checkbox: "#ffffff",
+    checkboxBorder: "#000000",
   },
 } as const;
 
@@ -93,11 +101,11 @@ export function statusArtwork(
     x: number,
     y: number,
     value: string,
-    size = 14,
+    size = 12,
     color: string = p.fg,
   ) =>
     `<text x="${x}" y="${y}" font-size="${size}" fill="${color}">${escapeText(value)}</text>`;
-  const line = (y: number) => `<path d="M20 ${y}H420" stroke="${p.line}"/>`;
+  const line = (y: number) => `<path d="M5 ${y}H365" stroke="${p.line}"/>`;
   const rect = (
     x: number,
     y: number,
@@ -109,11 +117,11 @@ export function statusArtwork(
   ) =>
     `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" stroke="${stroke}" fill="${fill}"/>`;
   const dropdown = (y: number, value: string) =>
-    rect(208, y, 212, 34) +
-    text(220, y + 22, shortened(value, 25)) +
-    `<path d="M398 ${y + 14}l5 5 5-5" fill="none" stroke="${p.fg}" stroke-width="1.5"/>`;
-  const svg = (height: number, contents: string, width = 440) =>
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><rect width="${width}" height="${height}" fill="${p.bg}"/><g font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">${contents}</g></svg>`;
+    rect(144, y, 221, 22) +
+    text(152, y + 15, shortened(value, 33)) +
+    `<path d="M350 ${y + 9}l4 4 4-4" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
+  const svg = (height: number, contents: string, width = 366) =>
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g font-family="-apple-system, BlinkMacSystemFont, Segoe WPC, Segoe UI, system-ui, Ubuntu, Droid Sans, sans-serif" font-weight="400">${contents}</g></svg>`;
   const state = context.paused
     ? "Paused"
     : context.flags.every(Boolean)
@@ -144,48 +152,48 @@ export function statusArtwork(
     height: number,
     contents: string,
     alt: string,
-    width = 440,
+    width = 366,
   ) => ({ svg: svg(height, contents, width), alt, width, height });
   return {
     context: image(
-      232,
-      text(20, 35, "Formatting Controls", 20) +
-        rect(350, 12, 70, 29) +
-        text(362, 32, state) +
-        line(55) +
-        rect(20, 70, 400, 60, p.accent, p.info, 5) +
-        `<circle cx="40" cy="94" r="9" stroke="${p.accent}" fill="none"/>` +
-        text(38, 99, "i", 14, p.accent) +
-        text(59, 94, shortened(file, 47)) +
-        text(59, 116, shortened(workspace, 49), 13, p.muted) +
-        text(20, 165, "Write to") +
-        dropdown(143, scope) +
-        text(20, 211, "Apply to language") +
-        dropdown(189, language) +
-        line(231),
+      185,
+      text(5, 23, "Formatting Controls", 13) +
+        rect(313, 6, 52, 22, p.border, "none") +
+        text(322, 21, state) +
+        line(41) +
+        rect(5, 48, 360, 52, p.focus, p.info, 6) +
+        `<circle cx="22" cy="63" r="5" stroke="${p.focus}" fill="none"/>` +
+        text(21, 66, "i", 9, p.focus) +
+        text(34, 65, shortened(file, 52)) +
+        text(34, 83, shortened(workspace, 54), 12, p.muted) +
+        text(5, 129, "Write to") +
+        dropdown(114, scope) +
+        text(5, 161, "Apply to language") +
+        dropdown(146, language) +
+        line(184),
       `Formatting Controls. ${state}. ${file}. ${workspace}. Write to: ${scope}. Apply to language: ${language}. Scope and language displays are read-only.`,
     ),
     disclosure: image(
-      46,
-      text(20, 29, "Automatic formatting", 15) +
+      36,
+      text(5, 22, "Automatic formatting", 13) +
         (context.collapsed
-          ? `<path d="M203 21l5 5-5 5" fill="none" stroke="${p.fg}" stroke-width="1.5"/>`
-          : `<path d="M201 23l5 5 5-5" fill="none" stroke="${p.fg}" stroke-width="1.5"/>`),
+          ? `<path d="M141 14l4 4-4 4" fill="none" stroke="${p.muted}" stroke-width="1.2"/>`
+          : `<path d="M139 16l4 4 4-4" fill="none" stroke="${p.muted}" stroke-width="1.2"/>`),
       `Automatic formatting ${context.collapsed ? "collapsed" : "expanded"}`,
     ),
     flags: image(
-      180,
+      138,
       ["save", "paste", "type"]
         .map((label, i) => {
-          const y = i * 60 + 3;
+          const y = i * 44 + 3;
           return (
-            rect(20, y, 20, 20, p.muted, p.bg, 3) +
+            rect(5, y, 18, 18, p.checkboxBorder, p.checkbox, 3) +
             (context.flags[i]
-              ? `<path d="M24 ${y + 10}l5 5 9-10" stroke="${p.fg}" stroke-width="2" fill="none"/>`
+              ? `<path d="M8 ${y + 9}l4 4 8-9" stroke="${p.muted}" stroke-width="1.4" fill="none"/>`
               : "") +
-            text(58, y + 16, `Format on ${label}`, 15) +
-            text(397, y + 16, context.flags[i] ? "On" : "Off", 14, p.muted) +
-            text(58, y + 40, shortened(sourceNotes[i] ?? "", 52), 13, p.muted)
+            text(28, y + 14, `Format on ${label}`) +
+            text(345, y + 14, context.flags[i] ? "On" : "Off", 12, p.muted) +
+            text(28, y + 33, shortened(sourceNotes[i] ?? "", 57), 12, p.muted)
           );
         })
         .join(""),
@@ -197,26 +205,26 @@ export function statusArtwork(
         .join(" ")} Checkbox displays are read-only.`,
     ),
     formatter: image(
-      66,
+      54,
       line(1) +
-        text(20, 38, "Default formatter") +
-        dropdown(16, context.formatter ?? "Not configured") +
-        line(65),
+        text(5, 34, "Default formatter") +
+        dropdown(19, context.formatter ?? "Not configured") +
+        line(53),
       `Default formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
     ),
     pause: image(
-      64,
-      rect(20, 12, 82, 34) +
+      50,
+      rect(5, 13, 58, 22, p.border, "none") +
         text(
-          33,
-          34,
+          13,
+          28,
           context.paused ? "Resume" : "Pause",
-          14,
+          12,
           context.canPause ? p.fg : p.muted,
         ) +
         text(
-          118,
-          34,
+          76,
+          28,
           context.paused
             ? "Restore unchanged formatting preferences"
             : context.canPause
@@ -225,20 +233,20 @@ export function statusArtwork(
           12,
           p.muted,
         ) +
-        line(63),
+        line(49),
       `${context.paused ? "Resume" : "Pause"}. ${context.paused ? "Restore unchanged formatting preferences" : context.canPause ? "Temporarily stop automatic formatting" : "Choose a project scope in the dashboard"}`,
     ),
     dashboard: image(
-      46,
-      text(20, 29, "Open dashboard ↗", 14, p.accent),
+      38,
+      text(5, 24, "Open dashboard ↗", 12, p.accent),
       "Open dashboard",
-      220,
+      183,
     ),
     settings: image(
-      46,
-      text(148, 29, "Settings", 14, p.accent),
+      38,
+      text(132, 24, "Settings", 12, p.accent),
       "Settings",
-      220,
+      183,
     ),
   };
 }

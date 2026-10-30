@@ -29,7 +29,7 @@ export function statusHover(
     `command:formattingControls.statusControl?${encodeURIComponent(JSON.stringify([context.revision, action]))}`;
   const fullRow = (contents: string) =>
     `<tr><td colspan="2">${contents}</td></tr>`;
-  return `<table width="440"><tbody>${[
+  return `<table width="${art.context.width}"><tbody>${[
     fullRow(image(art.context)),
     fullRow(`<a href="${link("collapse")}">${image(art.disclosure)}</a>`),
     ...(context.collapsed ? [] : [fullRow(image(art.flags))]),
