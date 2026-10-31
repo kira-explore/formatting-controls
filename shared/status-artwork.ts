@@ -101,19 +101,11 @@ export function statusArtwork(
   theme: CardTheme = "dark",
 ) {
   const p = palettes[theme];
-  const text = (
-    x: number,
-    y: number,
-    value: string,
-    size = 12,
-    color: string = p.fg,
-  ) =>
-    `<text x="${x}" y="${y}" font-size="${size}" fill="${color}">${escapeText(value)}</text>`;
   const centeredText = (
     x: number,
     y: number,
     value: string,
-    size = 12,
+    size = 13,
     color: string = p.fg,
     anchor: "start" | "middle" = "start",
   ) =>
@@ -133,7 +125,7 @@ export function statusArtwork(
     `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" stroke="${stroke}" fill="${fill}"/>`;
   const dropdown = (y: number, value: string) =>
     rect(168, y, 227, 28) +
-    centeredText(178, y + 14, shortened(value, 33)) +
+    centeredText(178, y + 14, shortened(value, 30)) +
     `<path d="M376 ${y + 12}l4 4 4-4" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
   const svg = (height: number, contents: string, width = 400) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g font-family="-apple-system, BlinkMacSystemFont, Segoe WPC, Segoe UI, system-ui, Ubuntu, Droid Sans, sans-serif" font-weight="400">${contents}</g></svg>`;
@@ -175,8 +167,14 @@ export function statusArtwork(
         (context.flags[i]
           ? `<path d="M8 ${y + 18}l4 4 8-9" stroke="${p.muted}" stroke-width="1.4" fill="none"/>`
           : "") +
-        text(33, y + 13, `Format on ${label}`) +
-        text(33, y + 30, shortened(sourceNotes[i] ?? "", 59), 12, p.muted)
+        centeredText(33, y + 9, `Format on ${label}`) +
+        centeredText(
+          33,
+          y + 27,
+          shortened(sourceNotes[i] ?? "", 54),
+          13,
+          p.muted,
+        )
       );
     })
     .join("");
@@ -207,7 +205,7 @@ export function statusArtwork(
     ),
     header: image(
       28,
-      centeredText(5, 14, "Kira Formatting Controls", 13),
+      centeredText(5, 14, "Kira Formatting Controls", 14),
       "Kira Formatting Controls",
       270,
     ),
@@ -216,8 +214,8 @@ export function statusArtwork(
       line(1) +
         rect(5, 12, 390, 60, p.focus, p.info, 6) +
         infoGlyph(25, 42, p.focus) +
-        centeredText(45, 33, shortened(file, 56)) +
-        centeredText(45, 51, shortened(workspace, 56), 12, p.muted),
+        centeredText(45, 33, shortened(file, 51)) +
+        centeredText(45, 51, shortened(workspace, 51), 13, p.muted),
       `${file}. ${workspace}.`,
     ),
     scopes: image(
@@ -230,24 +228,24 @@ export function statusArtwork(
       `Write to: ${scope}. Apply to language: ${language}. Read-only.`,
     ),
     heading: image(
-      26,
-      text(5, 18, "Automatic formatting", 13),
+      28,
+      centeredText(5, 14, "Automatic formatting", 14),
       "Automatic formatting",
-      136,
+      148,
     ),
     state: image(
-      26,
-      rect(0, 2, 78, 22, p.border, "none") +
-        centeredText(39, 13, state, 12, p.fg, "middle"),
+      28,
+      rect(0, 2, 78, 24, p.border, "none") +
+        centeredText(39, 14, state, 13, p.fg, "middle"),
       `Automatic formatting: ${state}`,
       78,
     ),
     summary: image(
-      26,
-      text(5, 18, "Automatic formatting", 13) +
-        infoGlyph(147, 13, p.muted) +
-        rect(317, 2, 78, 22, p.border, "none") +
-        centeredText(356, 13, state, 12, p.fg, "middle"),
+      28,
+      centeredText(5, 14, "Automatic formatting", 14) +
+        infoGlyph(158, 14, p.muted) +
+        rect(317, 2, 78, 24, p.border, "none") +
+        centeredText(356, 14, state, 13, p.fg, "middle"),
       `Automatic formatting: ${state}`,
     ),
     formatting: image(
@@ -271,7 +269,7 @@ export function statusArtwork(
           33,
           14,
           context.paused ? "Resume" : "Pause",
-          12,
+          13,
           context.canPause ? p.fg : p.muted,
           "middle",
         ),
@@ -281,24 +279,24 @@ export function statusArtwork(
     pauseInset: image(28, "", "", 5),
     pauseCaption: image(
       28,
-      centeredText(12, 14, pauseCaption, 12, p.muted),
+      centeredText(12, 14, pauseCaption, 13, p.muted),
       pauseCaption,
       329,
     ),
     // Reserve height so the rule stays close to Pause within the native line box.
     separator: image(11, line(0.5), ""),
     dashboard: image(
-      24,
-      `<text x="5" y="12" dominant-baseline="central" font-size="12" textLength="106" lengthAdjust="spacingAndGlyphs" fill="${p.accent}" text-decoration="underline">Open dashboard ↗</text>`,
+      26,
+      `<text x="5" y="13" dominant-baseline="central" font-size="13" textLength="115" lengthAdjust="spacingAndGlyphs" fill="${p.accent}" text-decoration="underline">Open dashboard ↗</text>`,
       "Open dashboard ↗",
-      116,
+      125,
     ),
-    footerGap: image(32, "", "", 174),
+    footerGap: image(34, "", "", 156),
     issue: image(
-      24,
-      `<text x="105" y="12" dominant-baseline="central" text-anchor="end" font-size="12" textLength="100" lengthAdjust="spacingAndGlyphs" fill="${p.accent}" text-decoration="underline">Report an issue ↗</text>`,
+      26,
+      `<text x="114" y="13" dominant-baseline="central" text-anchor="end" font-size="13" textLength="109" lengthAdjust="spacingAndGlyphs" fill="${p.accent}" text-decoration="underline">Report an issue ↗</text>`,
       "Report an issue ↗",
-      110,
+      119,
     ),
   };
 }

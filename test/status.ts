@@ -36,6 +36,10 @@ export async function reviewStatus(
       contextOffsetY: number;
       pauseOffsetX: number;
       pauseOffsetY: number;
+      summaryHeadingOffsetY: number;
+      summaryIconOffsetY: number;
+      summaryBadgeOffsetY: number;
+      summaryFits: boolean;
       headerFits: boolean;
       captionFits: boolean;
     }>
@@ -60,7 +64,7 @@ export async function reviewStatus(
       return root;
     }
     return fixtures.map(art => {
-      const badge = mount(art.state), context = mount(art.context), pause = mount(art.pause), captionImage = mount(art.pauseCaption), header = mount(art.header);
+      const badge = mount(art.state), context = mount(art.context), pause = mount(art.pause), captionImage = mount(art.pauseCaption), header = mount(art.header), summary = mount(art.summary);
       try {
         const badgeText = badge.querySelector("text").getBBox();
         const file = Array.from(context.querySelectorAll("text")).find(text => text.textContent.startsWith("Active file:")).getBBox();
@@ -68,16 +72,24 @@ export async function reviewStatus(
         const pauseText = pause.querySelector("text").getBBox();
         const caption = captionImage.querySelector("text").getBBox();
         const title = header.querySelector("text").getBBox();
+        const summaryText = summary.querySelectorAll("text");
+        const summaryHeading = summaryText[0].getBBox();
+        const summaryBadge = summaryText[1].getBBox();
+        const summaryIcon = summary.querySelector("circle").getBBox();
         return {
           badgeOffsetX: badgeText.x + badgeText.width/2 - 39,
-          badgeOffsetY: badgeText.y + badgeText.height/2 - 13,
+          badgeOffsetY: badgeText.y + badgeText.height/2 - 14,
           contextOffsetY: (file.y + workspace.y + workspace.height)/2 - 42,
           pauseOffsetX: pauseText.x + pauseText.width/2 - 33,
           pauseOffsetY: pauseText.y + pauseText.height/2 - 14,
+          summaryHeadingOffsetY: summaryHeading.y + summaryHeading.height/2 - 14,
+          summaryIconOffsetY: summaryIcon.y + summaryIcon.height/2 - 14,
+          summaryBadgeOffsetY: summaryBadge.y + summaryBadge.height/2 - 14,
+          summaryFits: summaryHeading.x + summaryHeading.width < summaryIcon.x,
           headerFits: title.x + title.width <= art.header.width,
           captionFits: caption.x + caption.width <= art.pauseCaption.width - 2,
         };
-      } finally { badge.remove(); context.remove(); pause.remove(); captionImage.remove(); header.remove(); }
+      } finally { badge.remove(); context.remove(); pause.remove(); captionImage.remove(); header.remove(); summary.remove(); }
     });
   })(${JSON.stringify(fixtures)})`);
   writeFileSync(
@@ -91,6 +103,9 @@ export async function reviewStatus(
       measurement.contextOffsetY,
       measurement.pauseOffsetX,
       measurement.pauseOffsetY,
+      measurement.summaryHeadingOffsetY,
+      measurement.summaryIconOffsetY,
+      measurement.summaryBadgeOffsetY,
     ])
       assert.ok(
         Math.abs(offset) <= 1,
@@ -98,6 +113,10 @@ export async function reviewStatus(
       );
     assert.ok(measurement.headerFits, "Full extension name fits");
     assert.ok(measurement.captionFits, "Both Pause/Resume captions fit");
+    assert.ok(
+      measurement.summaryFits,
+      "The larger heading clears the info icon",
+    );
   }
 
   const button = page.getByRole("button", {
@@ -258,19 +277,19 @@ export async function reviewStatus(
   );
   assert.equal(
     dashboardBounds.width,
-    116,
+    125,
     "Dashboard hit area fits the text and padding",
   );
   assert.equal(
     issueBounds.width,
-    110,
+    119,
     "Issue hit area fits the text and padding",
   );
-  assert.equal(dashboardBounds.height, 24);
-  assert.equal(issueBounds.height, 24);
+  assert.equal(dashboardBounds.height, 26);
+  assert.equal(issueBounds.height, 26);
   const gutter = {
     x: dashboardBounds.x + dashboardBounds.width + 20,
-    y: dashboardBounds.y + 12,
+    y: dashboardBounds.y + 13,
   };
   assert.equal(
     await hover.evaluate(
@@ -318,9 +337,9 @@ export async function reviewStatus(
       Math.abs(pauseBottomGap - formatterPadding) <= 2,
     "Pause/Resume padding matches Default formatter",
   );
-  const footerTopGap = dashboardBounds.y + 12 - (separatorBounds.y + 0.5);
+  const footerTopGap = dashboardBounds.y + 13 - (separatorBounds.y + 0.5);
   const footerBottomGap =
-    hovered.y + hovered.height - 1 - (dashboardBounds.y + 12);
+    hovered.y + hovered.height - 1 - (dashboardBounds.y + 13);
   assert.ok(
     Math.abs(footerTopGap - footerBottomGap) <= 2,
     "Footer text is centered between its separator and the frame",

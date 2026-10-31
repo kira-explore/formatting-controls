@@ -2,6 +2,8 @@
 
 ## 0.5.0 — Unreleased
 
+Increased every status-card font by 1px: 14px headings and 13px body, fields, source notes, captions, status and links. Aligned Automatic formatting, its info icon and the status badge to a shared vertical center. Expanded footer hit areas only enough for the larger labels and retained an unlinked gutter.
+
 Increased the centered Settings glyph by another 10% to 12.2px, retaining the same outlined button dimensions.
 
 Unified the file-context and automatic-formatting info icons with the same 12px vector glyph, preserving their blue/gray colors and vertical centering. Moved the formatting icon closer to its label.
