@@ -8,6 +8,8 @@ The header shows **Kira Formatting Controls** with an 11.1px three-slider Settin
 
 ## Read-only formatting summary
 
+Both information icons share the same 12px vector shape. The file-context icon is blue, the formatting icon is gray, and each is vertically centered. The formatting icon sits approximately 8px from its label.
+
 - The file/workspace box identifies the editor whose effective settings are shown. Multi-root workspaces also name its folder.
 - **Write to** and **Apply to language** identify the selected destination, rather than changing the file's language mode. Use the dashboard or optional Quick Controls command to change them.
 - **Automatic formatting** is always visible. Its fixed-width badge reports **Enabled** when all three triggers are enabled, **Disabled** when none are enabled, or **Mixed** when they differ. A pause record does not replace this truthful effective-state label.

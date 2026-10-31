@@ -2,6 +2,8 @@
 
 ## 0.5.0 — Unreleased
 
+Unified the file-context and automatic-formatting info icons with the same 12px vector glyph, preserving their blue/gray colors and vertical centering. Moved the formatting icon closer to its label.
+
 Restored standard outlined checkbox and dropdown artwork, removing the disabled gray treatment while retaining read-only behavior. Increased the Settings glyph by another 5% to 11.1px and retained the formatting status info icon.
 
 Limited both footer click targets to their labels plus a small padding and made the blank gutter non-interactive. Gave read-only dropdowns muted disabled styling and enlarged the Settings glyph by a further 10% to 10.6px.

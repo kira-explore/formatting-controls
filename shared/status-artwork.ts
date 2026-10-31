@@ -119,6 +119,8 @@ export function statusArtwork(
   ) =>
     `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" text-anchor="${anchor}" dominant-baseline="central">${escapeText(value)}</text>`;
   const line = (y: number) => `<path d="M5 ${y}H395" stroke="${p.line}"/>`;
+  const infoGlyph = (x: number, y: number, color: string) =>
+    `<circle cx="${x}" cy="${y}" r="5.5" stroke="${color}" fill="none"/><circle cx="${x}" cy="${y - 3}" r=".6" fill="${color}"/><path d="M${x} ${y - 0.5}v3.5" stroke="${color}" stroke-width="1.2" stroke-linecap="round"/>`;
   const rect = (
     x: number,
     y: number,
@@ -199,8 +201,7 @@ export function statusArtwork(
     ),
     info: image(
       20,
-      `<circle cx="8" cy="10" r="5" stroke="${p.muted}" fill="none"/>` +
-        centeredText(8, 10, "i", 9, p.muted, "middle"),
+      infoGlyph(8, 10, p.muted),
       "About automatic formatting",
       16,
     ),
@@ -214,8 +215,7 @@ export function statusArtwork(
       76,
       line(1) +
         rect(5, 12, 390, 60, p.focus, p.info, 6) +
-        `<circle cx="25" cy="42" r="6" stroke="${p.focus}" fill="none"/>` +
-        centeredText(25, 42, "i", 10, p.focus, "middle") +
+        infoGlyph(25, 42, p.focus) +
         centeredText(45, 33, shortened(file, 56)) +
         centeredText(45, 51, shortened(workspace, 56), 12, p.muted),
       `${file}. ${workspace}.`,
@@ -245,8 +245,7 @@ export function statusArtwork(
     summary: image(
       26,
       text(5, 18, "Automatic formatting", 13) +
-        `<circle cx="156" cy="13" r="5" stroke="${p.muted}" fill="none"/>` +
-        centeredText(156, 13, "i", 9, p.muted, "middle") +
+        infoGlyph(147, 13, p.muted) +
         rect(317, 2, 78, 22, p.border, "none") +
         centeredText(356, 13, state, 12, p.fg, "middle"),
       `Automatic formatting: ${state}`,
