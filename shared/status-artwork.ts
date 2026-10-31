@@ -273,9 +273,8 @@ export function statusArtwork(
       `${flagDescription} Checkbox displays are read-only.`,
     ),
     formatter: image(
-      // The following native one-pixel separator occupies a text-line box.
-      // Reserve the same leading space here to center Pause between the rules.
-      69,
+      // Include the native table inset in the Pause row's 13px padding.
+      64,
       line(1) +
         centeredText(5, 29, "Default formatter") +
         dropdown(15, context.formatter ?? "Not configured") +
@@ -303,16 +302,17 @@ export function statusArtwork(
       pauseCaption,
       329,
     ),
-    separator: image(1, line(0.5), ""),
+    // Reserve height so the rule stays close to Pause within the native line box.
+    separator: image(11, line(0.5), ""),
     dashboard: image(
       32,
-      `<text x="5" y="14" dominant-baseline="central" font-size="12" fill="${p.accent}" text-decoration="underline">Open dashboard ↗</text>`,
+      `<text x="5" y="11.5" dominant-baseline="central" font-size="12" fill="${p.accent}" text-decoration="underline">Open dashboard ↗</text>`,
       "Open dashboard ↗",
       270,
     ),
     issue: image(
       32,
-      `<text x="125" y="14" dominant-baseline="central" text-anchor="end" font-size="12" fill="${p.accent}" text-decoration="underline">Report an issue ↗</text>`,
+      `<text x="125" y="11.5" dominant-baseline="central" text-anchor="end" font-size="12" fill="${p.accent}" text-decoration="underline">Report an issue ↗</text>`,
       "Report an issue ↗",
       130,
     ),

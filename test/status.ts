@@ -271,7 +271,7 @@ export async function reviewStatus(
   const pauseBounds = await pauseImage.boundingBox();
   const formatterBounds = await formatter.boundingBox();
   const separatorBounds = await hover
-    .locator('img[width="400"][height="1"]')
+    .locator('img[width="400"][height="11"]')
     .boundingBox();
   assert.ok(pauseBounds && formatterBounds && separatorBounds && hovered);
   const pauseTopGap = pauseBounds.y + 0.5 - (formatterBounds.y + 55);
@@ -281,9 +281,15 @@ export async function reviewStatus(
     Math.abs(pauseTopGap - pauseBottomGap) <= 2,
     "Pause/Resume has equal space to both separator lines",
   );
-  const footerTopGap = dashboardBounds.y + 14 - (separatorBounds.y + 0.5);
+  const formatterPadding = (15 - 1 + (55 - 43)) / 2;
+  assert.ok(
+    Math.abs(pauseTopGap - formatterPadding) <= 2 &&
+      Math.abs(pauseBottomGap - formatterPadding) <= 2,
+    "Pause/Resume padding matches Default formatter",
+  );
+  const footerTopGap = dashboardBounds.y + 11.5 - (separatorBounds.y + 0.5);
   const footerBottomGap =
-    hovered.y + hovered.height - 1 - (dashboardBounds.y + 14);
+    hovered.y + hovered.height - 1 - (dashboardBounds.y + 11.5);
   assert.ok(
     Math.abs(footerTopGap - footerBottomGap) <= 2,
     "Footer text is centered between its separator and the frame",
