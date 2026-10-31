@@ -23,19 +23,22 @@ export function statusHover(
   theme: CardTheme = "dark",
 ): string {
   const art = statusArtwork(context, theme);
-  const image = (part: typeof art.context, title?: string) =>
-    `<img align="middle" width="${part.width}" height="${part.height}" alt="${escapeText(part.alt)}"${title ? ` title="${escapeText(title)}"` : ""} src="data:image/svg+xml;base64,${Buffer.from(part.svg).toString("base64")}">`;
+  const image = (part: typeof art.context, title?: string, align = "middle") =>
+    `<img align="${align}" width="${part.width}" height="${part.height}" alt="${escapeText(part.alt)}"${title ? ` title="${escapeText(title)}"` : ""} src="data:image/svg+xml;base64,${Buffer.from(part.svg).toString("base64")}">`;
   const link = (action: string) =>
     `command:formattingControls.statusControl?${encodeURIComponent(JSON.stringify([context.revision, action]))}`;
-  const info = (topic: keyof typeof statusHelp, contents = image(art.info)) =>
-    `<a href="command:formattingControls.statusInfo?${encodeURIComponent(JSON.stringify([topic]))}" title="${escapeText(statusHelp[topic])}">${contents}</a>`;
+  const titled = (contents: string, title: string) =>
+    contents.replace(
+      " src=",
+      ` title="${title.split("\n").map(escapeText).join("&#10;")}" src=`,
+    );
   const fullRow = (contents: string) =>
     `<tr><td colspan="2">${contents}</td></tr>`;
-  return `<table width="366"><colgroup><col width="236"><col width="130"></colgroup><tbody>${[
+  return `<table width="400"><colgroup><col width="270"><col width="130"></colgroup><tbody>${[
     `<tr><td>${image(art.header)}</td><td align="right"><a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}" title="Open VS Code Settings">${image(art.settings)}</a></td></tr>`,
-    fullRow(info("file", image(art.context, statusHelp.file))),
+    fullRow(titled(image(art.context), statusHelp.file)),
     fullRow(image(art.scopes)),
-    `<tr><td>${image(art.heading)}&nbsp;${info("formatting")}</td><td align="right">${image(art.state)}</td></tr>`,
+    fullRow(titled(image(art.summary), statusHelp.formatting)),
     fullRow(image(art.formatting)),
     fullRow(image(art.formatter)),
     fullRow(
@@ -46,6 +49,8 @@ export function statusHover(
         image(art.pauseCaption),
     ),
     fullRow(image(art.separator)),
-    `<tr><td height="28"><a href="command:formattingControls.dashboard">Open dashboard ↗</a></td><td align="right"><a href="${issueUrl}">Report an issue ↗</a></td></tr>`,
+    fullRow(
+      `<a href="command:formattingControls.dashboard" title="Open Kira Formatting Controls dashboard">${image(art.dashboard, undefined, "top")}</a>${image(art.footerGap, undefined, "top")}<a href="${issueUrl}" title="Open a new issue on GitHub">${image(art.issue, undefined, "top")}</a>`,
+    ),
   ].join("")}</tbody></table>`;
 }

@@ -2,6 +2,24 @@
 
 ## 0.5.0 — Unreleased
 
+Increased every status-card font by 1px: 14px headings and 13px body, fields, source notes, captions, status and links. Aligned Automatic formatting, its info icon and the status badge to a shared vertical center. Expanded footer hit areas only enough for the larger labels and retained an unlinked gutter.
+
+Increased the centered Settings glyph by another 10% to 12.2px, retaining the same outlined button dimensions.
+
+Unified the file-context and automatic-formatting info icons with the same 12px vector glyph, preserving their blue/gray colors and vertical centering. Moved the formatting icon closer to its label.
+
+Restored standard outlined checkbox and dropdown artwork, removing the disabled gray treatment while retaining read-only behavior. Increased the Settings glyph by another 5% to 11.1px and retained the formatting status info icon.
+
+Limited both footer click targets to their labels plus a small padding and made the blank gutter non-interactive. Gave read-only dropdowns muted disabled styling and enlarged the Settings glyph by a further 10% to 10.6px.
+
+Reduced Pause/Resume padding to match Default formatter, with approximately 13px above and below the button rather than 18px. Retained centered footer text after adjusting the separator placement.
+
+Balanced the vertical margins around the file/scope section, formatting summary, Pause/Resume and footer. Compensated for the native separator's line-height so the pause row is centered between rules. Sized the Settings glyph at 9.6px while keeping its outlined action target unchanged.
+
+Matched the approved status-card proportions with wider content, a boxed three-slider Settings glyph, increased icon/text gaps, disabled-style checkbox artwork and a larger filled Pause/Resume button. Footer actions now use measured underlined artwork to keep their alignment independent of native table-column sizing. Information and read-only cursor shapes remain controlled by VS Code's Markdown renderer.
+
+Made the active-file box and complete Automatic formatting summary hover-only information regions, with no click command or background notification. Boxed the compact Settings glyph, permanently underlined the footer links, added concise destination titles and retained normal cursors for read-only artwork. The formatting summary is one fixed-width image so Enabled, Disabled and Mixed never shift the layout.
+
 Implemented the approved Kira Formatting Controls card: full title, compact top-right sliders Settings icon, stable explanatory help, fixed-width Enabled/Disabled/Mixed badge beside Automatic formatting, checkbox-only states and readable source notes. Version details remain in the Extensions listing. Added repository issue reporting beside Open dashboard and enlarged the context info icon. Pause/Resume uses the agreed manual-resume captions with identical geometry; only the button is linked. Removed redundant Pause/Resume and footer hover titles. Native links retain the editor's hover/focus styling; custom Copilot icon-button hover fills and hover-only underlines remain outside the public tooltip API.
 
 Centered the active-file/workspace text block, context info icon and status badge labels. Automatic formatting is always visible; removed the collapse toggle and animation. Checkboxes align with the vertical center of each setting's label and source note. Pause confirmation and restoration behavior is unchanged.

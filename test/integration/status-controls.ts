@@ -52,7 +52,6 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     assert.deepEqual(tooltip.isTrusted, {
       enabledCommands: [
         "formattingControls.statusControl",
-        "formattingControls.statusInfo",
         "formattingControls.dashboard",
         "workbench.action.openSettings",
       ],

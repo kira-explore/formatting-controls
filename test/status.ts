@@ -36,6 +36,10 @@ export async function reviewStatus(
       contextOffsetY: number;
       pauseOffsetX: number;
       pauseOffsetY: number;
+      summaryHeadingOffsetY: number;
+      summaryIconOffsetY: number;
+      summaryBadgeOffsetY: number;
+      summaryFits: boolean;
       headerFits: boolean;
       captionFits: boolean;
     }>
@@ -60,7 +64,7 @@ export async function reviewStatus(
       return root;
     }
     return fixtures.map(art => {
-      const badge = mount(art.state), context = mount(art.context), pause = mount(art.pause), captionImage = mount(art.pauseCaption), header = mount(art.header);
+      const badge = mount(art.state), context = mount(art.context), pause = mount(art.pause), captionImage = mount(art.pauseCaption), header = mount(art.header), summary = mount(art.summary);
       try {
         const badgeText = badge.querySelector("text").getBBox();
         const file = Array.from(context.querySelectorAll("text")).find(text => text.textContent.startsWith("Active file:")).getBBox();
@@ -68,16 +72,24 @@ export async function reviewStatus(
         const pauseText = pause.querySelector("text").getBBox();
         const caption = captionImage.querySelector("text").getBBox();
         const title = header.querySelector("text").getBBox();
+        const summaryText = summary.querySelectorAll("text");
+        const summaryHeading = summaryText[0].getBBox();
+        const summaryBadge = summaryText[1].getBBox();
+        const summaryIcon = summary.querySelector("circle").getBBox();
         return {
           badgeOffsetX: badgeText.x + badgeText.width/2 - 39,
-          badgeOffsetY: badgeText.y + badgeText.height/2 - 13,
-          contextOffsetY: (file.y + workspace.y + workspace.height)/2 - 34,
-          pauseOffsetX: pauseText.x + pauseText.width/2 - 29,
-          pauseOffsetY: pauseText.y + pauseText.height/2 - 11,
+          badgeOffsetY: badgeText.y + badgeText.height/2 - 14,
+          contextOffsetY: (file.y + workspace.y + workspace.height)/2 - 42,
+          pauseOffsetX: pauseText.x + pauseText.width/2 - 33,
+          pauseOffsetY: pauseText.y + pauseText.height/2 - 14,
+          summaryHeadingOffsetY: summaryHeading.y + summaryHeading.height/2 - 14,
+          summaryIconOffsetY: summaryIcon.y + summaryIcon.height/2 - 14,
+          summaryBadgeOffsetY: summaryBadge.y + summaryBadge.height/2 - 14,
+          summaryFits: summaryHeading.x + summaryHeading.width < summaryIcon.x,
           headerFits: title.x + title.width <= art.header.width,
           captionFits: caption.x + caption.width <= art.pauseCaption.width - 2,
         };
-      } finally { badge.remove(); context.remove(); pause.remove(); captionImage.remove(); header.remove(); }
+      } finally { badge.remove(); context.remove(); pause.remove(); captionImage.remove(); header.remove(); summary.remove(); }
     });
   })(${JSON.stringify(fixtures)})`);
   writeFileSync(
@@ -91,6 +103,9 @@ export async function reviewStatus(
       measurement.contextOffsetY,
       measurement.pauseOffsetX,
       measurement.pauseOffsetY,
+      measurement.summaryHeadingOffsetY,
+      measurement.summaryIconOffsetY,
+      measurement.summaryBadgeOffsetY,
     ])
       assert.ok(
         Math.abs(offset) <= 1,
@@ -98,6 +113,10 @@ export async function reviewStatus(
       );
     assert.ok(measurement.headerFits, "Full extension name fits");
     assert.ok(measurement.captionFits, "Both Pause/Resume captions fit");
+    assert.ok(
+      measurement.summaryFits,
+      "The larger heading clears the info icon",
+    );
   }
 
   const button = page.getByRole("button", {
@@ -108,10 +127,9 @@ export async function reviewStatus(
   });
   const loaded = async () => {
     await hover.waitFor({ state: "visible" });
-    await page.waitForFunction(`(() => {
-      const images = Array.from(document.querySelectorAll('.monaco-hover img'));
-      return images.length >= 13 && images.every(img => img.complete && img.naturalWidth > 0);
-    })()`);
+    const images = hover.locator("img");
+    await images.nth(13).waitFor();
+    assert.equal(await images.count(), 14, "All status artwork is rendered");
   };
   const dismiss = async () => {
     // A transient hover may already have closed after a screenshot. Focus it
@@ -130,6 +148,27 @@ export async function reviewStatus(
   await button.hover();
   await loaded();
   const hovered = await hover.boundingBox();
+  writeFileSync(
+    join(directory, "status-row-layout.json"),
+    JSON.stringify(
+      await hover.locator("img").evaluateAll((images) =>
+        images.map((img) => {
+          const box = img.getBoundingClientRect();
+          const row = img.closest("tr")?.getBoundingClientRect();
+          return {
+            alt: img.alt,
+            x: box.x,
+            y: box.y,
+            width: box.width,
+            height: box.height,
+            row: row && { y: row.y, height: row.height },
+          };
+        }),
+      ),
+      null,
+      2,
+    ),
+  );
   await hover.screenshot({
     path: join(directory, "status-implementation-probe.png"),
   });
@@ -182,16 +221,24 @@ export async function reviewStatus(
   assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
   assert.deepEqual(await hover.boundingBox(), hovered);
 
-  const fileInfo = hover
-    .getByRole("img", { name: /^Active file:/ })
-    .locator("..");
+  const fileInfo = hover.getByRole("img", { name: /^Active file:/ });
   assert.equal(await fileInfo.getAttribute("title"), statusHelp.file);
-  const formattingInfo = hover
-    .getByRole("img", { name: "About automatic formatting", exact: true })
-    .locator("..");
+  assert.equal(
+    await fileInfo.evaluate((el) => !!el.closest("a")),
+    false,
+    "File information is hover-only",
+  );
+  const formattingInfo = hover.getByRole("img", {
+    name: /^Automatic formatting:/,
+  });
   assert.equal(
     await formattingInfo.getAttribute("title"),
     statusHelp.formatting,
+  );
+  assert.equal(
+    await formattingInfo.evaluate((el) => !!el.closest("a")),
+    false,
+    "Formatting information is hover-only",
   );
   const settings = hover.getByRole("link", {
     name: "Open VS Code Settings",
@@ -209,15 +256,94 @@ export async function reviewStatus(
   );
   const dashboard = hover.getByRole("link", { name: /^Open dashboard/ });
   const issue = hover.getByRole("link", { name: /^Report an issue/ });
+  const contextBounds = await fileInfo.boundingBox();
+  const dashboardBounds = await dashboard.getByRole("img").boundingBox();
+  const issueBounds = await issue.getByRole("img").boundingBox();
+  assert.ok(contextBounds && dashboardBounds && issueBounds);
+  assert.equal(
+    dashboardBounds.x,
+    contextBounds.x,
+    "Footer shares the context artwork's left edge",
+  );
+  assert.equal(
+    issueBounds.x + issueBounds.width,
+    contextBounds.x + contextBounds.width,
+    "Issue action shares the context artwork's right edge",
+  );
+  assert.equal(
+    dashboardBounds.y,
+    issueBounds.y,
+    "Footer actions stay on the same row",
+  );
+  assert.equal(
+    dashboardBounds.width,
+    125,
+    "Dashboard hit area fits the text and padding",
+  );
+  assert.equal(
+    issueBounds.width,
+    119,
+    "Issue hit area fits the text and padding",
+  );
+  assert.equal(dashboardBounds.height, 26);
+  assert.equal(issueBounds.height, 26);
+  const gutter = {
+    x: dashboardBounds.x + dashboardBounds.width + 20,
+    y: dashboardBounds.y + 13,
+  };
+  assert.equal(
+    await hover.evaluate(
+      (element, { x, y }) =>
+        Boolean(element.ownerDocument.elementFromPoint(x, y)?.closest("a")),
+      gutter,
+    ),
+    false,
+    "The footer gutter is not clickable",
+  );
+  await page.mouse.click(gutter.x, gutter.y);
+  assert.equal(
+    await page.locator(".editor-group-container .tab").count(),
+    tabs,
+    "Clicking the footer gutter does not open the dashboard",
+  );
   assert.equal(await issue.getAttribute("data-href"), issueUrl);
-  for (const link of [dashboard, issue])
-    assert.equal(await link.getAttribute("title"), null);
+  assert.equal(
+    await dashboard.getAttribute("title"),
+    "Open Kira Formatting Controls dashboard",
+  );
+  assert.equal(await issue.getAttribute("title"), "Open a new issue on GitHub");
   const pauseLink = hover.getByRole("link", { name: "Pause", exact: true });
   assert.equal(await pauseLink.getAttribute("title"), null);
   const pauseImage = pauseLink.getByRole("img", { name: "Pause", exact: true });
   assert.equal(await pauseImage.getAttribute("title"), null);
-  assert.equal((await pauseImage.boundingBox())?.width, 58);
-  assert.equal((await pauseImage.boundingBox())?.height, 22);
+  assert.equal((await pauseImage.boundingBox())?.width, 66);
+  assert.equal((await pauseImage.boundingBox())?.height, 28);
+  const pauseBounds = await pauseImage.boundingBox();
+  const formatterBounds = await formatter.boundingBox();
+  const separatorBounds = await hover
+    .locator('img[width="400"][height="11"]')
+    .boundingBox();
+  assert.ok(pauseBounds && formatterBounds && separatorBounds && hovered);
+  const pauseTopGap = pauseBounds.y + 0.5 - (formatterBounds.y + 55);
+  const pauseBottomGap =
+    separatorBounds.y + 0.5 - (pauseBounds.y + pauseBounds.height - 0.5);
+  assert.ok(
+    Math.abs(pauseTopGap - pauseBottomGap) <= 2,
+    "Pause/Resume has equal space to both separator lines",
+  );
+  const formatterPadding = (15 - 1 + (55 - 43)) / 2;
+  assert.ok(
+    Math.abs(pauseTopGap - formatterPadding) <= 2 &&
+      Math.abs(pauseBottomGap - formatterPadding) <= 2,
+    "Pause/Resume padding matches Default formatter",
+  );
+  const footerTopGap = dashboardBounds.y + 13 - (separatorBounds.y + 0.5);
+  const footerBottomGap =
+    hovered.y + hovered.height - 1 - (dashboardBounds.y + 13);
+  assert.ok(
+    Math.abs(footerTopGap - footerBottomGap) <= 2,
+    "Footer text is centered between its separator and the frame",
+  );
   const caption = hover.getByRole("img", {
     name: "Pause automatic formatting until you resume.",
     exact: true,
@@ -280,9 +406,7 @@ export async function reviewStatus(
     JSON.stringify(accessibility, null, 2),
   );
   assert.deepEqual(accessibility.violations, []);
-  await hover
-    .getByRole("img", { name: "Automatic formatting", exact: true })
-    .click();
+  await formattingInfo.click();
   await flags.waitFor();
   assert.deepEqual(
     await hover.boundingBox(),

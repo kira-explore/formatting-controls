@@ -116,7 +116,7 @@ All 53 unit tests pass on Node 24.22.1, with TypeScript and Biome checks passing
 
 ### Reference-style read-only card
 
-The approved reference layout is now drawn as local, inert SVG images inside the regular Markdown status tooltip. Images show live effective formatting, scope, language, formatter, file and workspace values. Checkbox and dropdown artwork has no command link and launches no picker. Automatic formatting disclosure, Pause/Resume and dashboard/Settings navigation remain links.
+The approved reference layout is now drawn as local, inert SVG images inside the regular Markdown status tooltip. Images show live effective formatting, scope, language, formatter, file and workspace values. Checkbox and dropdown artwork has no command link and launches no picker. File and formatting help is attached to complete inert image regions, while Pause/Resume and dashboard/Settings navigation remain links.
 
 Actual editor checks on VS Code 1.140.0 and 1.144.0 verify that all images load, hover and click have identical bounds and descriptions, the card stays pinned after click, read-only displays open no picker or additional surface, keyboard/Escape works, disclosure works and dashboard navigation still opens the existing dashboard. Latest-editor tests cover Dark Modern, Light Modern and Default High Contrast. Axe scans report zero violations; each image has its full value description as alternative text. This does not replace hands-on screen-reader testing.
 
