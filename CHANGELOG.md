@@ -4,7 +4,7 @@
 
 Reduced Pause/Resume padding to match Default formatter, with approximately 13px above and below the button rather than 18px. Retained centered footer text after adjusting the separator placement.
 
-Balanced the vertical margins around the file/scope section, formatting summary, Pause/Resume and footer. Compensated for the native separator's line-height so the pause row is centered between rules. Reduced the Settings glyph by 50% while keeping its outlined action target unchanged.
+Balanced the vertical margins around the file/scope section, formatting summary, Pause/Resume and footer. Compensated for the native separator's line-height so the pause row is centered between rules. Sized the Settings glyph at 9.6px while keeping its outlined action target unchanged.
 
 Matched the approved status-card proportions with wider content, a boxed three-slider Settings glyph, increased icon/text gaps, disabled-style checkbox artwork and a larger filled Pause/Resume button. Footer actions now use measured underlined artwork to keep their alignment independent of native table-column sizing. Information and read-only cursor shapes remain controlled by VS Code's Markdown renderer.
 

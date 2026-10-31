@@ -209,7 +209,7 @@ export function statusArtwork(
     settings: image(
       24,
       rect(0.5, 0.5, 25, 23, p.border, p.button) +
-        `<g transform="translate(9 8.5) scale(.5)" fill="none" stroke="${p.fg}" stroke-width="1.5"><path d="M0 2h16M0 7h16M0 12h16M5 0v4M11 5v4M7 10v4"/></g>`,
+        `<g transform="translate(8.2 7.8) scale(.6)" fill="none" stroke="${p.fg}" stroke-width="1.5"><path d="M0 2h16M0 7h16M0 12h16M5 0v4M11 5v4M7 10v4"/></g>`,
       "Open VS Code Settings",
       26,
     ),
