@@ -109,8 +109,8 @@ export async function reviewStatus(
   const loaded = async () => {
     await hover.waitFor({ state: "visible" });
     const images = hover.locator("img");
-    await images.nth(12).waitFor();
-    assert.equal(await images.count(), 13, "All status artwork is rendered");
+    await images.nth(13).waitFor();
+    assert.equal(await images.count(), 14, "All status artwork is rendered");
   };
   const dismiss = async () => {
     // A transient hover may already have closed after a screenshot. Focus it
@@ -256,6 +256,37 @@ export async function reviewStatus(
     issueBounds.y,
     "Footer actions stay on the same row",
   );
+  assert.equal(
+    dashboardBounds.width,
+    116,
+    "Dashboard hit area fits the text and padding",
+  );
+  assert.equal(
+    issueBounds.width,
+    110,
+    "Issue hit area fits the text and padding",
+  );
+  assert.equal(dashboardBounds.height, 24);
+  assert.equal(issueBounds.height, 24);
+  const gutter = {
+    x: dashboardBounds.x + dashboardBounds.width + 20,
+    y: dashboardBounds.y + 12,
+  };
+  assert.equal(
+    await hover.evaluate(
+      (element, { x, y }) =>
+        Boolean(element.ownerDocument.elementFromPoint(x, y)?.closest("a")),
+      gutter,
+    ),
+    false,
+    "The footer gutter is not clickable",
+  );
+  await page.mouse.click(gutter.x, gutter.y);
+  assert.equal(
+    await page.locator(".editor-group-container .tab").count(),
+    tabs,
+    "Clicking the footer gutter does not open the dashboard",
+  );
   assert.equal(await issue.getAttribute("data-href"), issueUrl);
   assert.equal(
     await dashboard.getAttribute("title"),
@@ -287,9 +318,9 @@ export async function reviewStatus(
       Math.abs(pauseBottomGap - formatterPadding) <= 2,
     "Pause/Resume padding matches Default formatter",
   );
-  const footerTopGap = dashboardBounds.y + 11.5 - (separatorBounds.y + 0.5);
+  const footerTopGap = dashboardBounds.y + 12 - (separatorBounds.y + 0.5);
   const footerBottomGap =
-    hovered.y + hovered.height - 1 - (dashboardBounds.y + 11.5);
+    hovered.y + hovered.height - 1 - (dashboardBounds.y + 12);
   assert.ok(
     Math.abs(footerTopGap - footerBottomGap) <= 2,
     "Footer text is centered between its separator and the frame",

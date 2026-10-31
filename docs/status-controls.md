@@ -2,7 +2,7 @@
 
 Hover and click open the same anchored card above the Formatting status-bar item. Click focuses and pins it; Escape dismisses it. Enter on the focused status item opens it. A normal status click creates neither a docked Panel view nor an editor tab.
 
-The header shows **Kira Formatting Controls** with a 9.6px three-slider Settings icon inside a fixed 26px by 24px box. Version details remain in the Extensions listing. The app icon appears in that listing; the card has no app logo. The package ID remains `rajudhami.formatting-controls`.
+The header shows **Kira Formatting Controls** with a 10.6px three-slider Settings icon inside a fixed 26px by 24px box. Version details remain in the Extensions listing. The app icon appears in that listing; the card has no app logo. The package ID remains `rajudhami.formatting-controls`.
 
 ![Anchored formatting controls](assets/status-card-dark.png)
 
@@ -26,6 +26,8 @@ After confirmation and successful application, the button becomes **Resume**, wi
 The existing native JSON preview, confirmation and durable recovery workflow are unchanged. Save actions and the formatter selection remain unchanged. No timer or automatic resumption is introduced.
 
 ## Rendering and compatibility
+
+Read-only dropdowns use the disabled checkbox surface with muted values and arrows. Footer links have text-sized hit areas with approximately 4–5px padding. The gap between them is unlinked artwork, so it neither shows an action cursor nor opens the dashboard. Separate image alignment preserves the footer's vertical spacing.
 
 VS Code's public `StatusBarItem.tooltip` accepts Markdown, images and command links; arbitrary form styling is sanitized. Locally generated inert SVG images preserve the approved layout, with native links for navigation and help. No scripts, external images, rendering network calls or rendering files are used.
 

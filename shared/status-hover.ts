@@ -23,8 +23,8 @@ export function statusHover(
   theme: CardTheme = "dark",
 ): string {
   const art = statusArtwork(context, theme);
-  const image = (part: typeof art.context, title?: string) =>
-    `<img align="middle" width="${part.width}" height="${part.height}" alt="${escapeText(part.alt)}"${title ? ` title="${escapeText(title)}"` : ""} src="data:image/svg+xml;base64,${Buffer.from(part.svg).toString("base64")}">`;
+  const image = (part: typeof art.context, title?: string, align = "middle") =>
+    `<img align="${align}" width="${part.width}" height="${part.height}" alt="${escapeText(part.alt)}"${title ? ` title="${escapeText(title)}"` : ""} src="data:image/svg+xml;base64,${Buffer.from(part.svg).toString("base64")}">`;
   const link = (action: string) =>
     `command:formattingControls.statusControl?${encodeURIComponent(JSON.stringify([context.revision, action]))}`;
   const titled = (contents: string, title: string) =>
@@ -50,7 +50,7 @@ export function statusHover(
     ),
     fullRow(image(art.separator)),
     fullRow(
-      `<a href="command:formattingControls.dashboard" title="Open Kira Formatting Controls dashboard">${image(art.dashboard)}</a><a href="${issueUrl}" title="Open a new issue on GitHub">${image(art.issue)}</a>`,
+      `<a href="command:formattingControls.dashboard" title="Open Kira Formatting Controls dashboard">${image(art.dashboard, undefined, "top")}</a>${image(art.footerGap, undefined, "top")}<a href="${issueUrl}" title="Open a new issue on GitHub">${image(art.issue, undefined, "top")}</a>`,
     ),
   ].join("")}</tbody></table>`;
 }

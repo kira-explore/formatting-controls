@@ -2,6 +2,8 @@
 
 ## 0.5.0 — Unreleased
 
+Limited both footer click targets to their labels plus a small padding and made the blank gutter non-interactive. Gave read-only dropdowns muted disabled styling and enlarged the Settings glyph by a further 10% to 10.6px.
+
 Reduced Pause/Resume padding to match Default formatter, with approximately 13px above and below the button rather than 18px. Retained centered footer text after adjusting the separator placement.
 
 Balanced the vertical margins around the file/scope section, formatting summary, Pause/Resume and footer. Compensated for the native separator's line-height so the pause row is centered between rules. Sized the Settings glyph at 9.6px while keeping its outlined action target unchanged.
