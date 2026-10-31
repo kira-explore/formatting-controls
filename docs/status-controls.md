@@ -2,7 +2,7 @@
 
 Hover and click open the same anchored card above the Formatting status-bar item. Click focuses and pins it; Escape dismisses it. Enter on the focused status item opens it. A normal status click creates neither a docked Panel view nor an editor tab.
 
-The header shows **Kira Formatting Controls** with a 10.6px three-slider Settings icon inside a fixed 26px by 24px box. Version details remain in the Extensions listing. The app icon appears in that listing; the card has no app logo. The package ID remains `rajudhami.formatting-controls`.
+The header shows **Kira Formatting Controls** with an 11.1px three-slider Settings icon inside a fixed 26px by 24px box. Version details remain in the Extensions listing. The app icon appears in that listing; the card has no app logo. The package ID remains `rajudhami.formatting-controls`.
 
 ![Anchored formatting controls](assets/status-card-dark.png)
 
@@ -27,11 +27,11 @@ The existing native JSON preview, confirmation and durable recovery workflow are
 
 ## Rendering and compatibility
 
-Read-only dropdowns use the disabled checkbox surface with muted values and arrows. Footer links have text-sized hit areas with approximately 4–5px padding. The gap between them is unlinked artwork, so it neither shows an action cursor nor opens the dashboard. Separate image alignment preserves the footer's vertical spacing.
+Read-only dropdowns use standard outlined fields with normal text and arrows. Checkboxes use neutral outlines and ticks rather than a disabled gray fill. Footer links have text-sized hit areas with approximately 4–5px padding. The gap between them is unlinked artwork, so it neither shows an action cursor nor opens the dashboard. Separate image alignment preserves the footer's vertical spacing.
 
 VS Code's public `StatusBarItem.tooltip` accepts Markdown, images and command links; arbitrary form styling is sanitized. Locally generated inert SVG images preserve the approved layout, with native links for navigation and help. No scripts, external images, rendering network calls or rendering files are used.
 
-The 400px content width follows the approved reference. The title and section heading use 13px regular text and body/control text 12px. Read-only fields have 28px outlines and the fixed status badge has a 22px outline. Setting rows use a 46px rhythm with 10px between each disabled-style checkbox and its text. Checked boxes have a muted fill and dark tick; unchecked boxes have a darker fill. High-contrast themes retain distinct ticks and outlines. The file/workspace block and context info icon are vertically centered, with a 14px gap between the icon and text. The formatting heading, info glyph and fixed-width status badge share one hover-only image. The filled Pause/Resume button retains fixed dimensions across both states. Underlined footer artwork shares the same content width and aligns to the card edges independently of VS Code's native table-column sizing.
+The 400px content width follows the approved reference. The title and section heading use 13px regular text and body/control text 12px. Read-only fields have 28px outlines and the fixed status badge has a 22px outline. Setting rows use a 46px rhythm with 10px between each checkbox and its text. Checked boxes show an outlined tick; unchecked boxes retain the same neutral surface. High-contrast themes retain distinct ticks and outlines. The file/workspace block and context info icon are vertically centered, with a 14px gap between the icon and text. The formatting heading, info glyph and fixed-width status badge share one hover-only image. The badge explanation remains discoverable through the visible info icon. The filled Pause/Resume button retains fixed dimensions across both states. Underlined footer artwork shares the same content width and aligns to the card edges independently of VS Code's native table-column sizing.
 
 Transparent artwork reveals the native hover surface. Dark, light, high-contrast and high-contrast-light palettes follow the theme kind; arbitrary custom theme colors/fonts are not available inside the image renderer. Native links follow the editor's own hover/focus styling. The public Markdown tooltip cannot reproduce Copilot's custom grey icon-button hover fill or enforce a custom hover underline. This limitation does not change layout or actions.
 

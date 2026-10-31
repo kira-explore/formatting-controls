@@ -29,10 +29,7 @@ const palettes = {
     input: "#181a1b",
     border: "#333536",
     button: "#2a2d2e",
-    disabledText: "#aaaaaa",
-    checkbox: "#3a3a3a",
-    checkboxChecked: "#777777",
-    checkboxTick: "#353535",
+    checkbox: "#252526",
     checkboxBorder: "#707070",
   },
   light: {
@@ -45,10 +42,7 @@ const palettes = {
     input: "#ffffff",
     border: "#929292",
     button: "#e6e6e6",
-    disabledText: "#616161",
-    checkbox: "#eeeeee",
-    checkboxChecked: "#b8b8b8",
-    checkboxTick: "#555555",
+    checkbox: "#ffffff",
     checkboxBorder: "#929292",
   },
   contrast: {
@@ -61,10 +55,7 @@ const palettes = {
     input: "#000000",
     border: "#ffffff",
     button: "#000000",
-    disabledText: "#ffffff",
     checkbox: "#000000",
-    checkboxChecked: "#000000",
-    checkboxTick: "#ffffff",
     checkboxBorder: "#ffffff",
   },
   "contrast-light": {
@@ -77,10 +68,7 @@ const palettes = {
     input: "#ffffff",
     border: "#000000",
     button: "#ffffff",
-    disabledText: "#000000",
     checkbox: "#ffffff",
-    checkboxChecked: "#ffffff",
-    checkboxTick: "#000000",
     checkboxBorder: "#000000",
   },
 } as const;
@@ -142,9 +130,9 @@ export function statusArtwork(
   ) =>
     `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" stroke="${stroke}" fill="${fill}"/>`;
   const dropdown = (y: number, value: string) =>
-    rect(168, y, 227, 28, p.checkboxBorder, p.checkbox) +
-    centeredText(178, y + 14, shortened(value, 33), 12, p.disabledText) +
-    `<path d="M376 ${y + 12}l4 4 4-4" fill="none" stroke="${p.disabledText}" stroke-width="1.2"/>`;
+    rect(168, y, 227, 28) +
+    centeredText(178, y + 14, shortened(value, 33)) +
+    `<path d="M376 ${y + 12}l4 4 4-4" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
   const svg = (height: number, contents: string, width = 400) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g font-family="-apple-system, BlinkMacSystemFont, Segoe WPC, Segoe UI, system-ui, Ubuntu, Droid Sans, sans-serif" font-weight="400">${contents}</g></svg>`;
   const state = context.flags.every(Boolean)
@@ -181,17 +169,9 @@ export function statusArtwork(
     .map((label, i) => {
       const y = i * 46;
       return (
-        rect(
-          5,
-          y + 9,
-          18,
-          18,
-          p.checkboxBorder,
-          context.flags[i] ? p.checkboxChecked : p.checkbox,
-          2,
-        ) +
+        rect(5, y + 9, 18, 18, p.checkboxBorder, p.checkbox, 2) +
         (context.flags[i]
-          ? `<path d="M8 ${y + 18}l4 4 8-9" stroke="${p.checkboxTick}" stroke-width="2" fill="none"/>`
+          ? `<path d="M8 ${y + 18}l4 4 8-9" stroke="${p.muted}" stroke-width="1.4" fill="none"/>`
           : "") +
         text(33, y + 13, `Format on ${label}`) +
         text(33, y + 30, shortened(sourceNotes[i] ?? "", 59), 12, p.muted)
@@ -213,7 +193,7 @@ export function statusArtwork(
     settings: image(
       24,
       rect(0.5, 0.5, 25, 23, p.border, p.button) +
-        `<g transform="translate(7.72 7.38) scale(.66)" fill="none" stroke="${p.fg}" stroke-width="1.5"><path d="M0 2h16M0 7h16M0 12h16M5 0v4M11 5v4M7 10v4"/></g>`,
+        `<g transform="translate(7.456 7.149) scale(.693)" fill="none" stroke="${p.fg}" stroke-width="1.5"><path d="M0 2h16M0 7h16M0 12h16M5 0v4M11 5v4M7 10v4"/></g>`,
       "Open VS Code Settings",
       26,
     ),

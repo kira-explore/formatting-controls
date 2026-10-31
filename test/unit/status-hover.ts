@@ -37,7 +37,10 @@ test("reference artwork has live values, accessible descriptions and read-only f
     art.formatting.alt,
     /Format on paste: Enabled.*Inherited from User settings/,
   );
-  assert.equal([...art.formatting.svg.matchAll(/stroke-width="2"/g)].length, 1);
+  assert.equal(
+    [...art.formatting.svg.matchAll(/stroke-width="1.4"/g)].length,
+    1,
+  );
   const html = statusHover(context);
   assert.ok(!/<input|<select|<button|<script|<style/.test(html));
   const actions = [...html.matchAll(/statusControl\?([^"]*)/g)].map((match) =>

@@ -2,6 +2,8 @@
 
 ## 0.5.0 — Unreleased
 
+Restored standard outlined checkbox and dropdown artwork, removing the disabled gray treatment while retaining read-only behavior. Increased the Settings glyph by another 5% to 11.1px and retained the formatting status info icon.
+
 Limited both footer click targets to their labels plus a small padding and made the blank gutter non-interactive. Gave read-only dropdowns muted disabled styling and enlarged the Settings glyph by a further 10% to 10.6px.
 
 Reduced Pause/Resume padding to match Default formatter, with approximately 13px above and below the button rather than 18px. Retained centered footer text after adjusting the separator placement.
