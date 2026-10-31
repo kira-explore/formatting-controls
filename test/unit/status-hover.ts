@@ -154,7 +154,7 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
     /Pause automatic formatting until you resume\./,
   );
   assert.ok(
-    statusHover(context).includes(statusHelp.file.replace("\n", "&#10;")),
+    statusHover(context).includes(statusHelp.file.replaceAll("\n", "&#10;")),
   );
 });
 
