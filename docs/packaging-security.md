@@ -1,27 +1,41 @@
-# Packaging dependency security fix
+# Packaging dependency security
 
-Resolved GHSA-xcx6-jx8p-x3h5 with a temporary, version-scoped Bun override:
+The committed lockfile uses vsce 4.1.0 with two temporary Bun overrides:
 
 ```json
 "overrides": {
-  "@azure/identity@4.14.0>@azure/msal-node": "7.1.1"
+  "@azure/identity@4.14.0>@azure/msal-node": "7.1.1",
+  "minimatch": "11.0.3"
 }
 ```
 
-The latest stable @vscode/vsce 4.0.0 uses @azure/identity 4.14.0, whose declared MSAL range is ^6.0.0. MSAL versions >=5.0.0-beta.0 and <7.1.0 are affected; 7.1.1 contains the upstream fix. The override deliberately goes outside Identity's declared semver range. It is a compatibility-tested project workaround, not a claim that Microsoft has expanded that support range. The upstream prereleases checked during this review still used vulnerable MSAL ranges, so no prerelease tooling or fork was adopted.
+These dependencies belong to build/packaging tooling. Their authentication and glob dependency trees are not shipped as runtime packages in the VSIX. PR validation and release preparation require a clean, unfiltered `bun audit`; no advisory IDs are ignored.
 
-## Compatibility basis
+## Azure Identity / MSAL
 
-MSAL 7.0's breaking change removes responseMode from acquireTokenInteractive and requires form_post for browser-loopback authentication. vsce's Entra credential chain uses EnvironmentCredential, AzureCliCredential, ManagedIdentityCredential, AzurePowerShellCredential and AzureDeveloperCliCredential; it does not use interactive browser-loopback authentication. The source review applies to vsce 4.0.0 and Identity 4.14.0 only.
+[GHSA-xcx6-jx8p-x3h5](https://github.com/advisories/GHSA-xcx6-jx8p-x3h5) affects the MSAL versions selected by Azure Identity 4.14.0's declared ^6.0.0 range. The version-scoped override selects patched MSAL 7.1.1. It deliberately exceeds that declared range and is a compatibility-tested project workaround, not an expanded upstream support guarantee.
 
-Regression tests resolve Identity through the installed vsce package and MSAL through that Identity instance, ensuring they exercise the actual transitive pair. The real SDK and MSAL process client-secret/token-cache, client-assertion, authorization-code, environment-credential/chain fallback and authentication-rejection scenarios. A fixture HTTP transport serves discovery/token responses in memory; it rejects unexpected endpoints. These tests do not contact Azure, use real credentials, or publish anything. They are not a live publisher-account or every-credential-flow certification.
+MSAL 7.0 removes `responseMode` from `acquireTokenInteractive` and requires `form_post` for browser-loopback authentication. vsce's Entra credential chain uses environment, CLI, managed identity, PowerShell and developer CLI credentials; it does not use interactive browser-loopback authentication. See the [MSAL 7.0 changes](https://github.com/AzureAD/microsoft-authentication-library-for-js/releases/tag/msal-node-v7.0.0) and [7.1 security fix](https://github.com/AzureAD/microsoft-authentication-library-for-js/releases/tag/msal-node-v7.1.0).
 
-Node 24 runs these compatibility tests in the unit suite and the Linux/macOS/Windows CI matrix. Packaging uses the unchanged stable vsce API and validates the final VSIX after its build hook. No authentication library or runtime dependency tree is added to the extension bundle.
+Regression tests resolve Identity through the installed vsce package and MSAL through that Identity instance. The actual libraries exercise client-secret/cache, client-assertion, authorization-code, environment/chain fallback and authentication-rejection scenarios. An in-memory HTTP transport supplies fixtures and rejects unexpected endpoints. These tests use no real Azure credentials and perform no publication. They do not certify every credential flow or a live publisher account.
 
-## Maintenance and audit policy
+The exact parent/version selector confines the override to Identity 4.14.0. Remove it when the packaging dependency's supported range includes patched MSAL, then deliberately update the resolved-version assertion and rerun the compatibility suite.
 
-The exact parent/version selector confines this workaround to Identity 4.14.0. A future SDK update does not silently inherit it: review the upstream dependency range and remove the override once the supported range includes a patched MSAL. Update the resolved-version regression assertion deliberately when that happens. Bun 1.4.4 supports the version-scoped override and commits the resulting version-3 lockfile.
+## minimatch
 
-PR validation and release preparation now require a completely clean, unfiltered bun audit. The previous advisory allowlist has been removed; no advisory IDs are ignored. This removes the dependency release blocker only. Hands-on screen-reader, remote-workspace and concurrent-window checks and publisher approval remain separate release gates.
+[GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) describes pattern amplification that can exhaust CPU/memory. Versions below 11.0.1 are affected; the project selects 11.0.3 instead of the 10.x version requested by packaging tooling.
 
-References: [advisory](https://github.com/advisories/GHSA-xcx6-jx8p-x3h5), [MSAL 7.0 changes](https://github.com/AzureAD/microsoft-authentication-library-for-js/releases/tag/msal-node-v7.0.0), [MSAL 7.1 security fix](https://github.com/AzureAD/microsoft-authentication-library-for-js/releases/tag/msal-node-v7.1.0), [Bun scoped overrides](https://bun.sh/docs/pm/overrides).
+This override also crosses the parent's major-version range. Final VSIX packaging/content validation exercises the actual installed toolchain, but does not establish compatibility for every glob pattern or every upstream caller. Review all resolved minimatch consumers on dependency updates. Remove the override when their supported ranges select a patched version without it.
+
+## Verification and maintenance
+
+```sh
+bun install --frozen-lockfile
+bun run test
+bun run security:check
+bun run package
+```
+
+The Node 24 unit suite and Linux/macOS/Windows checks exercise packaging authentication compatibility. Packaging validates the final archive after vsce's build hook. Keep `package.json`, `bun.lock` and this rationale consistent whenever either override changes. [Bun's override documentation](https://bun.sh/docs/pm/overrides) describes the selector syntax.
+
+A clean audit resolves dependency findings only. Manual accessibility review and maintainer publication approval remain separate [release gates](releasing.md).
