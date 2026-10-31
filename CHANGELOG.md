@@ -2,6 +2,8 @@
 
 ## 0.5.0 — Unreleased
 
+Increased the centered Settings glyph by another 10% to 12.2px, retaining the same outlined button dimensions.
+
 Unified the file-context and automatic-formatting info icons with the same 12px vector glyph, preserving their blue/gray colors and vertical centering. Moved the formatting icon closer to its label.
 
 Restored standard outlined checkbox and dropdown artwork, removing the disabled gray treatment while retaining read-only behavior. Increased the Settings glyph by another 5% to 11.1px and retained the formatting status info icon.
