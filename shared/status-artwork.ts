@@ -159,6 +159,8 @@ export function statusArtwork(
     alt: string,
     width = 400,
   ) => ({ svg: svg(height, contents, width), alt, width, height });
+  // Keep the info gap stable when the renderer selects a wider fallback font.
+  const formattingHeading = `<text x="5" y="14" dominant-baseline="central" font-size="14" textLength="140" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>`;
   const flagContents = ["save", "paste", "type"]
     .map((label, i) => {
       const y = i * 46;
@@ -227,12 +229,7 @@ export function statusArtwork(
         line(83),
       `Write to: ${scope}. Apply to language: ${language}. Read-only.`,
     ),
-    heading: image(
-      28,
-      centeredText(5, 14, "Automatic formatting", 14),
-      "Automatic formatting",
-      148,
-    ),
+    heading: image(28, formattingHeading, "Automatic formatting", 148),
     state: image(
       28,
       rect(0, 2, 78, 24, p.border, "none") +
@@ -242,7 +239,7 @@ export function statusArtwork(
     ),
     summary: image(
       28,
-      centeredText(5, 14, "Automatic formatting", 14) +
+      formattingHeading +
         infoGlyph(158, 14, p.muted) +
         rect(317, 2, 78, 24, p.border, "none") +
         centeredText(356, 14, state, 13, p.fg, "middle"),
