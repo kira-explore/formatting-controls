@@ -2,6 +2,8 @@
 
 ## 0.5.0 — Unreleased
 
+Balanced the vertical margins around the file/scope section, formatting summary, Pause/Resume and footer. Compensated for the native separator's line-height so the pause row is centered between rules. Reduced the Settings glyph by 50% while keeping its outlined action target unchanged.
+
 Matched the approved status-card proportions with wider content, a boxed three-slider Settings glyph, increased icon/text gaps, disabled-style checkbox artwork and a larger filled Pause/Resume button. Footer actions now use measured underlined artwork to keep their alignment independent of native table-column sizing. Information and read-only cursor shapes remain controlled by VS Code's Markdown renderer.
 
 Made the active-file box and complete Automatic formatting summary hover-only information regions, with no click command or background notification. Boxed the compact Settings glyph, permanently underlined the footer links, added concise destination titles and retained normal cursors for read-only artwork. The formatting summary is one fixed-width image so Enabled, Disabled and Mixed never shift the layout.

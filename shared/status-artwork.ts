@@ -209,7 +209,7 @@ export function statusArtwork(
     settings: image(
       24,
       rect(0.5, 0.5, 25, 23, p.border, p.button) +
-        `<g transform="translate(5 5)" fill="none" stroke="${p.fg}" stroke-width="1"><path d="M0 2h16M0 7h16M0 12h16M5 0v4M11 5v4M7 10v4"/></g>`,
+        `<g transform="translate(9 8.5) scale(.5)" fill="none" stroke="${p.fg}" stroke-width="1.5"><path d="M0 2h16M0 7h16M0 12h16M5 0v4M11 5v4M7 10v4"/></g>`,
       "Open VS Code Settings",
       26,
     ),
@@ -237,12 +237,12 @@ export function statusArtwork(
       `${file}. ${workspace}.`,
     ),
     scopes: image(
-      96,
+      84,
       centeredText(5, 20, "Write to") +
         dropdown(6, scope) +
         centeredText(5, 58, "Apply to language") +
         dropdown(44, language) +
-        line(95),
+        line(83),
       `Write to: ${scope}. Apply to language: ${language}. Read-only.`,
     ),
     heading: image(
@@ -268,12 +268,14 @@ export function statusArtwork(
       `Automatic formatting: ${state}`,
     ),
     formatting: image(
-      138,
+      128,
       flagContents,
       `${flagDescription} Checkbox displays are read-only.`,
     ),
     formatter: image(
-      56,
+      // The following native one-pixel separator occupies a text-line box.
+      // Reserve the same leading space here to center Pause between the rules.
+      69,
       line(1) +
         centeredText(5, 29, "Default formatter") +
         dropdown(15, context.formatter ?? "Not configured") +
@@ -304,13 +306,13 @@ export function statusArtwork(
     separator: image(1, line(0.5), ""),
     dashboard: image(
       32,
-      `<text x="5" y="20" font-size="12" fill="${p.accent}" text-decoration="underline">Open dashboard ↗</text>`,
+      `<text x="5" y="14" dominant-baseline="central" font-size="12" fill="${p.accent}" text-decoration="underline">Open dashboard ↗</text>`,
       "Open dashboard ↗",
       270,
     ),
     issue: image(
       32,
-      `<text x="125" y="20" text-anchor="end" font-size="12" fill="${p.accent}" text-decoration="underline">Report an issue ↗</text>`,
+      `<text x="125" y="14" dominant-baseline="central" text-anchor="end" font-size="12" fill="${p.accent}" text-decoration="underline">Report an issue ↗</text>`,
       "Report an issue ↗",
       130,
     ),

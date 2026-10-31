@@ -129,6 +129,27 @@ export async function reviewStatus(
   await button.hover();
   await loaded();
   const hovered = await hover.boundingBox();
+  writeFileSync(
+    join(directory, "status-row-layout.json"),
+    JSON.stringify(
+      await hover.locator("img").evaluateAll((images) =>
+        images.map((img) => {
+          const box = img.getBoundingClientRect();
+          const row = img.closest("tr")?.getBoundingClientRect();
+          return {
+            alt: img.alt,
+            x: box.x,
+            y: box.y,
+            width: box.width,
+            height: box.height,
+            row: row && { y: row.y, height: row.height },
+          };
+        }),
+      ),
+      null,
+      2,
+    ),
+  );
   await hover.screenshot({
     path: join(directory, "status-implementation-probe.png"),
   });
@@ -247,6 +268,26 @@ export async function reviewStatus(
   assert.equal(await pauseImage.getAttribute("title"), null);
   assert.equal((await pauseImage.boundingBox())?.width, 66);
   assert.equal((await pauseImage.boundingBox())?.height, 28);
+  const pauseBounds = await pauseImage.boundingBox();
+  const formatterBounds = await formatter.boundingBox();
+  const separatorBounds = await hover
+    .locator('img[width="400"][height="1"]')
+    .boundingBox();
+  assert.ok(pauseBounds && formatterBounds && separatorBounds && hovered);
+  const pauseTopGap = pauseBounds.y + 0.5 - (formatterBounds.y + 55);
+  const pauseBottomGap =
+    separatorBounds.y + 0.5 - (pauseBounds.y + pauseBounds.height - 0.5);
+  assert.ok(
+    Math.abs(pauseTopGap - pauseBottomGap) <= 2,
+    "Pause/Resume has equal space to both separator lines",
+  );
+  const footerTopGap = dashboardBounds.y + 14 - (separatorBounds.y + 0.5);
+  const footerBottomGap =
+    hovered.y + hovered.height - 1 - (dashboardBounds.y + 14);
+  assert.ok(
+    Math.abs(footerTopGap - footerBottomGap) <= 2,
+    "Footer text is centered between its separator and the frame",
+  );
   const caption = hover.getByRole("img", {
     name: "Pause automatic formatting until you resume.",
     exact: true,
