@@ -1,123 +1,60 @@
-# Validation — 25 October 2026
+# Validation
 
-Passed strict type checking, Biome and four Node unit tests covering status states, immutable source-action merging, rejection of legacy arrays/malformed IDs and action enabled values. Passed isolated VS Code 1.143.1 extension-host assertions for activation, command registration, User/Workspace precedence, TypeScript language overrides, preservation of unrelated source actions resetting an override, two-folder isolation, preserving inherited action entries without copying them into folder settings, and rejecting stale reset previews for boolean and object values. Successfully packaged a development VSIX.
+This guide describes the current regular-VS-Code extension and its repeatable checks. Earlier phase reports and custom-editor experiments are available in Git history. They are not evidence for the current artifact. Check CI on the exact revision being reviewed or released.
 
-The native picker flow has not had a complete manual keyboard/screen-reader accessibility review. Combined-language blocks, remote workspaces and the minimum 1.140 host need additional integration coverage. Current integration validation used macOS arm64. No provider execution or save ordering is asserted.
+## Local checks
 
-Bun audit reports one high finding through development packaging dependencies @vscode/vsce → @azure/identity → @azure/msal-node (GHSA-xcx6-jx8p-x3h5). The latest stable vsce 4.0.0 resolves Azure Identity 4.14.0, which requires MSAL ^6.0.0. The patched MSAL release is >=7.1.0, outside that supported range; no compatible stable upgrade was available during this review. No cross-major override was introduced. No runtime dependencies are shipped; resolve this finding before public release. See [the upstream advisory](https://github.com/advisories/GHSA-xcx6-jx8p-x3h5). The project is MIT licensed. No Marketplace publishing or credentials were configured during Phase 1; the later sections record delivered dashboard and workflow features.
+Use Node 24 LTS and the Bun version declared in `package.json#packageManager`:
 
-Toolchain revalidated with Node 24.22.1, Bun 1.4.4, TypeScript 7.0.2 (ESNext) and Biome 2.6.3. ESLint and its configuration/dependencies were removed. Bun owns the committed lockfile; CI uses frozen installation, the latest Node 24 LTS patch and the Bun version declared in packageManager.
+```sh
+bun install --frozen-lockfile
+bun run typecheck
+bun run lint
+bun run test
+bun run security:check
+bun run package
+```
 
-Code-action value cancellation now returns before the success notification. Reset captures the displayed value and rechecks it immediately before writing; VS Code does not provide an atomic compare-and-delete API for settings. External changes after that final check remain a configuration API limitation. GitHub-hosted checks were blocked during Phase 1 by an account billing/spending-limit restriction; that restriction was subsequently resolved.
+The unit suite covers scope/action logic, schema rejection, protocol boundaries, source attribution, diagnostic confidence, profile concurrency, journal persistence, rollback/conflict handling, status artwork, dependency compatibility and release validation. Packaging reopens the final VSIX after the build hook, checks identity/contents/budgets and writes a SHA-256 sidecar only after success.
 
+## Real-editor checks
 
-## Phase 2
+```sh
+bun run test:integration
+bun run test/run-integration.ts --empty
+bun run test:multi-window
+bun run test:ui
+bun run test/run-integration.ts --status-ui
+bun run test:remote
+```
 
-Host and dashboard type checks, Biome, and nine pure unit tests pass. Protocol regression coverage rejects unsupported commands/settings, malformed scopes/revisions, oversized messages, invalid enums, formatter IDs and numeric values. Extended isolated VS Code 1.143.1 tests cover dashboard folder/language writes, stale revision rejection, folder URI allowlisting, source-action preservation, language-scope restrictions, command registration and real WebviewPanel creation.
+These runners use isolated profiles and temporary workspaces rather than maintainer settings. On Linux without a display, prefix each editor invocation with `xvfb-run -a`. Remote checks also require Docker and OpenSSH; see [Remote SSH setup](remote-workspace.md).
 
-Interactive verification used a temporary VS Code profile: Workspace format-on-save and source-action changes saved and synchronized, all main pages rendered, and provider availability caveats were visible. User-level writes correctly remained overridden by the fixture's Workspace setting. Desktop rendering was inspected in dark and light themes; high-contrast and narrow layouts were captured from the built-in high-contrast theme, and switch keyboard focus was checked. Full screen-reader testing remains outstanding. The light-theme review caught and corrected switch-track specificity so the enabled thumb remains visible.
+Set `VSCODE_VERSION=1.140.0` for the minimum host or `stable` for the current host. Set `FORMATTING_CONTROLS_UI_THEME` to `Dark Modern`, `Light Modern` or `Default High Contrast` for UI checks. Run one UI review at a time on debug port 9333. Reports, screenshots and CPU profiles are written to ignored `test-results/`; review private paths before sharing them.
 
-The production React dashboard bundle is approximately 325 KB uncompressed (83 KB gzip) and loads only when opened. This is a bundle-size check, not an extension-host performance profile. No production runtime dependencies are installed from the network; React is included in the local dashboard assets. The previously documented packaging advisory remains unresolved upstream. Subsequent Phase 2 and badge PRs passed GitHub-hosted validation and CodeQL after the account billing restriction was resolved.
+| Suite        | Coverage                                                                                                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Integration  | Activation, commands, real configuration precedence, folder/language isolation, stale edits, source-action preservation, profile import/export and recovery              |
+| Empty window | Activation and dashboard creation without folders, User workflows and rejected project writes                                                                            |
+| Two windows  | Shared settings, simultaneous/stale profile mutations, overlapping pause and preserving another window's edits                                                           |
+| Dashboard UI | All eight pages at wide/narrow sizes, axe scans, keyboard focus, reduced motion, CSP and text escaping                                                                   |
+| Status UI    | Loaded artwork, identical hover/click content and bounds, pinning, keyboard/Escape, read-only fields, help text, formatting-only pause and separate dashboard navigation |
+| Remote SSH   | Linux-host scopes/storage/file round trips, persisted pause and recovery after client reconnect                                                                          |
 
+CI runs the editor suite on Linux minimum/stable, macOS stable and Windows stable. Dashboard/status UI jobs run in three themes; the Remote SSH job runs on Linux stable. Local status-card checks have also been performed on VS Code 1.144.0. Detailed remote and concurrent-window evidence and limits live in [remote-workspace.md](remote-workspace.md) and [multi-window.md](multi-window.md).
 
-### Phase 2 recheck
+## Budgets and interpretation
 
-Fixed response correlation for rejected input (which could leave controls disabled), out-of-order configuration/navigation snapshots, scope loss when a webview reloads, and resource captions that could identify a different folder from the settings being displayed. The host now restores a valid scope if a selected folder disappears while the panel is closed, and drops queued messages from disposed panels. Native formatter-ID and delay validation uses the same boundaries as the dashboard.
+Warm dashboard snapshots use 40 samples with a p95 budget of 500 ms. Archived host/UI/CSS budgets are 128/384/20 KiB; the VSIX archive budget is 2 MiB. These fixture measurements detect large regressions; they do not measure cold startup, provider execution or isolated extension memory consumption.
 
-Nine unit tests and the extended isolated editor suite pass. Additional regressions cover error correlation, stale navigation, scope-preserving readiness, removed-folder recovery, correct resource captions and language-mode changes. An interactive test submitted an invalid action and then a valid action in the real dashboard, confirming that the error re-enabled controls and the next action saved normally. Language-mode changes already refreshed correctly; that behavior now has regression coverage.
+Zero automated axe violations does not establish complete WCAG conformance. Image alternatives describe status values, but hands-on screen-reader review of the current card, native pickers and dashboard remains a release task. Verify theme contrast, keyboard order, long labels, zoom and narrow layouts in a clean editor before publishing.
 
+## Compatibility limits
 
-## Phase 3
+- Settings writes and conditional restoration are not atomic. Controlled concurrency tests cannot cover every external-edit schedule.
+- Installed formatter metadata does not prove that its server is enabled or eligible for the file. Tests do not guarantee formatting execution or save-action order.
+- Remote SSH was reviewed across a macOS-to-Linux boundary. WSL, Dev Containers connections and other remote hosts remain untested.
+- Markdown controls are read-only artwork. VS Code owns the hover frame, delay and cursors; CSS help/disabled cursors, live inline form controls and custom hover animation are unavailable through this surface.
+- Strict dependency audit and verified packaging must pass on each release candidate. Current workarounds and removal conditions are in [packaging security](packaging-security.md).
 
-Strict host/browser types, Biome, 21 pure tests and isolated VS Code host tests pass. New coverage includes profile schemas, per-action merge plans, durable journals, storage failure before mutation, partial rollback, not reverting unattempted external edits, conflict-aware restoration, provider capability distinctions and diagnostic confidence. Real editor tests cover saved profiles, scoped apply/cancellation, import/export using actual JSON files, rejection of oversized/unsupported imports, pause and service-reload recovery, per-action restoration with external edits, language-rule inspection and corrupt storage isolation.
-
-Pause uses real Workspace/Folder settings, persists until Resume, and can remain overridden by higher-priority preferences. There is no atomic configuration transaction or guaranteed crash-time deactivation hook. These limits and the single most recent restore-point behavior are explicit in the product and design documentation.
-
-Interactive Phase 3 verification in Dark Modern passed saving a scoped profile, native preview cancellation and application, folder pause, editing a preference during pause, conflict-preserving resume, and explicit retention of current values. All eight dashboard tabs have current dark-theme screenshots in the README. The 0.3.0 VSIX packages successfully with local bundled assets. The same development-only packaging advisory remains; no dependencies were added.
-
-
-### Phase 3 pre-merge recheck
-
-Fixed three recovery edge cases: restore is limited to the entries shown in its confirmed preview; externally edited legacy/unsupported action maps no longer block restoration of unrelated formatting flags; and every application rechecks values after asynchronous journal persistence, excluding writes that never started from rollback. Added real-editor regressions for preview-time edits and legacy action recovery, plus pure regressions for approved-entry restoration and edits during persistence. The suite now has 23 pure tests.
-
-
-## Phase 4
-
-Added 26-test pure suite, real empty-window coverage, minimum-host and cross-platform CI, three-theme real-dashboard accessibility/security scans, test-only CPU profiles and package content/size/checksum checks. Local VS Code 1.140.0 and 1.143.1 tests pass; all 48 page/layout scans pass with zero automated axe violations. The accessibility report also retains incomplete checks for manual review. Warm snapshot p95 was approximately 2–3.3 ms on the local integration fixtures; this does not measure full cold startup or attribute the host's heap to this extension.
-
-Fixed low-contrast setting IDs, light warning text, accessible-name mismatches, initial focus and small-width layout issues. Manual screen-reader, remote and concurrent-window review remains a release gate. The known packaging advisory is reported during PR validation and blocks strict release preparation. See phase-4.md and releasing.md. No public release or Marketplace publication was performed.
-
-
-### Phase 4 pre-merge recheck
-
-Added eight regression tests for final VSIX contents, embedded package and installer identity, runtime presence, archived bundle sizes, malformed icons/host markers, and absent/matching/mismatched/malformed remote tag responses. The suite now has 34 tests. Packaging validates the final ZIP after the prepublish build and creates its checksum only after validation. Release preparation verifies checkout identity and existing lightweight/annotated tag targets without creating or changing tags. Local final-archive validation and a live read-only remote-tag lookup pass; release publication remains gated as documented.
-
-
-## Packaging advisory resolution
-
-The earlier packaging advisory is now resolved through a parent/version-scoped override from Identity 4.14.0 to MSAL 7.1.1. The unfiltered Bun audit reports no vulnerabilities and the old exception has been removed. Six new regression tests exercise the actual SDK/MSAL dependency pair with an in-memory HTTP transport: resolved patched version, client-secret token acquisition/cache, client assertions, plain authorization codes, environment credentials with chain fallback, and rejected authentication. The suite now has 40 tests. No Azure account credentials or publication are used in these tests. Scope, compatibility limits and the override removal condition are documented in packaging-security.md.
-
-
-## Two-window review — 26 October 2026
-
-Reproduced two saved-profile data-loss cases in real concurrent macOS VS Code windows: stale whole-array updates after a confirmation, and simultaneous different-name saves. Added a locked private-file repository with target comparisons, legacy migration, live file notifications, focus refresh and an explicit Refresh profiles button. Six pure storage regressions cover migration, concurrent creation, stale target rejection, corrupt data preservation, storage limits/schemes and cross-instance notifications. The combined 46-test unit suite, host/browser type checks and Biome pass. Eight two-window scenarios pass locally on macOS arm64 in both VS Code 1.140.0 and stable 1.143.1. The stable real-editor suite, empty-window suite and 16 dark-theme page/layout accessibility scans also pass. See [the test scenarios and storage limitations](multi-window.md). After merging the packaging advisory resolution above, the combined suite, two-window regression, clean dependency audit and verified VSIX packaging pass.
-
-
-## Remote SSH review — 26 October 2026
-
-Real macOS-to-Linux Remote SSH checks passed for configuration scopes, existing Remote versus local User settings destinations, language and folder isolation, Linux-owned profile storage, JSON import/export and conflict-aware pause/resume. A different Linux extension-host process recovered the persisted pause after closing and reconnecting the desktop client. Hands-on native UI checks covered remote export/import dialogs, confirmation/cancellation and pause/resume. See [the review method and coverage limits](remote-workspace.md). Updated @types/node to ^26.6.5; host/browser type checks and the 46-test unit suite pass under the Node 24 build baseline.
-
-
-## Formatting status card
-
-Replaced the compact editor panel with one native formatting-only status card. Local VS Code 1.140.0 and stable 1.143.1 tests verify cold click, identical hover/click bounds and content, pinning, keyboard access, real formatting edits and native scope/language pickers without opening tabs. The 49-test Node 24 suite, type checks, Biome and empty-window suite pass. Added revision/invalid-action regressions, owned-versus-effective checks and save-action preservation. CI runs native status checks across three themes alongside the existing dashboard scans. Native appearance, pointer and hover delay remain controlled by VS Code; see [status controls](status-controls.md).
-
-
-### Anchored card layout refinement
-
-Replaced the narrow settings table with a 360px HTML content layout using the public MarkdownString supportHtml option and VS Code’s built-in sanitizer. Escaped all dynamic text and attribute content, disabled theme-icon parsing for user text, and retained constrained command links and stale-state protection. Native UI checks measure the rendered width, compare hover/click position and content, and reject form/script elements. Host syntax optimization keeps the bundle within the existing budget without changing debug names or source maps.
-
-
-### Interaction follow-up from screen recordings
-
-An inherited trigger becoming explicitly configured used to remove its helper row and shift the anchored card. Ownership notes now retain a consistent row height. Equivalent configuration/focus notifications no longer rebuild the tooltip or invalidate unchanged links. A real-editor regression starts from editor focus, opens by hover alone and toggles an inherited trigger twice without another status click; it checks ownership notes, value changes and identical bounds throughout. Scope/language labels explicitly describe opening a VS Code picker. The fields remain command links, not inline dropdown widgets.
-
-## Version 0.5.0 anchored controls
-
-The release uses one native card for hover and click, plus the existing editor dashboard for full controls. The docked-view draft and its frontend/provider/contributions were removed. Regression checks cover cold status clicks, pinning after the pointer leaves, identical hover/click bounds and content, repeated formatting changes without moving the card, disclosure, native scope/language choices, keyboard access and dashboard navigation. A normal status click must create neither a Panel nor an editor tab.
-
-Source-precedence tests cover regular/language scopes and organisation policy. Host tests verify formatting-only Pause/Resume preserves save actions and newer edits, and no docked view is contributed. The refined icon and Kira Formatting Controls display name retain the stable `rajudhami.formatting-controls` identity. Surface limits and the built-in hover-command compatibility dependency are documented in [status controls](status-controls.md).
-
-
-## Archived interactive core prototype — 28 October 2026
-
-Built the pinned VS Code 1.143.1 source (e646868227c3e3a9e3f24277c8c7220be42c0be7), its built-in extensions and matching Electron runtime in an isolated checkout under Node 24.21.0. The targeted upstream TypeScript check includes the card contribution and its transitive status/hover dependencies. A portable patch and guarded apply/check scripts reproduce the core changes. The archived revision also verified patch applicability and regeneration against the pinned upstream revision; this prototype CI job is removed from the regular-extension release.
-
-Real macOS editor tests pass in Dark Modern, Light Modern and Default High Contrast, with the theme kind verified before capture. Each run checks a single status entry, identical native anchored hover/click geometry and pointer, click pinning, genuine Checkbox and SelectBox controls, inline scope/language/formatter changes without a QuickPick, stable repeated toggles, disclosure, reviewed Pause/Resume, keyboard activation/Escape and separate dashboard navigation. Axe reports zero violations in each card scan. The core button's Escape event explicitly dismisses the hover after native confirmation workflows.
-
-The private extension-host bridge is covered by stale session/revision rejection, option allowlisting, scoped flag writes, formatter reset, language selection and save-action preservation checks. The ordinary-editor integration suite passes with the bridge dormant. The expanded pure suite has 55 passing tests. The [archived prototype documentation](https://github.com/kira-explore/formatting-controls/tree/eb908c364d3e6c954ed2c3edb0b426e9b2baee88/prototype/vscode) includes actual screenshots, build/run commands and the custom-editor requirement. Installing the VSIX in ordinary VS Code does not enable this interactive UI.
-
-
-## Regular VS Code release — 29 October 2026
-
-Removed the custom-editor bridge, private commands, core sources, prototype tooling and its CI job. Historical sources remain linked from status-controls.md. The release uses a single native Markdown card for hover and click; click pins it. The detailed card shows effective-state symbols and source notes. **Change formatting…** opens a native checkbox picker; scope/language/formatter links open native pickers. The existing dashboard retains real form controls. No docked view or editor tab is opened by the status item.
-
-Unmodified VS Code 1.143.1 passes status UI checks in Dark Modern, Light Modern and Default High Contrast; minimum VS Code 1.140.0 passes the same checks. Tests verify identical hover/click bounds and content, cold clicks, pinning, native scope/language pickers, stable toggles with a higher-priority language override, disclosure, keyboard access, zero automated card-accessibility violations and separate dashboard navigation. The eight-page dashboard and sixteen wide/narrow accessibility checks pass.
-
-The Node 24 suite has 53 passing tests. A profile-notification regression verifies cross-instance updates with native watching disabled; file-stat polling provides a fallback for missed startup/atomic-rename events. The actual extension host also verifies that no custom-editor bridge commands are registered.
-
-The regular build also passed the two-window suite on unmodified VS Code 1.143.1 with shared User data and a workspace folder: shared settings, preserving other-window edits during resume, concurrent profile saves, stale operations and overlapping pause protection. Packaging verifies all 34 VSIX entries, metadata and bundle budgets; the dependency audit reports no vulnerabilities or advisory exceptions.
-
-### Earlier detailed hover refinement
-
-The detailed hover and native checkbox/formatter pickers pass real UI checks on VS Code 1.140.0 and 1.143.1 (Dark Modern), plus 1.144.0 (Dark Modern, Light Modern and Default High Contrast). The checks compare hover/click content and bounds, pinning, scoped checkbox changes, disclosure, formatter selection, scope/language pickers, keyboard activation and separate dashboard navigation. Automated hover accessibility scans report zero violations. Integration coverage also rejects stale formatter actions when a same-effective-value scope edit changes the value that would be reset.
-
-All 53 unit tests pass on Node 24.22.1, with TypeScript and Biome checks passing. The README card screenshot is captured from the running extension; hover symbols are read-only, and editable checkboxes appear in the native picker.
-
-### Reference-style read-only card
-
-The approved reference layout is now drawn as local, inert SVG images inside the regular Markdown status tooltip. Images show live effective formatting, scope, language, formatter, file and workspace values. Checkbox and dropdown artwork has no command link and launches no picker. File and formatting help is attached to complete inert image regions, while Pause/Resume and dashboard/Settings navigation remain links.
-
-Actual editor checks on VS Code 1.140.0 and 1.144.0 verify that all images load, hover and click have identical bounds and descriptions, the card stays pinned after click, read-only displays open no picker or additional surface, keyboard/Escape works, disclosure works and dashboard navigation still opens the existing dashboard. Latest-editor tests cover Dark Modern, Light Modern and Default High Contrast. Axe scans report zero violations; each image has its full value description as alternative text. This does not replace hands-on screen-reader testing.
-
-All 54 unit tests pass on Node 24.22.1, along with TypeScript and Biome checks. Artwork tests verify effective-state rendering, source descriptions, XML escaping, allowlisted actions, four theme-kind palettes and disabled pause behavior at User scope. The fixed internal artwork dimensions reserve layout while images load. VS Code still owns the outer frame, pointer and hover delay; custom themes use the nearest supported theme-kind palette.
+See [release preparation](releasing.md) for the final manual review and publication process.

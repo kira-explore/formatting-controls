@@ -1,52 +1,54 @@
-# Architecture and implementation plan
+# Architecture
 
-Research baseline: 25 October 2026. Empty repository; macOS arm64, Node 26.12.1, npm 11.20.0, installed VS Code 1.143.1. Target stable API 1.140+. TypeScript 7.0.2 uses ESNext language/library settings. Biome 2.6.3 is the sole formatter and linter. Bun 1.4.4 manages dependencies and scripts, with its version declared once in packageManager. Node >=24 is the development compatibility range; CI selects the latest Node 24 LTS patch. Local verification used Node 24.22.1. The extension bundle targets Node 22 syntax for the VS Code host, whose runtime is supplied by VS Code.
+Kira Formatting Controls targets the public VS Code API from 1.140 onward. It reads and writes real VS Code preferences; it does not intercept saves, execute formatters, scan project files or collect telemetry. The editor supplies the extension-host runtime.
 
-## Verified APIs and constraints
+## Modules
 
-- [Official API](https://code.visualstudio.com/api/references/vscode-api): StatusBarItem, showQuickPick, WorkspaceConfiguration.get/inspect/update, ConfigurationTarget and language scope. Updates explicitly pass overrideInLanguage, so a language override is never selected implicitly.
-- [Settings precedence](https://code.visualstudio.com/docs/configure/settings): language-specific values override ordinary settings even at a broader target. `get` is authoritative; inspection exposes individual scope values. Combined language blocks and policy can complicate attribution; show raw inspection rather than inventing an exact source.
-- [Code actions](https://code.visualstudio.com/updates/v1_85): explicit/always/never replace legacy booleans. Always includes focus/window Auto Save; do not promise afterDelay behavior or arbitrary execution ordering.
-- [Quick Input](https://code.visualstudio.com/api/references/vscode-api#QuickPick): native rows and buttons, no embedded HTML switches or supported arbitrary anchored popover.
-- [Webviews](https://code.visualstudio.com/api/extension-guides/webview): custom dashboards possible, isolated messaging and strict CSP required. [UX guidance](https://code.visualstudio.com/api/ux-guidelines/webviews) discourages duplicating Settings and using webviews for wizards; use native onboarding and make the later dashboard explain cross-setting relationships.
-- [Formatting Toggle](https://marketplace.visualstudio.com/items?itemName=tombonnike.vscode-status-bar-format-toggle): convenient grouped toggles and limited nested action support. This design adds explicit targets, individual enum controls and inspection without bulk rewriting settings.
-- [ESLint integration reference](https://github.com/microsoft/vscode-eslint): source.fixAll.eslint. [Biome](https://biomejs.dev/reference/vscode/): provider-specific source fixes and import organization require installed/configured tooling. Candidate IDs are not a registry of available actions.
+| Module                                                             | Responsibility                                                  |
+| ------------------------------------------------------------------ | --------------------------------------------------------------- |
+| `src/extension.ts`                                                 | Activation, commands, welcome and disposable event listeners    |
+| `src/configuration.ts`, `src/model.ts`                             | Scope-aware inspection, validation, individual writes and reset |
+| `src/status-controls.ts`, `src/status-hover.ts`                    | Status selection, pinned hover and guarded actions              |
+| `shared/status-*.ts`                                               | Read-only artwork, explanatory text and Markdown construction   |
+| `src/dashboard.ts`, `webview-ui/src`                               | Webview lifecycle, host bridge and React dashboard              |
+| `src/providers.ts`, `shared/providers.ts`, `shared/diagnostics.ts` | Known provider evidence and diagnostic findings                 |
+| `src/workflows.ts`, `shared/workflows.ts`                          | Preview, apply, durable journals and conditional restoration    |
+| `src/profile-store.ts`                                             | Coordinated private profile storage across windows              |
+| `shared/protocol.ts`, `shared/state.ts`                            | Runtime-validated messages and state contracts                  |
 
-## Modules and data model
+## Settings and selection
 
-`model` contains pure status/action logic. `configuration` owns target-specific inspection and supported API writes. `extension` owns native UI, commands and disposable listeners. No filesystem scans, telemetry, runtime packages, remote requests or save interception. Dashboard assets load only when requested. Event-driven status refresh uses the active document language and URI.
+A selection contains a User, Workspace or Workspace Folder target, a resource URI and an optional language ID. The dashboard persists a valid selection across its reloads and recovers if a folder is removed. The last active text document remains the reference while the dashboard has focus. Native Quick Controls uses an explicit scope/language selection for each operation.
 
-Selection = target + active resource URI + optional language ID. No persisted target that could silently affect another project. Workspace-folder editing uses the active file to disambiguate multi-root workspaces. Ordinary settings and language overrides are separate. Updating an action merges the selected target's object, never copies the effective merged object into it. Legacy arrays are rejected for manual migration. Configuration writes are not transactional across extensions: concurrent external edits between read and write remain a limitation. Reset removes one selected owned value with a concrete confirmation and refuses the deletion if the value changed since preview; no blanket reset. VS Code does not expose an atomic conditional configuration update.
+Effective values come from `WorkspaceConfiguration.get`; `inspect` exposes individual source values. Writes explicitly select whether to use a language override. Language-specific settings can override ordinary settings at broader targets. Combined-language blocks and policy can make exact attribution ambiguous; raw inspection remains available.
 
-ON means all three built-in formatting flags enabled; OFF means none; MIXED means a combination. These labels deliberately exclude code actions and Auto Save and do not assert a formatter will execute.
+Source-action writes merge only the selected target's object and preserve unrelated entries. They never copy the complete effective object into that target. Legacy arrays require manual migration. Reset previews one owned value and rejects removal if that value changed before confirmation. Settings have no atomic compare-and-update API; an external edit can still race the final comparison and write.
 
-`shared/protocol.ts` defines the implemented dashboard and workflow request/response contract with runtime validation, bounded payloads, allowlisted setting values/destinations, workspace URI validation, request IDs, revisions, response errors and panel disposal. See [Phase 2 architecture](phase-2.md) for the implemented boundary and lifecycle. CSP default-src none; nonce scripts; local resource roots only; VS Code theme tokens.
+## Status card and dashboard
 
-## Feature matrix
+Hover and click show the same anchored Markdown card; click focuses and pins it using the built-in hover command. Inert SVG artwork shows effective values, read-only checkboxes/dropdowns and source notes. Settings, Dashboard, Report an issue and reviewed Pause/Resume are real links. No status click creates a docked view or editor tab. [Status controls](status-controls.md) documents rendering, accessibility and public API limits.
 
-| Feature                                                       | Delivery            | Feasibility / limitation                                                                                               |
-| ------------------------------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Status and quick controls                                     | Phase 1 implemented | Native Quick Pick, keyboard accessible, no custom switches                                                             |
-| Save/Paste/Type, save mode, formatter ID, Auto Save and delay | Phase 1 implemented | Writes real settings; formatter ID does not prove eligibility                                                          |
-| Individual source actions                                     | Phase 1 implemented | User supplies candidate ID; provider availability not asserted                                                         |
-| User/workspace/folder/language selection                      | Phase 1 implemented | Folder requires active resource; files.autoSave is not language overridable                                            |
-| Scope inspection and one-setting reset                        | Phase 1 implemented | Raw inspection plus effective values, confirmed deletion                                                               |
-| React dashboard and welcome                                   | Phase 2 implemented | First-run welcome persisted once; reopen command; typed controls and scope-aware dashboard                             |
-| Provider adapters and diagnostics                             | Phase 3 implemented | Installed extension metadata is evidence of installation, not actual registered capabilities or enabled server state   |
-| Profiles/import/export                                        | Phase 3 implemented | Validate schema, preview per-key changes, snapshot only owned values, conflict-aware restore                           |
-| Pause                                                         | Phase 3 implemented | Requires real setting writes; persist journal before writes, restore only unchanged values, offer recovery after crash |
-| Release validation/assets                                     | Phase 4 implemented | Guarded draft preparation; public release remains gated by dependency and hands-on reviews                             |
+The status bar's ON/OFF/MIXED and the card's Enabled/Disabled/Mixed summarize only Save/Paste/Type formatting. They do not guarantee formatter availability or source-action execution. The status-card pause preserves save actions; the Profiles pause includes them. [Workflows and recovery](workflows.md) explains both and their restoration limits.
 
-## Interaction and dashboard design
+The dashboard is an editor `WebviewPanel` with Overview, Formatting, Code Actions, Formatters, Language Rules, Diagnostics, Profiles and Getting Started pages. It uses typed controls and explicit scope/language selection. First activation opens Getting Started once; opening it changes no preferences. Test mode suppresses that automatic opening.
 
-Status click → target → all languages or active language → setting → typed value. Cancellation before write has no effect. Every completed write reports effective value and points to inspection for overrides. Reset previews the exact owned value. Native menus inherit editor theme, keyboard and screen reader behavior.
+## Host/browser boundary
 
-Current navigation: Overview (effective summary and recovery), Formatting (typed inputs, scopes and resets), Code Actions (individual run modes), Formatters (adapter capabilities), Language Rules (IDs and explicit overrides), Diagnostics (verified vs possible findings), Profiles (presets, preview, pause and restore), Getting Started (setup guidance). Search spans labels and setting IDs. Theme tokens, visible focus, reduced motion, responsive single-column layout and explicit loading/error states are acceptance criteria. Do not ship empty dashboard tabs as functionality.
+Every dashboard request uses a bounded, runtime-validated discriminated union. Configuration keys, typed values, language IDs, destinations and workspace-folder URIs are allowlisted. Settings requests carry an exact scope and revision; stale requests are rejected and refreshed state follows. Requests are serialized. No arbitrary command, path or URL is accepted from the webview.
 
-## Tooling and validation
+The content security policy denies resources by default, permits nonce-bearing bundled scripts and local assets, and limits resource roots to the dashboard build directory. React escapes dynamic text. There are no CDN assets or runtime UI network requests. Explicit documentation/GitHub actions open fixed external destinations. Native file dialogs choose profile import/export locations.
 
-All authored scripts use TypeScript and ES imports. Bun runs `build.ts` and `test/run-integration.ts`; emitted bundles use `.js`. A generated `dist/package.json` marks the VS Code host/test bundle as CommonJS while the source package remains ESM. Strict TypeScript, Biome, esbuild CommonJS host bundle; Node test runner for pure regression tests. Isolated Electron extension-host tests exercise activation and real configuration precedence, language reset and action preservation. The integration runner uses temporary user data and extensions; never the developer's settings. CI runs checks and packaging; release workflow is manual and prepares a reviewed draft only after strict audit and validation. Implemented regression tests also cover protocol validation, adapter evidence, profile rollback and diagnostic false positives.
+Configuration, editor, folder, theme, installed-extension and profile events refresh state. Panel listeners dispose with the panel. Profiles use extension-owned storage and cross-process locking; recovery journals remain workspace-local. See [multi-window coordination](multi-window.md) and [remote execution](remote-workspace.md).
 
-Phase 3 implementation and recovery/file-format constraints are documented in [phase-3.md](phase-3.md).
+## Tooling and checks
 
-Phase 4 validation, budgets and release gates are documented in [phase-4.md](phase-4.md).
+Node >=24 and the Bun version in `package.json#packageManager` are development tools. Authored code uses TypeScript, ES imports and ESNext language/library settings. Biome handles formatting, linting and imports. React/Vite assets load only when the dashboard opens. The host bundle targets Node 22 syntax for VS Code compatibility; a generated `dist/package.json` marks host/test `.js` bundles as CommonJS while authored sources remain ESM.
+
+Pure tests run in Node. Isolated real-editor suites exercise configuration, the dashboard, the status card, simultaneous windows and Remote SSH. Packaging checks final archive identity, contents and budgets. [Validation](validation.md) lists commands and coverage; [release preparation](releasing.md) describes publication gates.
+
+## API references
+
+- [VS Code API](https://code.visualstudio.com/api/references/vscode-api): configuration, Quick Input, status items and webviews.
+- [Settings precedence](https://code.visualstudio.com/docs/configure/settings): ordinary and language overrides.
+- [Code-action save modes](https://code.visualstudio.com/updates/v1_85): explicit/always/never; execution depends on the provider and save type.
+- [Webview security](https://code.visualstudio.com/api/extension-guides/webview#security): resource isolation and CSP.

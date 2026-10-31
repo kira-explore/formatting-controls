@@ -4,16 +4,15 @@
 
 [![CI](https://img.shields.io/github/actions/workflow/status/kira-explore/formatting-controls/ci.yml?branch=main&label=CI)](https://github.com/kira-explore/formatting-controls/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/kira-explore/formatting-controls/blob/main/LICENSE) [![VS Code 1.140+](https://img.shields.io/badge/VS_Code-1.140%2B-007ACC.svg)](https://code.visualstudio.com/) [![Node.js 24 or newer](https://img.shields.io/badge/Node.js-24%2B-5FA04E.svg?logo=nodedotjs&logoColor=white)](https://nodejs.org/) [![Bun 1.4.4](https://img.shields.io/badge/Bun-1.4.4-f9f1e1.svg?logo=bun&logoColor=white)](https://bun.sh/) [![TypeScript 7.0.2](https://img.shields.io/badge/TypeScript-7.0.2-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/) [![Biome 2.6.3](https://img.shields.io/badge/Biome-2.6.3-60A5FA.svg?logo=biome&logoColor=white)](https://biomejs.dev/)
 
-A control center for VS Code formatting, save actions, and language settings. Make quick adjustments from the status bar, or open the dashboard to choose a formatter, manage source actions, and understand which settings apply.
+A control center for VS Code formatting, save actions and language settings. Read effective settings from the status bar, pause automatic formatting, or open the dashboard to choose a formatter, manage source actions and understand which settings apply.
 
-**Status card in regular VS Code:** hover and click open the same **Kira Formatting Controls** card; click pins it. The header has a compact boxed Settings icon. The active-file box and complete formatting summary expose hover-only explanations without a click action. A fixed **Enabled / Disabled / Mixed** badge summarizes the always-visible, read-only checkboxes. **Pause / Resume** retains your previous configuration; only its button is clickable, with an explanation beside it. The underlined footer links open the dashboard or this repository’s issue form. Edit individual settings in the dashboard or through **Formatting Controls: Quick Controls**.
+Hover or click the status bar to open the same **Kira Formatting Controls** card. Its checkbox and dropdown displays are read-only; use **Open dashboard** or the **Quick Controls** command to edit settings. Click pins the card; Escape dismisses it.
 
 ![Formatting Controls Overview in VS Code Dark Modern](docs/assets/dashboard.png)
 
 ## What you can do
 
-- **Keep a clear summary at the status bar.** Hover to open the anchored card; click to pin the same card. Read effective formatting, scopes, source notes and formatter details. Use reviewed formatting-only Pause/Resume, or open the dashboard for individual changes.
-
+- **Keep a clear summary at the status bar.** Read formatting, scope, source notes and formatter details. Pause/Resume from the card affects only automatic formatting, preserving save actions.
 - **See the effective state.** The status bar shows ON, OFF, or MIXED for Format on Save, Paste, and Type in the active editor.
 - **Choose where changes belong.** Write to User, Workspace, or a specific workspace folder. Select a VS Code language ID for language overrides.
 - **Configure formatting and saving.** Toggle formatting triggers, select the save formatting mode, choose a default formatter, and configure Auto Save and its delay.
@@ -111,7 +110,7 @@ In VS Code, run **Extensions: Install from VSIX…** and select `formatting-cont
 
 ## Find your flow
 
-Hover the status-bar item to open the anchored **Kira Formatting Controls** card. Click it to focus and keep that same card open above the status bar; no docked panel or editor tab is created. Its checkbox and dropdown displays are read-only. Open the dashboard for edits, save actions and advanced workflows, or use the optional native Quick Controls command. See [surface details](docs/status-controls.md). Command Palette entries:
+Hover the status-bar item to open the anchored **Kira Formatting Controls** card. Click it to focus and keep that same card open above the status bar; no docked panel or editor tab is created. Its checkbox and dropdown displays are read-only. Open the dashboard for edits, save actions and advanced workflows, or use the optional native Quick Controls command. Command Palette entries:
 
 | Command                                             | Purpose                                                          |
 | --------------------------------------------------- | ---------------------------------------------------------------- |
@@ -124,10 +123,9 @@ Hover the status-bar item to open the anchored **Kira Formatting Controls** card
 
 The welcome page appears once on first activation. It introduces the workflow and links to settings, documentation, and GitHub; it does not apply a preset automatically.
 
-The card uses locally generated SVG images inside the standard Markdown tooltip to preserve the approved layout. Values update with the active editor and configuration. The illustrated checkboxes and dropdowns are read-only; formatting stays visible, info explains the summary, and Settings/dashboard/issue links remain actionable. VS Code controls the outer frame, pointer, hover delay and native link feedback; custom icon-button hover fills are unavailable in this tooltip. See [status controls and scope behavior](docs/status-controls.md).
+The card's fixed **Enabled / Disabled / Mixed** badge summarizes the three formatting triggers. Its information regions explain the file context and summary. The top-right icon opens Settings; the footer opens the dashboard or a new GitHub issue. [Status-card details and API limits](docs/status-controls.md).
 
 ![Native formatting summary above the status bar in Dark Modern](docs/assets/status-card-dark.png)
-
 
 ### Dashboard
 
@@ -170,11 +168,11 @@ Choose a scope and optional language first. **Save profile** captures only expli
 
 Restore preserves externally edited settings and newly added actions. If conflicts remain, review them in Profiles or choose **Keep current values** to discard the remaining restore point. The Command Palette's **Formatting Controls: Restore Previous Settings** works without the dashboard open. Restore points belong to the workspace/window where the batch was applied; saved custom profiles are shared across workspaces.
 
-Settings APIs are not atomic transactions. Concurrent edits between checking and writing cannot be perfectly isolated. See the [Phase 3 design and recovery limits](docs/phase-3.md).
+Settings APIs are not atomic transactions. Concurrent edits between checking and writing cannot be perfectly isolated. See the [workflow and recovery limits](docs/workflows.md).
 
 ## Release readiness
 
-The development VSIX can be installed locally. The packaging advisory is resolved with a scoped, compatibility-tested dependency override. PR and release checks require a clean audit; hands-on release reviews remain outstanding. See [security](SECURITY.md), [release preparation](docs/releasing.md) and [support](SUPPORT.md).
+The development VSIX can be installed locally. PR and release checks require a clean dependency audit and verified packaging. [Remote SSH](docs/remote-workspace.md) and [two-window](docs/multi-window.md) reviews cover their documented scenarios; WSL and Dev Containers connections remain untested. Hands-on screen-reader review and maintainer approval are still required before publication. See [release preparation](docs/releasing.md), [security](SECURITY.md) and [support](SUPPORT.md). No automatic Marketplace publication is configured.
 
 ## Development
 
@@ -195,9 +193,13 @@ For dashboard changes, edit `webview-ui/src`, run `bun run build`, and run **Dev
 
 Read the [architecture and feature matrix](docs/architecture.md), [validation notes](docs/validation.md), and [contribution guide](CONTRIBUTING.md). We use Conventional Commits and short-lived branches with pull requests into `main`.
 
-## Roadmap
+## Documentation
 
-Phases 1–3 are implemented: native controls, the dashboard, provider adapters, diagnostics, language rules, profiles, import/export and recoverable workspace pause. Phase 4 adds automated accessibility/security checks, CPU profiling and bundle budgets, cross-platform/minimum-host CI, Marketplace metadata/assets and guarded release-draft preparation. Public release still requires hands-on screen-reader review. [Real Remote SSH review](docs/remote-workspace.md) covers scopes, profiles, native file dialogs and recovery after reconnect; Dev Containers and WSL remain untested. [Real two-window regression coverage](docs/multi-window.md) checks shared settings, profile saves and pause/recovery; editor settings still lack atomic updates. See [release preparation](docs/releasing.md). No automatic Marketplace publication is configured.
+- [Architecture](docs/architecture.md)
+- [Status card and read-only controls](docs/status-controls.md)
+- [Profiles, pause and recovery](docs/workflows.md)
+- [Validation commands and coverage](docs/validation.md)
+- [Release preparation](docs/releasing.md)
 
 Have a reproducible problem or a focused idea? [Open an issue](https://github.com/kira-explore/formatting-controls/issues/new/choose).
 
