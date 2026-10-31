@@ -34,7 +34,7 @@ export function statusHover(
     );
   const fullRow = (contents: string) =>
     `<tr><td colspan="2">${contents}</td></tr>`;
-  return `<table width="366"><colgroup><col width="236"><col width="130"></colgroup><tbody>${[
+  return `<table width="400"><colgroup><col width="270"><col width="130"></colgroup><tbody>${[
     `<tr><td>${image(art.header)}</td><td align="right"><a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}" title="Open VS Code Settings">${image(art.settings)}</a></td></tr>`,
     fullRow(titled(image(art.context), statusHelp.file)),
     fullRow(image(art.scopes)),
@@ -49,6 +49,8 @@ export function statusHover(
         image(art.pauseCaption),
     ),
     fullRow(image(art.separator)),
-    `<tr><td height="28"><a href="command:formattingControls.dashboard" title="Open Kira Formatting Controls dashboard"><u>Open dashboard ↗</u></a></td><td align="right"><a href="${issueUrl}" title="Open a new issue on GitHub"><u>Report an issue ↗</u></a></td></tr>`,
+    fullRow(
+      `<a href="command:formattingControls.dashboard" title="Open Kira Formatting Controls dashboard">${image(art.dashboard)}</a><a href="${issueUrl}" title="Open a new issue on GitHub">${image(art.issue)}</a>`,
+    ),
   ].join("")}</tbody></table>`;
 }

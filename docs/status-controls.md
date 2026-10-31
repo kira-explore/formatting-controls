@@ -2,7 +2,7 @@
 
 Hover and click open the same anchored card above the Formatting status-bar item. Click focuses and pins it; Escape dismisses it. Enter on the focused status item opens it. A normal status click creates neither a docked Panel view nor an editor tab.
 
-The header shows **Kira Formatting Controls** with a compact 16px Settings/sliders icon. Version details remain in the Extensions listing. The app icon appears in that listing; the card has no app logo. The package ID remains `rajudhami.formatting-controls`.
+The header shows **Kira Formatting Controls** with a 16px three-slider Settings icon inside a fixed 26px by 24px box. Version details remain in the Extensions listing. The app icon appears in that listing; the card has no app logo. The package ID remains `rajudhami.formatting-controls`.
 
 ![Anchored formatting controls](assets/status-card-dark.png)
 
@@ -21,7 +21,7 @@ The complete file box and Automatic formatting summary row have stable explanato
 
 At a workspace/folder destination, **Pause** previews disabling only Save/Paste/Type. Its caption is **Pause automatic formatting until you resume.**
 
-After confirmation and successful application, the button becomes **Resume**, with **Restore your previous formatting settings.** Only the 58px by 22px button is linked; clicking its caption does nothing. Resume restores unchanged pre-pause preferences while preserving newer edits; it does not enable every trigger automatically. After successful restoration the button and caption return to Pause. Both states reserve identical dimensions. Cancellation retains the prior state.
+After confirmation and successful application, the button becomes **Resume**, with **Restore your previous formatting settings.** Only the 66px by 28px button is linked; clicking its caption does nothing. Resume restores unchanged pre-pause preferences while preserving newer edits; it does not enable every trigger automatically. After successful restoration the button and caption return to Pause. Both states reserve identical dimensions. Cancellation retains the prior state.
 
 The existing native JSON preview, confirmation and durable recovery workflow are unchanged. Save actions and the formatter selection remain unchanged. No timer or automatic resumption is introduced.
 
@@ -29,11 +29,11 @@ The existing native JSON preview, confirmation and durable recovery workflow are
 
 VS Code's public `StatusBarItem.tooltip` accepts Markdown, images and command links; arbitrary form styling is sanitized. Locally generated inert SVG images preserve the approved layout, with native links for navigation and help. No scripts, external images, rendering network calls or rendering files are used.
 
-The title and section heading use 13px regular text and body/control text 12px. Read-only fields and the status badge have 22px outlines. Setting rows use a compact 38px rhythm. Checkbox and button labels are centered; the file/workspace block and enlarged 12px context info icon are vertically centered. The formatting heading, info glyph and fixed-width status badge share one hover-only image. The badge and Pause/Resume button retain fixed dimensions across all states.
+The 400px content width follows the approved reference. The title and section heading use 13px regular text and body/control text 12px. Read-only fields have 28px outlines and the fixed status badge has a 22px outline. Setting rows use a 46px rhythm with 10px between each disabled-style checkbox and its text. Checked boxes have a muted fill and dark tick; unchecked boxes have a darker fill. High-contrast themes retain distinct ticks and outlines. The file/workspace block and context info icon are vertically centered, with a 14px gap between the icon and text. The formatting heading, info glyph and fixed-width status badge share one hover-only image. The filled Pause/Resume button retains fixed dimensions across both states. Underlined footer artwork shares the same content width and aligns to the card edges independently of VS Code's native table-column sizing.
 
 Transparent artwork reveals the native hover surface. Dark, light, high-contrast and high-contrast-light palettes follow the theme kind; arbitrary custom theme colors/fonts are not available inside the image renderer. Native links follow the editor's own hover/focus styling. The public Markdown tooltip cannot reproduce Copilot's custom grey icon-button hover fill or enforce a custom hover underline. This limitation does not change layout or actions.
 
-VS Code controls the outer frame, pointer and hover delay. Explicit image dimensions reserve space while images load. Click-to-focus uses the built-in `workbench.action.showHover` command, checked on minimum and current editor versions; this is a compatibility dependency rather than a dedicated public status-item pinning API.
+VS Code controls the outer frame, pointer and hover delay. Its Markdown sanitizer does not allow `cursor: help` or `cursor: not-allowed`; information and read-only images keep the host's normal cursor, while command links use its action cursor. Tooltips and muted checkbox styling distinguish information and read-only values without introducing false click actions. Explicit image dimensions reserve space while images load. Click-to-focus uses the built-in `workbench.action.showHover` command, checked on minimum and current editor versions; this is a compatibility dependency rather than a dedicated public status-item pinning API.
 
 Sources: [StatusBarItem](https://code.visualstudio.com/api/references/vscode-api#StatusBarItem), [Markdown input handling](https://github.com/microsoft/vscode/blob/1.143.1/src/vs/base/browser/markdownRenderer.ts).
 

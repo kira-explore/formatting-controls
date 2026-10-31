@@ -37,17 +37,14 @@ test("reference artwork has live values, accessible descriptions and read-only f
     art.formatting.alt,
     /Format on paste: Enabled.*Inherited from User settings/,
   );
-  assert.equal(
-    [...art.formatting.svg.matchAll(/stroke-width="1.4"/g)].length,
-    1,
-  );
+  assert.equal([...art.formatting.svg.matchAll(/stroke-width="2"/g)].length, 1);
   const html = statusHover(context);
   assert.ok(!/<input|<select|<button|<script|<style/.test(html));
   const actions = [...html.matchAll(/statusControl\?([^"]*)/g)].map((match) =>
     JSON.parse(decodeURIComponent(match[1] ?? "")),
   );
   assert.deepEqual(actions, [[7, "pause"]]);
-  assert.match(html, /width="366" height="64"/);
+  assert.match(html, /width="400" height="76"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
   assert.match(art.state.alt, /Mixed/);
   assert.match(art.summary.alt, /Mixed/);
@@ -166,7 +163,7 @@ test("only actions are linked while information regions remain hover-only", () =
     );
     assert.ok(button);
     assert.equal(button[1], "");
-    assert.match(button[2] ?? "", /width="58" height="22"/);
+    assert.match(button[2] ?? "", /width="66" height="28"/);
     assert.doesNotMatch(
       button[2] ?? "",
       /until you resume|previous formatting/,
@@ -182,8 +179,9 @@ test("only actions are linked while information regions remain hover-only", () =
     );
     assert.match(html, /title="Open Kira Formatting Controls dashboard"/);
     assert.match(html, /title="Open a new issue on GitHub"/);
-    assert.match(html, /<u>Open dashboard ↗<\/u>/);
-    assert.match(html, /<u>Report an issue ↗<\/u>/);
+    const art = statusArtwork({ ...context, paused });
+    assert.match(art.dashboard.svg, /text-decoration="underline"/);
+    assert.match(art.issue.svg, /text-decoration="underline"/);
   }
 });
 

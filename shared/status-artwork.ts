@@ -28,7 +28,10 @@ const palettes = {
     info: "#22262a",
     input: "#181a1b",
     border: "#333536",
-    checkbox: "#252526",
+    button: "#2a2d2e",
+    checkbox: "#3a3a3a",
+    checkboxChecked: "#777777",
+    checkboxTick: "#353535",
     checkboxBorder: "#707070",
   },
   light: {
@@ -40,7 +43,10 @@ const palettes = {
     info: "#eaf4fa",
     input: "#ffffff",
     border: "#929292",
-    checkbox: "#ffffff",
+    button: "#e6e6e6",
+    checkbox: "#eeeeee",
+    checkboxChecked: "#b8b8b8",
+    checkboxTick: "#555555",
     checkboxBorder: "#929292",
   },
   contrast: {
@@ -52,7 +58,10 @@ const palettes = {
     info: "#000000",
     input: "#000000",
     border: "#ffffff",
+    button: "#000000",
     checkbox: "#000000",
+    checkboxChecked: "#000000",
+    checkboxTick: "#ffffff",
     checkboxBorder: "#ffffff",
   },
   "contrast-light": {
@@ -64,7 +73,10 @@ const palettes = {
     info: "#ffffff",
     input: "#ffffff",
     border: "#000000",
+    button: "#ffffff",
     checkbox: "#ffffff",
+    checkboxChecked: "#ffffff",
+    checkboxTick: "#000000",
     checkboxBorder: "#000000",
   },
 } as const;
@@ -114,7 +126,7 @@ export function statusArtwork(
     anchor: "start" | "middle" = "start",
   ) =>
     `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" text-anchor="${anchor}" dominant-baseline="central">${escapeText(value)}</text>`;
-  const line = (y: number) => `<path d="M5 ${y}H365" stroke="${p.line}"/>`;
+  const line = (y: number) => `<path d="M5 ${y}H395" stroke="${p.line}"/>`;
   const rect = (
     x: number,
     y: number,
@@ -126,10 +138,10 @@ export function statusArtwork(
   ) =>
     `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" stroke="${stroke}" fill="${fill}"/>`;
   const dropdown = (y: number, value: string) =>
-    rect(144, y, 221, 22) +
-    text(152, y + 15, shortened(value, 33)) +
-    `<path d="M350 ${y + 9}l4 4 4-4" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
-  const svg = (height: number, contents: string, width = 366) =>
+    rect(168, y, 227, 28) +
+    centeredText(178, y + 14, shortened(value, 33)) +
+    `<path d="M376 ${y + 12}l4 4 4-4" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
+  const svg = (height: number, contents: string, width = 400) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g font-family="-apple-system, BlinkMacSystemFont, Segoe WPC, Segoe UI, system-ui, Ubuntu, Droid Sans, sans-serif" font-weight="400">${contents}</g></svg>`;
   const state = context.flags.every(Boolean)
     ? "Enabled"
@@ -159,18 +171,26 @@ export function statusArtwork(
     height: number,
     contents: string,
     alt: string,
-    width = 366,
+    width = 400,
   ) => ({ svg: svg(height, contents, width), alt, width, height });
   const flagContents = ["save", "paste", "type"]
     .map((label, i) => {
-      const y = i * 38;
+      const y = i * 46;
       return (
-        rect(5, y + 9, 18, 18, p.checkboxBorder, p.checkbox, 3) +
+        rect(
+          5,
+          y + 9,
+          18,
+          18,
+          p.checkboxBorder,
+          context.flags[i] ? p.checkboxChecked : p.checkbox,
+          2,
+        ) +
         (context.flags[i]
-          ? `<path d="M8 ${y + 18}l4 4 8-9" stroke="${p.muted}" stroke-width="1.4" fill="none"/>`
+          ? `<path d="M8 ${y + 18}l4 4 8-9" stroke="${p.checkboxTick}" stroke-width="2" fill="none"/>`
           : "") +
-        text(28, y + 13, `Format on ${label}`) +
-        text(28, y + 30, shortened(sourceNotes[i] ?? "", 57), 12, p.muted)
+        text(33, y + 13, `Format on ${label}`) +
+        text(33, y + 30, shortened(sourceNotes[i] ?? "", 59), 12, p.muted)
       );
     })
     .join("");
@@ -188,10 +208,10 @@ export function statusArtwork(
   return {
     settings: image(
       24,
-      rect(0.5, 0.5, 27, 23, p.border, "none") +
-        `<g transform="translate(7 5)" fill="none" stroke="${p.fg}" stroke-width="1"><path d="M0 3h3m4 0h7M0 11h7m4 0h3"/><circle cx="5" cy="3" r="2"/><circle cx="9" cy="11" r="2"/></g>`,
+      rect(0.5, 0.5, 25, 23, p.border, p.button) +
+        `<g transform="translate(5 5)" fill="none" stroke="${p.fg}" stroke-width="1"><path d="M0 2h16M0 7h16M0 12h16M5 0v4M11 5v4M7 10v4"/></g>`,
       "Open VS Code Settings",
-      28,
+      26,
     ),
     info: image(
       20,
@@ -204,25 +224,25 @@ export function statusArtwork(
       28,
       centeredText(5, 14, "Kira Formatting Controls", 13),
       "Kira Formatting Controls",
-      236,
+      270,
     ),
     context: image(
-      64,
+      76,
       line(1) +
-        rect(5, 8, 360, 52, p.focus, p.info, 6) +
-        `<circle cx="22" cy="34" r="6" stroke="${p.focus}" fill="none"/>` +
-        centeredText(22, 34, "i", 10, p.focus, "middle") +
-        centeredText(34, 25, shortened(file, 52)) +
-        centeredText(34, 43, shortened(workspace, 54), 12, p.muted),
+        rect(5, 12, 390, 60, p.focus, p.info, 6) +
+        `<circle cx="25" cy="42" r="6" stroke="${p.focus}" fill="none"/>` +
+        centeredText(25, 42, "i", 10, p.focus, "middle") +
+        centeredText(45, 33, shortened(file, 56)) +
+        centeredText(45, 51, shortened(workspace, 56), 12, p.muted),
       `${file}. ${workspace}.`,
     ),
     scopes: image(
-      80,
-      text(5, 21, "Write to") +
+      96,
+      centeredText(5, 20, "Write to") +
         dropdown(6, scope) +
-        text(5, 53, "Apply to language") +
-        dropdown(38, language) +
-        line(79),
+        centeredText(5, 58, "Apply to language") +
+        dropdown(44, language) +
+        line(95),
       `Write to: ${scope}. Apply to language: ${language}. Read-only.`,
     ),
     heading: image(
@@ -241,46 +261,58 @@ export function statusArtwork(
     summary: image(
       26,
       text(5, 18, "Automatic formatting", 13) +
-        `<circle cx="145" cy="13" r="5" stroke="${p.muted}" fill="none"/>` +
-        centeredText(145, 13, "i", 9, p.muted, "middle") +
-        rect(287, 2, 78, 22, p.border, "none") +
-        centeredText(326, 13, state, 12, p.fg, "middle"),
+        `<circle cx="156" cy="13" r="5" stroke="${p.muted}" fill="none"/>` +
+        centeredText(156, 13, "i", 9, p.muted, "middle") +
+        rect(317, 2, 78, 22, p.border, "none") +
+        centeredText(356, 13, state, 12, p.fg, "middle"),
       `Automatic formatting: ${state}`,
     ),
     formatting: image(
-      114,
+      138,
       flagContents,
       `${flagDescription} Checkbox displays are read-only.`,
     ),
     formatter: image(
-      44,
+      56,
       line(1) +
-        text(5, 30, "Default formatter") +
+        centeredText(5, 29, "Default formatter") +
         dropdown(15, context.formatter ?? "Not configured") +
-        line(43),
+        line(55),
       `Default formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
     ),
     pause: image(
-      22,
-      rect(0.5, 0.5, 57, 21, p.border, p.input) +
+      28,
+      rect(0.5, 0.5, 65, 27, p.border, p.button) +
         centeredText(
-          29,
-          11,
+          33,
+          14,
           context.paused ? "Resume" : "Pause",
           12,
           context.canPause ? p.fg : p.muted,
           "middle",
         ),
       context.paused ? "Resume" : "Pause",
-      58,
+      66,
     ),
-    pauseInset: image(22, "", "", 5),
+    pauseInset: image(28, "", "", 5),
     pauseCaption: image(
-      22,
-      text(13, 15, pauseCaption, 12, p.muted),
+      28,
+      centeredText(12, 14, pauseCaption, 12, p.muted),
       pauseCaption,
-      303,
+      329,
     ),
     separator: image(1, line(0.5), ""),
+    dashboard: image(
+      32,
+      `<text x="5" y="20" font-size="12" fill="${p.accent}" text-decoration="underline">Open dashboard ↗</text>`,
+      "Open dashboard ↗",
+      270,
+    ),
+    issue: image(
+      32,
+      `<text x="125" y="20" text-anchor="end" font-size="12" fill="${p.accent}" text-decoration="underline">Report an issue ↗</text>`,
+      "Report an issue ↗",
+      130,
+    ),
   };
 }

@@ -71,9 +71,9 @@ export async function reviewStatus(
         return {
           badgeOffsetX: badgeText.x + badgeText.width/2 - 39,
           badgeOffsetY: badgeText.y + badgeText.height/2 - 13,
-          contextOffsetY: (file.y + workspace.y + workspace.height)/2 - 34,
-          pauseOffsetX: pauseText.x + pauseText.width/2 - 29,
-          pauseOffsetY: pauseText.y + pauseText.height/2 - 11,
+          contextOffsetY: (file.y + workspace.y + workspace.height)/2 - 42,
+          pauseOffsetX: pauseText.x + pauseText.width/2 - 33,
+          pauseOffsetY: pauseText.y + pauseText.height/2 - 14,
           headerFits: title.x + title.width <= art.header.width,
           captionFits: caption.x + caption.width <= art.pauseCaption.width - 2,
         };
@@ -109,8 +109,8 @@ export async function reviewStatus(
   const loaded = async () => {
     await hover.waitFor({ state: "visible" });
     const images = hover.locator("img");
-    await images.nth(10).waitFor();
-    assert.equal(await images.count(), 11, "All status artwork is rendered");
+    await images.nth(12).waitFor();
+    assert.equal(await images.count(), 13, "All status artwork is rendered");
   };
   const dismiss = async () => {
     // A transient hover may already have closed after a screenshot. Focus it
@@ -216,6 +216,25 @@ export async function reviewStatus(
   );
   const dashboard = hover.getByRole("link", { name: /^Open dashboard/ });
   const issue = hover.getByRole("link", { name: /^Report an issue/ });
+  const contextBounds = await fileInfo.boundingBox();
+  const dashboardBounds = await dashboard.getByRole("img").boundingBox();
+  const issueBounds = await issue.getByRole("img").boundingBox();
+  assert.ok(contextBounds && dashboardBounds && issueBounds);
+  assert.equal(
+    dashboardBounds.x,
+    contextBounds.x,
+    "Footer shares the context artwork's left edge",
+  );
+  assert.equal(
+    issueBounds.x + issueBounds.width,
+    contextBounds.x + contextBounds.width,
+    "Issue action shares the context artwork's right edge",
+  );
+  assert.equal(
+    dashboardBounds.y,
+    issueBounds.y,
+    "Footer actions stay on the same row",
+  );
   assert.equal(await issue.getAttribute("data-href"), issueUrl);
   assert.equal(
     await dashboard.getAttribute("title"),
@@ -226,8 +245,8 @@ export async function reviewStatus(
   assert.equal(await pauseLink.getAttribute("title"), null);
   const pauseImage = pauseLink.getByRole("img", { name: "Pause", exact: true });
   assert.equal(await pauseImage.getAttribute("title"), null);
-  assert.equal((await pauseImage.boundingBox())?.width, 58);
-  assert.equal((await pauseImage.boundingBox())?.height, 22);
+  assert.equal((await pauseImage.boundingBox())?.width, 66);
+  assert.equal((await pauseImage.boundingBox())?.height, 28);
   const caption = hover.getByRole("img", {
     name: "Pause automatic formatting until you resume.",
     exact: true,
