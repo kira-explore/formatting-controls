@@ -1,5 +1,8 @@
 export const statusHelp = {
-  file: "Identifies the active file, language and workspace. Formatting settings can differ by language and workspace folder.",
+  file: [
+    "Shows the active file, its language and workspace.",
+    "Settings may differ by language or folder.",
+  ].join("\n"),
   formatting: [
     "Formatting status for save, paste and type.",
     "1. Enabled: All three triggers are enabled.",

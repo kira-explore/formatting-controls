@@ -187,10 +187,11 @@ export function statusArtwork(
       : "Choose a project scope in the dashboard";
   return {
     settings: image(
-      16,
-      `<g fill="none" stroke="${p.fg}" stroke-width="1"><path d="M1 4h3m4 0h7M1 12h7m4 0h3"/><circle cx="6" cy="4" r="2"/><circle cx="10" cy="12" r="2"/></g>`,
+      24,
+      rect(0.5, 0.5, 27, 23, p.border, "none") +
+        `<g transform="translate(7 5)" fill="none" stroke="${p.fg}" stroke-width="1"><path d="M0 3h3m4 0h7M0 11h7m4 0h3"/><circle cx="5" cy="3" r="2"/><circle cx="9" cy="11" r="2"/></g>`,
       "Open VS Code Settings",
-      16,
+      28,
     ),
     info: image(
       20,
@@ -237,6 +238,15 @@ export function statusArtwork(
       `Automatic formatting: ${state}`,
       78,
     ),
+    summary: image(
+      26,
+      text(5, 18, "Automatic formatting", 13) +
+        `<circle cx="145" cy="13" r="5" stroke="${p.muted}" fill="none"/>` +
+        centeredText(145, 13, "i", 9, p.muted, "middle") +
+        rect(287, 2, 78, 22, p.border, "none") +
+        centeredText(326, 13, state, 12, p.fg, "middle"),
+      `Automatic formatting: ${state}`,
+    ),
     formatting: image(
       114,
       flagContents,
@@ -252,7 +262,7 @@ export function statusArtwork(
     ),
     pause: image(
       22,
-      rect(0.5, 0.5, 57, 21, p.border, "none") +
+      rect(0.5, 0.5, 57, 21, p.border, p.input) +
         centeredText(
           29,
           11,

@@ -108,10 +108,9 @@ export async function reviewStatus(
   });
   const loaded = async () => {
     await hover.waitFor({ state: "visible" });
-    await page.waitForFunction(`(() => {
-      const images = Array.from(document.querySelectorAll('.monaco-hover img'));
-      return images.length >= 13 && images.every(img => img.complete && img.naturalWidth > 0);
-    })()`);
+    const images = hover.locator("img");
+    await images.nth(10).waitFor();
+    assert.equal(await images.count(), 11, "All status artwork is rendered");
   };
   const dismiss = async () => {
     // A transient hover may already have closed after a screenshot. Focus it
@@ -182,16 +181,24 @@ export async function reviewStatus(
   assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
   assert.deepEqual(await hover.boundingBox(), hovered);
 
-  const fileInfo = hover
-    .getByRole("img", { name: /^Active file:/ })
-    .locator("..");
+  const fileInfo = hover.getByRole("img", { name: /^Active file:/ });
   assert.equal(await fileInfo.getAttribute("title"), statusHelp.file);
-  const formattingInfo = hover
-    .getByRole("img", { name: "About automatic formatting", exact: true })
-    .locator("..");
+  assert.equal(
+    await fileInfo.evaluate((el) => !!el.closest("a")),
+    false,
+    "File information is hover-only",
+  );
+  const formattingInfo = hover.getByRole("img", {
+    name: /^Automatic formatting:/,
+  });
   assert.equal(
     await formattingInfo.getAttribute("title"),
     statusHelp.formatting,
+  );
+  assert.equal(
+    await formattingInfo.evaluate((el) => !!el.closest("a")),
+    false,
+    "Formatting information is hover-only",
   );
   const settings = hover.getByRole("link", {
     name: "Open VS Code Settings",
@@ -210,8 +217,11 @@ export async function reviewStatus(
   const dashboard = hover.getByRole("link", { name: /^Open dashboard/ });
   const issue = hover.getByRole("link", { name: /^Report an issue/ });
   assert.equal(await issue.getAttribute("data-href"), issueUrl);
-  for (const link of [dashboard, issue])
-    assert.equal(await link.getAttribute("title"), null);
+  assert.equal(
+    await dashboard.getAttribute("title"),
+    "Open Kira Formatting Controls dashboard",
+  );
+  assert.equal(await issue.getAttribute("title"), "Open a new issue on GitHub");
   const pauseLink = hover.getByRole("link", { name: "Pause", exact: true });
   assert.equal(await pauseLink.getAttribute("title"), null);
   const pauseImage = pauseLink.getByRole("img", { name: "Pause", exact: true });
@@ -280,9 +290,7 @@ export async function reviewStatus(
     JSON.stringify(accessibility, null, 2),
   );
   assert.deepEqual(accessibility.violations, []);
-  await hover
-    .getByRole("img", { name: "Automatic formatting", exact: true })
-    .click();
+  await formattingInfo.click();
   await flags.waitFor();
   assert.deepEqual(
     await hover.boundingBox(),

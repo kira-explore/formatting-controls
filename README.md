@@ -6,7 +6,7 @@
 
 A control center for VS Code formatting, save actions, and language settings. Make quick adjustments from the status bar, or open the dashboard to choose a formatter, manage source actions, and understand which settings apply.
 
-**Status card in regular VS Code:** hover and click open the same **Kira Formatting Controls** card; click pins it. The header has a compact Settings icon. A fixed **Enabled / Disabled / Mixed** badge summarizes the always-visible, read-only checkboxes. **Pause / Resume** retains your previous configuration; only its button is clickable, with an explanation beside it. The footer opens the dashboard or this repository’s issue form. Edit individual settings in the dashboard or through **Formatting Controls: Quick Controls**.
+**Status card in regular VS Code:** hover and click open the same **Kira Formatting Controls** card; click pins it. The header has a compact boxed Settings icon. The active-file box and complete formatting summary expose hover-only explanations without a click action. A fixed **Enabled / Disabled / Mixed** badge summarizes the always-visible, read-only checkboxes. **Pause / Resume** retains your previous configuration; only its button is clickable, with an explanation beside it. The underlined footer links open the dashboard or this repository’s issue form. Edit individual settings in the dashboard or through **Formatting Controls: Quick Controls**.
 
 ![Formatting Controls Overview in VS Code Dark Modern](docs/assets/dashboard.png)
 

@@ -15,7 +15,7 @@ The header shows **Kira Formatting Controls** with a compact 16px Settings/slide
 - The default formatter is shown below the three settings.
 - The footer provides **Open dashboard ↗** and **Report an issue ↗**. Issue reporting opens [this repository's new-issue form](https://github.com/kira-explore/formatting-controls/issues/new); it does not submit an issue or upload diagnostics automatically.
 
-The file box and formatting info icon have stable explanatory hover text. Clicking either opens the same explanation in a native information message. Dynamic values remain in the card rather than changing the help text. Settings retains a descriptive hover title. Pause/Resume and footer links have no redundant hover titles; their accessible names remain available. Long visible labels are shortened while full values remain in image alternatives.
+The complete file box and Automatic formatting summary row have stable explanatory hover text. They are information-only artwork rather than command links, so clicking them does not open a notification behind the pinned card. Dynamic values remain in the card rather than changing the help text. Settings retains a descriptive hover title. The permanently underlined footer links identify their destinations on hover. Pause/Resume has no redundant hover title because its caption is already visible. Long visible labels are shortened while full values remain in image alternatives.
 
 ## Manual Pause/Resume
 
@@ -29,7 +29,7 @@ The existing native JSON preview, confirmation and durable recovery workflow are
 
 VS Code's public `StatusBarItem.tooltip` accepts Markdown, images and command links; arbitrary form styling is sanitized. Locally generated inert SVG images preserve the approved layout, with native links for navigation and help. No scripts, external images, rendering network calls or rendering files are used.
 
-The title and section heading use 13px regular text and body/control text 12px. Read-only fields and the status badge have 22px outlines. Setting rows use a compact 38px rhythm. Checkbox and button labels are centered; the file/workspace block and enlarged 12px context info icon are vertically centered. The status badge and Pause/Resume button retain fixed dimensions across all states.
+The title and section heading use 13px regular text and body/control text 12px. Read-only fields and the status badge have 22px outlines. Setting rows use a compact 38px rhythm. Checkbox and button labels are centered; the file/workspace block and enlarged 12px context info icon are vertically centered. The formatting heading, info glyph and fixed-width status badge share one hover-only image. The badge and Pause/Resume button retain fixed dimensions across all states.
 
 Transparent artwork reveals the native hover surface. Dark, light, high-contrast and high-contrast-light palettes follow the theme kind; arbitrary custom theme colors/fonts are not available inside the image renderer. Native links follow the editor's own hover/focus styling. The public Markdown tooltip cannot reproduce Copilot's custom grey icon-button hover fill or enforce a custom hover underline. This limitation does not change layout or actions.
 
@@ -39,7 +39,7 @@ Sources: [StatusBarItem](https://code.visualstudio.com/api/references/vscode-api
 
 ## Safety
 
-Pause command links carry a revision. Changes to settings/editor context invalidate stale actions; equivalent notifications retain the active tooltip/revision. Setting workflows are serialized. Help accepts only the two known topics. XML/HTML text is escaped, command URIs are allowlisted and the issue URL is fixed.
+Pause command links carry a revision. Changes to settings/editor context invalidate stale actions; equivalent notifications retain the active tooltip/revision. Setting workflows are serialized. XML/HTML text is escaped, command URIs are allowlisted and the issue URL is fixed.
 
 The separate dashboard retains its validated message protocol and nonce-based content security policy. **Formatting Controls: Quick Controls** keeps its formatting-only native picker; **Native Quick Controls** keeps the full settings picker. No command opens a docked Formatting Controls view.
 

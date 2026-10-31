@@ -50,6 +50,7 @@ test("reference artwork has live values, accessible descriptions and read-only f
   assert.match(html, /width="366" height="64"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
   assert.match(art.state.alt, /Mixed/);
+  assert.match(art.summary.alt, /Mixed/);
   assert.match(html, /data:image\/svg\+xml;base64,/);
 });
 
@@ -110,7 +111,6 @@ test("untrusted labels remain inert text inside SVG and HTML image descriptions"
     ),
     new Set([
       "formattingControls.statusControl",
-      "formattingControls.statusInfo",
       "formattingControls.dashboard",
       "workbench.action.openSettings",
     ]),
@@ -138,6 +138,11 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
     1,
   );
   assert.equal(
+    new Set(variants.map((art) => `${art.summary.width}x${art.summary.height}`))
+      .size,
+    1,
+  );
+  assert.equal(
     new Set(variants.map((art) => `${art.pause.width}x${art.pause.height}`))
       .size,
     1,
@@ -148,10 +153,12 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
     variants[0]?.pauseCaption.alt ?? "",
     /Pause automatic formatting until you resume\./,
   );
-  assert.ok(statusHover(context).includes(statusHelp.file));
+  assert.ok(
+    statusHover(context).includes(statusHelp.file.replace("\n", "&#10;")),
+  );
 });
 
-test("only the Pause/Resume button is linked and descriptive captions have no hover title", () => {
+test("only actions are linked while information regions remain hover-only", () => {
   for (const paused of [false, true]) {
     const html = statusHover({ ...context, paused });
     const button = html.match(
@@ -164,10 +171,19 @@ test("only the Pause/Resume button is linked and descriptive captions have no ho
       button[2] ?? "",
       /until you resume|previous formatting/,
     );
-    for (const link of html.matchAll(
-      /<a href="(?:command:formattingControls.dashboard|https:[^"]*)"([^>]*)>/g,
-    ))
-      assert.equal(link[1], "");
+    assert.doesNotMatch(html, /formattingControls\.statusInfo/);
+    assert.match(
+      html,
+      /title="Shows the active file, its language and workspace\.&#10;Settings may differ by language or folder\."/,
+    );
+    assert.match(
+      html,
+      /title="Formatting status for save, paste and type\.&#10;1\. Enabled:/,
+    );
+    assert.match(html, /title="Open Kira Formatting Controls dashboard"/);
+    assert.match(html, /title="Open a new issue on GitHub"/);
+    assert.match(html, /<u>Open dashboard ↗<\/u>/);
+    assert.match(html, /<u>Report an issue ↗<\/u>/);
   }
 });
 

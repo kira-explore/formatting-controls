@@ -2,6 +2,8 @@
 
 ## 0.5.0 — Unreleased
 
+Made the active-file box and complete Automatic formatting summary hover-only information regions, with no click command or background notification. Boxed the compact Settings glyph, permanently underlined the footer links, added concise destination titles and retained normal cursors for read-only artwork. The formatting summary is one fixed-width image so Enabled, Disabled and Mixed never shift the layout.
+
 Implemented the approved Kira Formatting Controls card: full title, compact top-right sliders Settings icon, stable explanatory help, fixed-width Enabled/Disabled/Mixed badge beside Automatic formatting, checkbox-only states and readable source notes. Version details remain in the Extensions listing. Added repository issue reporting beside Open dashboard and enlarged the context info icon. Pause/Resume uses the agreed manual-resume captions with identical geometry; only the button is linked. Removed redundant Pause/Resume and footer hover titles. Native links retain the editor's hover/focus styling; custom Copilot icon-button hover fills and hover-only underlines remain outside the public tooltip API.
 
 Centered the active-file/workspace text block, context info icon and status badge labels. Automatic formatting is always visible; removed the collapse toggle and animation. Checkboxes align with the vertical center of each setting's label and source note. Pause confirmation and restoration behavior is unchanged.
