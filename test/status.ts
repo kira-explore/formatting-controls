@@ -150,6 +150,18 @@ export async function reviewStatus(
   await button.hover();
   await loaded();
   const hovered = await hover.boundingBox();
+  const anchor = await button.boundingBox();
+  assert.ok(hovered && anchor);
+  // Enter through the status item's hover bridge before moving sideways to
+  // an action. Jumping straight across the gap can dismiss a transient hover.
+  await page.mouse.move(
+    Math.max(
+      hovered.x + 8,
+      Math.min(anchor.x + anchor.width / 2, hovered.x + hovered.width - 8),
+    ),
+    hovered.y + hovered.height - 8,
+    { steps: 4 },
+  );
   writeFileSync(
     join(directory, "status-row-layout.json"),
     JSON.stringify(
