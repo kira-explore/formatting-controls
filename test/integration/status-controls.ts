@@ -211,6 +211,49 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
       pausePrompts > 0,
       "Pause/Resume goes through the native confirmation picker",
     );
+    const beforeLanguagePause = flags.map((flag) => own(language, flag));
+    try {
+      for (const flag of flags) await write(language, flag, true);
+      controls.refresh();
+      await controls.control(revision(), "pause");
+      assert.deepEqual(
+        flags.map((flag) => own(selection, flag)),
+        [false, false, false],
+        "Pause writes the selected folder's all-language settings",
+      );
+      assert.equal(
+        item.text,
+        "Formatting: ON",
+        "Language overrides still determine the active editor's effective state",
+      );
+      assert.match(
+        (item.tooltip as vscode.MarkdownString).value,
+        /alt="Automatic formatting: Enabled"/,
+      );
+      assert.match(
+        (item.tooltip as vscode.MarkdownString).value,
+        /alt="Resume"/,
+      );
+      assert.match(
+        (item.tooltip as vscode.MarkdownString).value,
+        /Overridden by/,
+      );
+      await controls.control(revision(), "pause");
+      assert.equal(workflows.recovery(), null);
+      assert.match(
+        (item.tooltip as vscode.MarkdownString).value,
+        /alt="Pause"/,
+      );
+      assert.deepEqual(
+        flags.map((flag) => own(language, flag)),
+        [true, true, true],
+        "Resume clears its record without altering language overrides",
+      );
+    } finally {
+      for (const [i, flag] of flags.entries())
+        await write(language, flag, beforeLanguagePause[i]);
+      controls.refresh();
+    }
     for (const flag of flags) await write(selection, flag, false);
     controls.refresh();
     await controls.control(revision(), "pause");

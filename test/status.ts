@@ -133,6 +133,14 @@ export async function reviewStatus(
     await images.nth(12).waitFor();
     assert.equal(await images.count(), 13, "All status artwork is rendered");
   };
+  const captureCard = async (name: string) => {
+    const bounds = await hover.boundingBox();
+    assert.ok(bounds, "The card is visible before capturing it");
+    // Capture the viewport region without scrolling the native hover or
+    // fast-forwarding its lifecycle animations, either of which can dismiss it.
+    await page.screenshot({ path: join(directory, name), clip: bounds });
+    assert.ok(await hover.isVisible(), "Capturing the card keeps it visible");
+  };
   const dismiss = async () => {
     // A transient hover may already have closed after a screenshot. Focus it
     // only if present so native pointer dismissal cannot race a locator wait.
@@ -183,9 +191,7 @@ export async function reviewStatus(
       2,
     ),
   );
-  await hover.screenshot({
-    path: join(directory, "status-implementation-probe.png"),
-  });
+  await captureCard("status-implementation-probe.png");
   writeFileSync(
     join(directory, "status-rendered.html"),
     await hover.innerHTML(),
@@ -194,7 +200,6 @@ export async function reviewStatus(
     .locator("img")
     .evaluateAll((images) => images.map((img) => img.getAttribute("alt")));
   await page.screenshot({
-    animations: "disabled",
     path: join(directory, "status-hover-window.png"),
   });
   const picker = page.locator(".quick-input-widget:visible");
@@ -514,13 +519,9 @@ export async function reviewStatus(
   await page.waitForTimeout(650);
   assert.ok(await hover.isVisible(), "Click pins the card");
   await page.screenshot({
-    animations: "disabled",
     path: join(directory, "status-click-window.png"),
   });
-  await hover.screenshot({
-    animations: "disabled",
-    path: join(directory, "status-card.png"),
-  });
+  await captureCard("status-card.png");
 
   await page.evaluate(axe.source);
   const accessibility = await page.evaluate<{ violations: unknown[] }>(
@@ -600,9 +601,7 @@ export async function reviewStatus(
       hovered,
       "The reopened card keeps its anchored position",
     );
-    await hover.screenshot({
-      path: join(directory, `status-${action.toLowerCase()}-complete.png`),
-    });
+    await captureCard(`status-${action.toLowerCase()}-complete.png`);
   }
   assert.equal(
     await flags.getAttribute("alt"),

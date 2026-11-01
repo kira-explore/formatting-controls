@@ -218,7 +218,6 @@ test("information and pause explanations are passive while actions retain their 
       art.pauseCaption.alt,
       paused ? statusHelp.resume : statusHelp.pause,
     );
-    assert.match(art.pause.svg, /fill="none"/);
     for (const action of [art.dashboard, art.issue]) {
       assert.doesNotMatch(action.svg, /text-decoration/);
       assert.doesNotMatch(action.svg, /<rect/);

@@ -3,10 +3,10 @@
 ## 0.5.0 — Unreleased
 
 - Routed Pause/Resume through a native picker and Command Palette command. The card closes before settings change; cancellation preserves preferences and no live Pausing/Resuming redraw is used. Durable recovery and dashboard confirmations remain.
-- Set card typography to 13.5px headings and 12.5px body text, with proportionally smaller settings/info glyphs, checkboxes and arrows. Pause/Resume uses a fixed-size neutral outlined button.
+- Set card typography to 13.5px headings and 12.5px body text, with proportionally smaller settings/info glyphs, checkboxes and arrows. Pause/Resume uses a fixed-size button with a subtle gray fill.
 - Detect unsaved destination settings before Pause/Resume starts, preserving edits and recovery data. An Open settings file warning helps users save the document and retry; unrelated dirty files do not block changes.
 - Styled Open dashboard and Report an issue as transparent blue borderless buttons with compact hit areas, no underline and a hand cursor across each complete button.
-- Kept a padded title-and-Settings header and narrower 380px card content. Pause/Resume sits beneath the three checkboxes, before Default formatter, with a visible explanation and balanced vertical spacing. Its neutral outlined 62px by 24px button matches Settings in height; the explanation and padding are not clickable.
+- Kept a padded title-and-Settings header and narrower 380px card content. Pause/Resume sits beneath the three checkboxes, before Default formatter, with a visible explanation and balanced vertical spacing. Its neutral gray 62px by 24px button matches Settings in height; the explanation and padding are not clickable.
 - Made both information rows hover-only images with no command links or link focus outlines. Clarified the two-line file help and the numbered Enabled/Disabled/Mixed explanations, and optically aligned the formatting info icon with its heading.
 - Added the regular-VS-Code status card: hover and click share one anchored card, click pins it, and Escape dismisses it.
 - Show effective formatting, scope, language, formatter and saved/inherited sources through read-only checkbox/dropdown artwork. Formatting remains visible with plain, right-aligned Enabled/Disabled/Mixed text that reserves fixed space and explanatory help.

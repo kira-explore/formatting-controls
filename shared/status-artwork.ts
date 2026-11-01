@@ -30,7 +30,6 @@ const palettes = {
     input: "#181a1b",
     border: "#333536",
     button: "#2a2d2e",
-    pauseBorder: "#535658",
     checkbox: "#252526",
     checkboxBorder: "#707070",
   },
@@ -44,7 +43,6 @@ const palettes = {
     input: "#ffffff",
     border: "#929292",
     button: "#e6e6e6",
-    pauseBorder: "#929292",
     checkbox: "#ffffff",
     checkboxBorder: "#929292",
   },
@@ -58,7 +56,6 @@ const palettes = {
     input: "#000000",
     border: "#ffffff",
     button: "#000000",
-    pauseBorder: "#ffffff",
     checkbox: "#000000",
     checkboxBorder: "#ffffff",
   },
@@ -72,7 +69,6 @@ const palettes = {
     input: "#ffffff",
     border: "#000000",
     button: "#ffffff",
-    pauseBorder: "#000000",
     checkbox: "#ffffff",
     checkboxBorder: "#000000",
   },
@@ -266,14 +262,7 @@ export function statusArtwork(
     ),
     pause: image(
       24,
-      rect(
-        0.5,
-        0.5,
-        61,
-        23,
-        context.canPause ? p.pauseBorder : p.border,
-        "none",
-      ) +
+      rect(0.5, 0.5, 61, 23, p.border, p.button) +
         centeredText(
           31,
           12,
