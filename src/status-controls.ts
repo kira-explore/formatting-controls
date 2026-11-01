@@ -14,7 +14,6 @@ export class StatusControls {
   private target: vscode.ConfigurationTarget | undefined;
   private languageOnly = false;
   private pending = false;
-  private help: "file" | "formatting" | undefined;
   constructor(
     private readonly item: vscode.StatusBarItem,
     private readonly document: () => vscode.TextDocument | undefined,
@@ -102,7 +101,6 @@ export class StatusControls {
       return source;
     });
     const context = {
-      ...(this.help ? { help: this.help } : {}),
       paused,
       canPause:
         !!this.workflows &&
@@ -182,10 +180,7 @@ export class StatusControls {
     revision: unknown,
     action: unknown,
   ): Promise<void> {
-    if (action === "info-file" || action === "info-formatting") {
-      const help = action === "info-file" ? "file" : "formatting";
-      this.help = this.help === help ? undefined : help;
-    } else if (action === "pause") {
+    if (action === "pause") {
       if (!this.workflows) throw new Error("Pause storage is unavailable.");
       if (this.workflows.recovery()?.kind === "pause")
         await this.workflows.restore();

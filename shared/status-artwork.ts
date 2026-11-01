@@ -1,4 +1,3 @@
-import { statusHelp } from "./status-help";
 import type { HoverContext } from "./status-hover";
 
 export const escapeText = (value: string): string =>
@@ -192,17 +191,7 @@ export function statusArtwork(
     : context.canPause
       ? "Pause automatic formatting until you resume."
       : "Choose a project scope in the dashboard";
-  const helpLines = context.help ? statusHelp[context.help].split("\n") : [];
   return {
-    help: image(
-      helpLines.length * 22 + 8,
-      helpLines
-        .map((text, index) =>
-          centeredText(5, 12 + index * 22, text, 13, p.muted),
-        )
-        .join(""),
-      helpLines.join(" "),
-    ),
     settings: image(
       24,
       rect(0.5, 0.5, 25, 23, p.border, p.button) +
@@ -251,7 +240,8 @@ export function statusArtwork(
     summary: image(
       28,
       formattingHeading +
-        infoGlyph(158, 14, p.muted) +
+        // Optical alignment with the heading's visible glyphs, not its font box.
+        infoGlyph(158, 15, p.muted) +
         rect(317, 2, 78, 24, p.border, "none") +
         centeredText(356, 14, state, 13, p.fg, "middle"),
       `Automatic formatting: ${state}`,

@@ -46,11 +46,7 @@ test("reference artwork has live values, accessible descriptions and read-only f
   const actions = [...html.matchAll(/statusControl\?([^"]*)/g)].map((match) =>
     JSON.parse(decodeURIComponent(match[1] ?? "")),
   );
-  assert.deepEqual(actions, [
-    [7, "info-file"],
-    [7, "info-formatting"],
-    [7, "pause"],
-  ]);
+  assert.deepEqual(actions, [[7, "pause"]]);
   assert.match(html, /width="400" height="76"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
   assert.match(art.state.alt, /Mixed/);
@@ -162,21 +158,17 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
   );
 });
 
-test("borderless actions link only to navigation, inline information and pause", () => {
+test("only actions are linked while information regions remain hover-only", () => {
   for (const paused of [false, true]) {
     const html = statusHover({ ...context, paused });
-    const button = [
-      ...html.matchAll(
-        /<a href="command:formattingControls.statusControl\?([^"]*)"([^>]*)>(.*?)<\/a>/g,
-      ),
-    ].find(
-      (match) => JSON.parse(decodeURIComponent(match[1] ?? ""))[1] === "pause",
+    const button = html.match(
+      /<a href="command:formattingControls.statusControl\?[^"]*"([^>]*)>(.*?)<\/a>/,
     );
     assert.ok(button);
-    assert.equal(button[2], "");
-    assert.match(button[3] ?? "", /width="66" height="28"/);
+    assert.equal(button[1], "");
+    assert.match(button[2] ?? "", /width="66" height="28"/);
     assert.doesNotMatch(
-      button[3] ?? "",
+      button[2] ?? "",
       /until you resume|previous formatting/,
     );
     assert.doesNotMatch(html, /formattingControls\.statusInfo/);
@@ -201,17 +193,6 @@ test("borderless actions link only to navigation, inline information and pause",
       art.context.width,
     );
   }
-});
-
-test("information expands inside the card without notifications or setting actions", () => {
-  for (const help of ["file", "formatting"] as const) {
-    const art = statusArtwork({ ...context, help });
-    for (const line of statusHelp[help].split("\n"))
-      assert.ok(art.help.svg.includes(line));
-    assert.ok(statusHover({ ...context, help }).includes(art.help.alt));
-    assert.equal(art.help.width, art.context.width);
-  }
-  assert.ok(!statusHover(context).includes('alt="Formatting status for save'));
 });
 
 test("theme palettes change the artwork and read-only User pause has no action", () => {
