@@ -108,8 +108,9 @@ export function statusArtwork(
     size = 13,
     color: string = p.fg,
     anchor: "start" | "middle" = "start",
+    width?: number,
   ) =>
-    `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" text-anchor="${anchor}" dominant-baseline="central">${escapeText(value)}</text>`;
+    `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" text-anchor="${anchor}" dominant-baseline="central"${width === undefined ? "" : ` textLength="${width}" lengthAdjust="spacingAndGlyphs"`}>${escapeText(value)}</text>`;
   const line = (y: number) => `<path d="M5 ${y}H395" stroke="${p.line}"/>`;
   const infoGlyph = (x: number, y: number, color: string) =>
     `<circle cx="${x}" cy="${y}" r="5.5" stroke="${color}" fill="none"/><circle cx="${x}" cy="${y - 3}" r=".6" fill="${color}"/><path d="M${x} ${y - 0.5}v3.5" stroke="${color}" stroke-width="1.2" stroke-linecap="round"/>`;
@@ -277,6 +278,8 @@ export function statusArtwork(
           13,
           context.canPause && !context.pauseBusy ? p.fg : p.muted,
           "middle",
+          // Reserve identical padding with wider Linux fallback fonts, too.
+          context.pauseBusy ? 54 : undefined,
         ),
       pauseLabel,
       66,

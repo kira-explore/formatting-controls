@@ -62,10 +62,16 @@ export async function run(): Promise<void> {
       const tooltip = (item.tooltip as vscode.MarkdownString).value;
       assert.ok(tooltip.includes("User"));
       assert.equal(item.command, "workbench.action.showHover");
-      assert.doesNotMatch(
-        tooltip,
-        /href="command:formattingControls.statusControl\?/,
-        "An empty window exposes no workspace Pause or formatting edits",
+      const actions = Array.from(
+        tooltip.matchAll(
+          /href="command:formattingControls.statusControl\?([^"]*)"/g,
+        ),
+        (match) => JSON.parse(decodeURIComponent(match[1] ?? ""))[1],
+      );
+      assert.deepEqual(
+        actions,
+        ["info", "info"],
+        "An empty window exposes only no-op information links, never workspace edits",
       );
       assert.equal(
         own(user, "editor.formatOnSave"),
