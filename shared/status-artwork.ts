@@ -113,7 +113,7 @@ export function statusArtwork(
     x: number,
     y: number,
     value: string,
-    size = 12,
+    size = 12.5,
     color: string = p.fg,
     anchor: "start" | "middle" = "start",
   ) =>
@@ -168,7 +168,7 @@ export function statusArtwork(
     width = 400,
   ) => ({ svg: svg(height, contents, width), alt, width, height });
   // Keep the info gap stable when the renderer selects a wider fallback font.
-  const formattingHeading = `<text x="5" y="14" dominant-baseline="central" font-size="13" textLength="130" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>`;
+  const formattingHeading = `<text x="5" y="14" dominant-baseline="central" font-size="13.5" textLength="135" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>`;
   const flagContents = ["save", "paste", "type"]
     .map((label, i) => {
       const y = i * 46;
@@ -182,7 +182,7 @@ export function statusArtwork(
           33,
           y + 27,
           shortened(sourceNotes[i] ?? "", 54),
-          12,
+          12.5,
           p.muted,
         )
       );
@@ -211,7 +211,7 @@ export function statusArtwork(
     ),
     header: image(
       28,
-      centeredText(5, 14, "Kira Formatting Controls", 13),
+      centeredText(5, 14, "Kira Formatting Controls", 13.5),
       "Kira Formatting Controls",
       270,
     ),
@@ -221,7 +221,7 @@ export function statusArtwork(
         rect(5, 12, 390, 60, p.focus, p.info, 6) +
         infoGlyph(25, 42, p.focus) +
         centeredText(45, 33, shortened(file, 51)) +
-        centeredText(45, 51, shortened(workspace, 51), 12, p.muted),
+        centeredText(45, 51, shortened(workspace, 51), 12.5, p.muted),
       `${file}. ${workspace}.`,
     ),
     scopes: image(
@@ -233,11 +233,11 @@ export function statusArtwork(
         line(83),
       `Write to: ${scope}. Apply to language: ${language}. Read-only.`,
     ),
-    heading: image(28, formattingHeading, "Automatic formatting", 148),
+    heading: image(28, formattingHeading, "Automatic formatting", 153),
     state: image(
       28,
       rect(0, 2, 78, 24, p.border, "none") +
-        centeredText(39, 14, state, 12, p.fg, "middle"),
+        centeredText(39, 14, state, 12.5, p.fg, "middle"),
       `Automatic formatting: ${state}`,
       78,
     ),
@@ -245,9 +245,9 @@ export function statusArtwork(
       28,
       formattingHeading +
         // Optical alignment with the heading's visible glyphs, not its font box.
-        infoGlyph(148, 15, p.muted) +
+        infoGlyph(153, 15, p.muted) +
         rect(317, 2, 78, 24, p.border, "none") +
-        centeredText(356, 14, state, 12, p.fg, "middle"),
+        centeredText(356, 14, state, 12.5, p.fg, "middle"),
       `Automatic formatting: ${state}`,
     ),
     formatting: image(
@@ -278,7 +278,7 @@ export function statusArtwork(
           33,
           14,
           pauseLabel,
-          12,
+          12.5,
           context.canPause ? p.primaryForeground : p.muted,
           "middle",
         ),
@@ -288,14 +288,14 @@ export function statusArtwork(
     headerGap: image(28, "", "", 8),
     dashboard: image(
       28,
-      `<text x="12" y="14" dominant-baseline="central" font-size="12" textLength="106.15" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,
+      `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="110.57" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,
       "Open dashboard ↗",
       139,
     ),
     footerGap: image(36, "", "", 128),
     issue: image(
       28,
-      `<text x="12" y="14" dominant-baseline="central" font-size="12" textLength="100.62" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,
+      `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="104.81" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,
       "Report an issue ↗",
       133,
     ),

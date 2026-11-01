@@ -3,7 +3,7 @@
 ## 0.5.0 — Unreleased
 
 - Routed Pause/Resume through a native picker and Command Palette command. The card closes before settings change; cancellation preserves preferences and no live Pausing/Resuming redraw is used. Durable recovery and dashboard confirmations remain.
-- Set card typography to 13px headings and 12px body text, with proportionally smaller settings/info glyphs, checkboxes and arrows. Pause/Resume now uses a blue fill and white text with fixed dimensions.
+- Set card typography to 13.5px headings and 12.5px body text, with proportionally smaller settings/info glyphs, checkboxes and arrows. Pause/Resume now uses a blue fill and white text with fixed dimensions.
 - Detect unsaved destination settings before Pause/Resume starts, preserving edits and recovery data. An Open settings file warning helps users save the document and retry; unrelated dirty files do not block changes.
 - Styled Open dashboard and Report an issue as transparent blue borderless buttons with Pause-sized height, no underline and a hand cursor across each complete button.
 - Moved the fixed-width Pause/Resume button to the header before Settings, with its explanation in a tooltip. Removed the separate pause caption row.
