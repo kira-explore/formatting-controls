@@ -31,14 +31,14 @@ export async function reviewStatus(
   );
   const alignment = await page.evaluate<
     Array<{
-      badgeOffsetX: number;
-      badgeOffsetY: number;
+      stateEdgeOffsetX: number;
+      stateOffsetY: number;
       contextOffsetY: number;
       pauseOffsetX: number;
       pauseOffsetY: number;
       summaryHeadingOffsetY: number;
       summaryIconOffsetY: number;
-      summaryBadgeOffsetY: number;
+      summaryStateOffsetY: number;
       summaryFits: boolean;
       headerFits: boolean;
       pauseFits: boolean;
@@ -64,31 +64,31 @@ export async function reviewStatus(
       return root;
     }
     return fixtures.map(art => {
-      const badge = mount(art.state), context = mount(art.context), pause = mount(art.pause), header = mount(art.header), summary = mount(art.summary);
+      const stateImage = mount(art.state), context = mount(art.context), pause = mount(art.pause), header = mount(art.header), summary = mount(art.summary);
       try {
-        const badgeText = badge.querySelector("text").getBBox();
+        const stateText = stateImage.querySelector("text").getBBox();
         const file = Array.from(context.querySelectorAll("text")).find(text => text.textContent.startsWith("Active file:")).getBBox();
         const workspace = Array.from(context.querySelectorAll("text")).find(text => text.textContent.startsWith("Workspace:")).getBBox();
         const pauseText = pause.querySelector("text").getBBox();
         const title = header.querySelector("text").getBBox();
         const summaryText = summary.querySelectorAll("text");
         const summaryHeading = summaryText[0].getBBox();
-        const summaryBadge = summaryText[1].getBBox();
+        const summaryState = summaryText[1].getBBox();
         const summaryIcon = summary.querySelector("circle").getBBox();
         return {
-          badgeOffsetX: badgeText.x + badgeText.width/2 - 39,
-          badgeOffsetY: badgeText.y + badgeText.height/2 - 14,
+          stateEdgeOffsetX: stateText.x + stateText.width - art.state.width,
+          stateOffsetY: stateText.y + stateText.height/2 - 14,
           contextOffsetY: (file.y + workspace.y + workspace.height)/2 - 42,
           pauseOffsetX: pauseText.x + pauseText.width/2 - art.pause.width/2,
-          pauseOffsetY: pauseText.y + pauseText.height/2 - 14,
+          pauseOffsetY: pauseText.y + pauseText.height/2 - art.pause.height/2,
           summaryHeadingOffsetY: summaryHeading.y + summaryHeading.height/2 - 14,
           summaryIconOffsetY: summaryIcon.y + summaryIcon.height/2 - 14,
-          summaryBadgeOffsetY: summaryBadge.y + summaryBadge.height/2 - 14,
+          summaryStateOffsetY: summaryState.y + summaryState.height/2 - 14,
           summaryFits: summaryHeading.x + summaryHeading.width < summaryIcon.x,
           headerFits: title.x + title.width <= art.header.width,
           pauseFits: pauseText.x >= 1 && pauseText.x + pauseText.width <= art.pause.width - 1,
         };
-      } finally { badge.remove(); context.remove(); pause.remove(); header.remove(); summary.remove(); }
+      } finally { stateImage.remove(); context.remove(); pause.remove(); header.remove(); summary.remove(); }
     });
   })(${JSON.stringify(fixtures)})`);
   writeFileSync(
@@ -97,14 +97,14 @@ export async function reviewStatus(
   );
   for (const measurement of alignment) {
     for (const offset of [
-      measurement.badgeOffsetX,
-      measurement.badgeOffsetY,
+      measurement.stateEdgeOffsetX,
+      measurement.stateOffsetY,
       measurement.contextOffsetY,
       measurement.pauseOffsetX,
       measurement.pauseOffsetY,
       measurement.summaryHeadingOffsetY,
       measurement.summaryIconOffsetY,
-      measurement.summaryBadgeOffsetY,
+      measurement.summaryStateOffsetY,
     ])
       assert.ok(
         Math.abs(offset) <= 1,
@@ -392,7 +392,7 @@ export async function reviewStatus(
   const pauseImage = pauseLink.getByRole("img", { name: "Pause", exact: true });
   assert.equal(await pauseImage.getAttribute("title"), null);
   assert.equal((await pauseImage.boundingBox())?.width, 62);
-  assert.equal((await pauseImage.boundingBox())?.height, 28);
+  assert.equal((await pauseImage.boundingBox())?.height, 24);
   const pauseBounds = await pauseImage.boundingBox();
   const formatterBounds = await formatter.boundingBox();
   const settingsBounds = await settings.getByRole("img").boundingBox();
@@ -403,6 +403,11 @@ export async function reviewStatus(
     pauseBounds && formatterBounds && settingsBounds && headerBounds && hovered,
   );
   const center = (box: { y: number; height: number }) => box.y + box.height / 2;
+  assert.equal(
+    pauseBounds.height,
+    settingsBounds.height,
+    "Pause/Resume matches the Settings button height",
+  );
   assert.ok(Math.abs(center(pauseBounds) - center(settingsBounds)) <= 1);
   assert.ok(Math.abs(center(pauseBounds) - center(headerBounds)) <= 1);
   const headerTopGap = pauseBounds.y - hovered.y;
@@ -667,6 +672,6 @@ export async function reviewStatus(
     .first()
     .waitFor();
   console.log(
-    "Status card verified: smaller text/icons, stable hover/click bounds, native Pause/Resume picker and Command Palette entry, cancellation, fixed badge, read-only fields, hover-only info, keyboard access and accessible descriptions.",
+    "Status card verified: smaller text/icons, stable hover/click bounds, native Pause/Resume picker and Command Palette entry, cancellation, fixed status alignment, read-only fields, hover-only info, keyboard access and accessible descriptions.",
   );
 }

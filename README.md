@@ -125,7 +125,7 @@ Hover the status-bar item to open the anchored **Kira Formatting Controls** card
 
 The welcome page appears once on first activation. It introduces the workflow and links to settings, documentation, and GitHub; it does not apply a preset automatically.
 
-The card's fixed **Enabled / Disabled / Mixed** badge summarizes the three formatting triggers. Its information regions explain the file context and summary. The top-right icon opens Settings; the footer opens the dashboard or a new GitHub issue. [Status-card details and API limits](docs/status-controls.md).
+The card's right-aligned **Enabled / Disabled / Mixed** status text summarizes the three formatting triggers. Its information regions explain the file context and summary. The top-right icon opens Settings; the footer opens the dashboard or a new GitHub issue. [Status-card details and API limits](docs/status-controls.md).
 
 ![Native formatting summary above the status bar in Dark Modern](docs/assets/status-card-dark.png)
 

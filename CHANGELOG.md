@@ -6,10 +6,10 @@
 - Set card typography to 13.5px headings and 12.5px body text, with proportionally smaller settings/info glyphs, checkboxes and arrows. Pause/Resume now uses a blue fill and white text with fixed dimensions.
 - Detect unsaved destination settings before Pause/Resume starts, preserving edits and recovery data. An Open settings file warning helps users save the document and retry; unrelated dirty files do not block changes.
 - Styled Open dashboard and Report an issue as transparent blue borderless buttons with Pause-sized height, no underline and a hand cursor across each complete button.
-- Added the approved padded header: a fixed 62px Pause/Resume button before Settings, balanced vertical spacing, and narrower 380px card content. The action explanation is a tooltip; the separate caption row is removed.
+- Added the approved padded header: a fixed 62px by 24px Pause/Resume button before Settings, matching its height, balanced vertical spacing, and narrower 380px card content. The action explanation is a tooltip; the separate caption row is removed.
 - Made both information rows hover-only images with no command links or link focus outlines. Clarified the two-line file help and the numbered Enabled/Disabled/Mixed explanations, and optically aligned the formatting info icon with its heading.
 - Added the regular-VS-Code status card: hover and click share one anchored card, click pins it, and Escape dismisses it.
-- Show effective formatting, scope, language, formatter and saved/inherited sources through read-only checkbox/dropdown artwork. Formatting remains visible with a fixed Enabled/Disabled/Mixed badge and explanatory help.
+- Show effective formatting, scope, language, formatter and saved/inherited sources through read-only checkbox/dropdown artwork. Formatting remains visible with plain, right-aligned Enabled/Disabled/Mixed text that reserves fixed space and explanatory help.
 - Added formatting-only Pause/Resume with durable recovery that preserves save actions and later edits.
 - Refined typography, spacing, centered alignment, boxed Settings navigation and compact footer action targets.
 - Renamed the display name to Kira Formatting Controls and added the blue/white icon on black; the extension ID remains `rajudhami.formatting-controls`.

@@ -115,7 +115,7 @@ export function statusArtwork(
     value: string,
     size = 12.5,
     color: string = p.fg,
-    anchor: "start" | "middle" = "start",
+    anchor: "start" | "middle" | "end" = "start",
   ) =>
     `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" text-anchor="${anchor}" dominant-baseline="central">${escapeText(value)}</text>`;
   const line = (y: number) => `<path d="M5 ${y}H375" stroke="${p.line}"/>`;
@@ -210,8 +210,8 @@ export function statusArtwork(
       16,
     ),
     header: image(
-      40,
-      centeredText(5, 20, "Kira Formatting Controls", 13.5),
+      36,
+      centeredText(5, 18, "Kira Formatting Controls", 13.5),
       "Kira Formatting Controls",
       250,
     ),
@@ -236,8 +236,7 @@ export function statusArtwork(
     heading: image(28, formattingHeading, "Automatic formatting", 153),
     state: image(
       28,
-      rect(0, 2, 78, 24, p.border, "none") +
-        centeredText(39, 14, state, 12.5, p.fg, "middle"),
+      centeredText(78, 14, state, 12.5, p.muted, "end"),
       `Automatic formatting: ${state}`,
       78,
     ),
@@ -246,8 +245,7 @@ export function statusArtwork(
       formattingHeading +
         // Optical alignment with the heading's visible glyphs, not its font box.
         infoGlyph(153, 15, p.muted) +
-        rect(297, 2, 78, 24, p.border, "none") +
-        centeredText(336, 14, state, 12.5, p.fg, "middle"),
+        centeredText(375, 14, state, 12.5, p.muted, "end"),
       `Automatic formatting: ${state}`,
     ),
     formatting: image(
@@ -265,18 +263,18 @@ export function statusArtwork(
       `Default formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
     ),
     pause: image(
-      28,
+      24,
       rect(
         0.5,
         0.5,
         61,
-        27,
+        23,
         context.canPause ? p.primary : p.border,
         context.canPause ? p.primary : p.button,
       ) +
         centeredText(
           31,
-          14,
+          12,
           pauseLabel,
           12.5,
           context.canPause ? p.primaryForeground : p.muted,
@@ -287,7 +285,7 @@ export function statusArtwork(
     ),
     // A taller, unlinked spacer centers the real buttons without enlarging
     // their click targets. Native row insets provide the remaining padding.
-    headerGap: image(40, "", "", 8),
+    headerGap: image(36, "", "", 8),
     dashboard: image(
       28,
       `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="110.57" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,

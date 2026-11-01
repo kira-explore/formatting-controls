@@ -147,6 +147,11 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
       .size,
     1,
   );
+  for (const art of variants) {
+    assert.equal(art.pause.height, art.settings.height);
+    assert.doesNotMatch(art.state.svg, /<rect\b/);
+    assert.doesNotMatch(art.summary.svg, /<rect\b/);
+  }
   assert.match(variants[3]?.state.alt ?? "", /Disabled/);
   assert.match(variants[4]?.state.alt ?? "", /Mixed/);
   assert.doesNotMatch(statusHover(context), /alt="Pausing"|alt="Resuming"/);
@@ -174,7 +179,7 @@ test("information is hover-only and header actions retain their destinations", (
       button[2],
       ` title="${paused ? statusHelp.resume : statusHelp.pause}"`,
     );
-    assert.match(button[3] ?? "", /width="62" height="28"/);
+    assert.match(button[3] ?? "", /width="62" height="24"/);
     assert.doesNotMatch(
       button[3] ?? "",
       /until you resume|previous formatting/,
@@ -205,7 +210,7 @@ test("information is hover-only and header actions retain their destinations", (
     for (const action of [art.dashboard, art.issue]) {
       assert.doesNotMatch(action.svg, /text-decoration/);
       assert.doesNotMatch(action.svg, /<rect/);
-      assert.equal(action.height, art.pause.height);
+      assert.equal(action.height, 28);
     }
     assert.equal(
       art.dashboard.width + art.footerGap.width + art.issue.width,
