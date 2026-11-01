@@ -261,27 +261,27 @@ export function statusArtwork(
       `Default formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
     ),
     pause: image(
-      24,
-      rect(0.5, 0.5, 61, 23, p.border, p.button) +
+      28,
+      rect(0.5, 0.5, 65, 27, p.border, p.button) +
         centeredText(
-          31,
-          12,
+          33,
+          14,
           pauseLabel,
           12.5,
           context.canPause ? p.fg : p.muted,
           "middle",
         ),
       pauseLabel,
-      62,
+      66,
     ),
     // Unlinked artwork centers the button and explanation without expanding
     // the button's click target into the caption or vertical padding.
-    pauseInset: image(40, "", "", 5),
+    pauseInset: image(44, "", "", 5),
     pauseCaption: image(
-      40,
-      centeredText(12, 20, pauseCaption, 12.5, p.muted),
+      44,
+      centeredText(12, 22, pauseCaption, 12.5, p.muted),
       pauseCaption,
-      313,
+      309,
     ),
     dashboard: image(
       28,

@@ -148,7 +148,8 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
     1,
   );
   for (const art of variants) {
-    assert.equal(art.pause.height, art.settings.height);
+    assert.equal(art.pause.width, 66);
+    assert.equal(art.pause.height, 28);
     assert.doesNotMatch(art.state.svg, /<rect\b/);
     assert.doesNotMatch(art.summary.svg, /<rect\b/);
   }
@@ -176,7 +177,7 @@ test("information and pause explanations are passive while actions retain their 
     );
     assert.ok(button);
     assert.equal(button[2], "");
-    assert.match(button[3] ?? "", /width="62" height="24"/);
+    assert.match(button[3] ?? "", /width="66" height="28"/);
     assert.doesNotMatch(
       button[3] ?? "",
       /until you resume|previous formatting/,

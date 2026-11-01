@@ -408,8 +408,8 @@ export async function reviewStatus(
   assert.equal(await pauseLink.getAttribute("title"), null);
   const pauseImage = pauseLink.getByRole("img", { name: "Pause", exact: true });
   assert.equal(await pauseImage.getAttribute("title"), null);
-  assert.equal((await pauseImage.boundingBox())?.width, 62);
-  assert.equal((await pauseImage.boundingBox())?.height, 24);
+  assert.equal((await pauseImage.boundingBox())?.width, 66);
+  assert.equal((await pauseImage.boundingBox())?.height, 28);
   const pauseBounds = await pauseImage.boundingBox();
   const formatterBounds = await formatter.boundingBox();
   const settingsBounds = await settings.getByRole("img").boundingBox();
@@ -420,11 +420,7 @@ export async function reviewStatus(
     pauseBounds && formatterBounds && settingsBounds && headerBounds && hovered,
   );
   const center = (box: { y: number; height: number }) => box.y + box.height / 2;
-  assert.equal(
-    pauseBounds.height,
-    settingsBounds.height,
-    "Pause/Resume matches the Settings button height",
-  );
+  assert.equal(settingsBounds.height, 24, "Settings keeps its current size");
   assert.ok(Math.abs(center(settingsBounds) - center(headerBounds)) <= 1);
   const flagBounds = await flags.boundingBox();
   const caption = hover.getByRole("img", {
