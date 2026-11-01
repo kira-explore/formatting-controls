@@ -191,6 +191,22 @@ export async function reviewStatus(
     animations: "disabled",
     path: join(directory, "status-hover-window.png"),
   });
+  // Exercise actions from a hover-only card before any status click pins it.
+  for (const action of ["Pause", "Resume"]) {
+    await hover.getByRole("link", { name: action, exact: true }).click();
+    await loaded();
+    await hover
+      .getByRole("img", {
+        name: action === "Pause" ? "Resume" : "Pause",
+        exact: true,
+      })
+      .waitFor();
+    assert.deepEqual(
+      await hover.boundingBox(),
+      hovered,
+      "Hover-only Pause/Resume stays open and anchored",
+    );
+  }
   await dismiss();
   await button.click();
   await loaded();

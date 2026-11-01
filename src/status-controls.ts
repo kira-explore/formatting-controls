@@ -59,7 +59,11 @@ export class StatusControls {
         : undefined,
     );
   }
-  refresh(): void {
+  refresh(showTransition = false): void {
+    // A batch emits recovery and configuration events for every write. Keep
+    // its busy card intact until the whole operation has settled; replacing
+    // the native Markdown hover for each intermediate value causes flicker.
+    if (this.pauseTransition && !showTransition) return;
     const document = this.document();
     const selection = this.selection();
     const effective = this.effective();
@@ -182,7 +186,7 @@ export class StatusControls {
       if (action === "pause") {
         this.pauseTransition =
           this.workflows?.recovery()?.kind === "pause" ? "resuming" : "pausing";
-        this.refresh();
+        this.refresh(true);
       }
       await this.applyControl(revision, action);
     } finally {

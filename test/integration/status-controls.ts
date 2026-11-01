@@ -134,12 +134,16 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     );
     assert.equal(workflows.recovery(), null);
     assert.match((item.tooltip as vscode.MarkdownString).value, /alt="Pause"/);
+    await dirtySettingsFailure("Pause");
+    assert.equal(workflows.recovery(), null);
     await transition("Pausing");
     assert.equal(own(selection, "editor.formatOnSave"), false);
     assert.equal(own(selection, "editor.formatOnPaste"), false);
     assert.equal(own(selection, "editor.formatOnType"), false);
     assert.deepEqual(own(selection, "editor.codeActionsOnSave"), actions);
     assert.match((item.tooltip as vscode.MarkdownString).value, /Resume/);
+    await dirtySettingsFailure("Resume");
+    assert.equal(workflows.recovery()?.kind, "pause");
     const recoveryBeforeFailure = workflows.recovery();
     workspaceStore.fail = true;
     await assert.rejects(
@@ -214,6 +218,48 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     workflows.dispose();
     item.dispose();
   }
+  async function dirtySettingsFailure(
+    label: "Pause" | "Resume",
+  ): Promise<void> {
+    const folder = vscode.workspace.getWorkspaceFolder(uri);
+    assert.ok(folder);
+    const settings = await vscode.workspace.openTextDocument(
+      vscode.Uri.joinPath(folder.uri, ".vscode", "settings.json"),
+    );
+    const before = flags.map((flag) => own(selection, flag));
+    const edit = new vscode.WorkspaceEdit();
+    edit.insert(
+      settings.uri,
+      settings.positionAt(settings.getText().length),
+      "\n ",
+    );
+    assert.ok(await vscode.workspace.applyEdit(edit));
+    assert.ok(settings.isDirty);
+    const unsaved = settings.getText();
+    try {
+      await assert.rejects(
+        controls.control(revision(), "pause"),
+        /unsaved changes/,
+        "A dirty settings file blocks both Pause and Resume",
+      );
+      assert.equal(settings.getText(), unsaved, "Unsaved edits are preserved");
+      assert.ok(
+        settings.isDirty,
+        "The extension must not save the user's edits",
+      );
+      assert.deepEqual(
+        flags.map((flag) => own(selection, flag)),
+        before,
+      );
+      assert.match(
+        (item.tooltip as vscode.MarkdownString).value,
+        new RegExp(`alt="${label}"`),
+      );
+    } finally {
+      // Only this disposable integration workspace is saved for the retry.
+      assert.ok(await settings.save());
+    }
+  }
   async function transition(label: string): Promise<void> {
     let release!: () => void;
     workspaceStore.block = new Promise<void>((resolve) => {
@@ -221,11 +267,22 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     });
     const current = revision();
     const running = controls.control(current, "pause");
+    const busy = item.tooltip;
+    const snapshots: (typeof busy)[] = [];
+    const observe = () => {
+      controls.refresh();
+      snapshots.push(item.tooltip);
+    };
+    const changes = [
+      workflows.onDidChange(observe),
+      vscode.workspace.onDidChangeConfiguration(observe),
+    ];
     try {
-      const busy = item.tooltip as vscode.MarkdownString;
-      assert.ok(busy.value.includes(`alt="${label}"`));
       assert.ok(
-        !busy.value.includes(
+        (busy as vscode.MarkdownString).value.includes(`alt="${label}"`),
+      );
+      assert.ok(
+        !(busy as vscode.MarkdownString).value.includes(
           encodeURIComponent(JSON.stringify([revision(), "pause"])),
         ),
       );
@@ -241,6 +298,23 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
       workspaceStore.block = undefined;
       release();
     }
-    await running;
+    try {
+      await running;
+      assert.ok(
+        snapshots.length,
+        "The batch emitted recovery/configuration changes",
+      );
+      assert.ok(
+        snapshots.every((tooltip) => tooltip === busy),
+        "Intermediate batch writes must not replace the busy card",
+      );
+      assert.notEqual(
+        item.tooltip,
+        busy,
+        "The completed batch refreshes the card",
+      );
+    } finally {
+      for (const change of changes) change.dispose();
+    }
   }
 }

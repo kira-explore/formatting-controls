@@ -25,9 +25,13 @@ At a workspace/folder destination, **Pause** disables only Save/Paste/Type in th
 
 While processing, the same 66px by 28px space shows **Pausing** or **Resuming** with muted text and no click link. Duplicate clicks are ignored. A brief minimum busy interval prevents a one-frame label flash; no custom fade animation is claimed. The button, caption and anchored card retain their dimensions and position.
 
+Recovery/configuration notifications from individual writes are combined: the busy card stays intact until the complete operation settles, then one refresh shows the result. VS Code still owns the native hover replacement; this reduces redraws rather than adding a CSS transition.
+
 After successful application, the button becomes **Resume**, with **Restore your previous formatting settings.** Resume runs in the background and restores unchanged pre-pause preferences while preserving newer edits; it does not enable every trigger automatically. After complete restoration the button and caption return to Pause. Clicking the caption does nothing.
 
 Durable recovery and rollback remain in place. A failure before settings change retains the original label and configuration; an incomplete operation retains its recovery record. If restoration preserves conflicting external edits, Resume remains available and Profiles can review or keep those values. Already-disabled formatting still records a durable pause, so Pause/Resume remains a consistent pair. The status card's formatting-only pause leaves save actions and formatter selection unchanged; resuming a pause created in Profiles restores that record's unchanged values. No timer or automatic resumption is introduced.
+
+If VS Code rejects a write because the settings file has unsaved changes, save or resolve those edits yourself and retry. The extension never saves or discards them automatically. A failed Resume keeps its recovery record and Resume label so it can be retried; the error appears in VS Code Notifications.
 
 Dashboard/profile workflows and the Restore Previous Settings command retain their existing previews and confirmations. Background status Resume is restricted to project pause records; it cannot silently restore a saved profile.
 

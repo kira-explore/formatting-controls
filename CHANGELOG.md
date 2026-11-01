@@ -2,6 +2,7 @@
 
 ## 0.5.0 — Unreleased
 
+- Combined intermediate Pause/Resume refreshes to reduce native hover flicker, with hover-only interaction and unsaved-settings failure/retry regression coverage.
 - Made status-card Pause/Resume run in the background without preview tabs or confirmation pickers. Fixed-size Pausing/Resuming states prevent duplicate clicks and layout jumps; durable recovery and dashboard confirmations remain.
 - Styled Open dashboard and Report an issue as transparent blue borderless buttons with Pause-sized height, no underline and a hand cursor across each complete button.
 - Added no-op information links for hand cursors and hover explanations without any visible click behavior, and optically aligned the formatting info icon with its heading.
