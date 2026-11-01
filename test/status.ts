@@ -130,8 +130,8 @@ export async function reviewStatus(
   const loaded = async () => {
     await hover.waitFor({ state: "visible" });
     const images = hover.locator("img");
-    await images.nth(11).waitFor();
-    assert.equal(await images.count(), 12, "All status artwork is rendered");
+    await images.nth(12).waitFor();
+    assert.equal(await images.count(), 13, "All status artwork is rendered");
   };
   const dismiss = async () => {
     // A transient hover may already have closed after a screenshot. Focus it
@@ -388,7 +388,7 @@ export async function reviewStatus(
   );
   assert.equal(await issue.getAttribute("title"), "Open a new issue on GitHub");
   const pauseLink = hover.getByRole("link", { name: "Pause", exact: true });
-  assert.equal(await pauseLink.getAttribute("title"), statusHelp.pause);
+  assert.equal(await pauseLink.getAttribute("title"), null);
   const pauseImage = pauseLink.getByRole("img", { name: "Pause", exact: true });
   assert.equal(await pauseImage.getAttribute("title"), null);
   assert.equal((await pauseImage.boundingBox())?.width, 62);
@@ -408,18 +408,32 @@ export async function reviewStatus(
     settingsBounds.height,
     "Pause/Resume matches the Settings button height",
   );
-  assert.ok(Math.abs(center(pauseBounds) - center(settingsBounds)) <= 1);
-  assert.ok(Math.abs(center(pauseBounds) - center(headerBounds)) <= 1);
-  const headerTopGap = pauseBounds.y - hovered.y;
-  const headerBottomGap =
-    contextBounds.y + 1 - (pauseBounds.y + pauseBounds.height);
+  assert.ok(Math.abs(center(settingsBounds) - center(headerBounds)) <= 1);
+  const flagBounds = await flags.boundingBox();
+  const caption = hover.getByRole("img", {
+    name: statusHelp.pause,
+    exact: true,
+  });
+  const captionBounds = await caption.boundingBox();
+  assert.ok(flagBounds && captionBounds);
+  const pauseTopGap = pauseBounds.y - (flagBounds.y + flagBounds.height);
+  const pauseBottomGap =
+    formatterBounds.y + 1 - (pauseBounds.y + pauseBounds.height);
   assert.ok(
-    headerTopGap >= 10 &&
-      headerTopGap <= 14 &&
-      headerBottomGap >= 10 &&
-      headerBottomGap <= 14 &&
-      Math.abs(headerTopGap - headerBottomGap) <= 2,
-    `Header padding stays balanced around the button (${headerTopGap}px above, ${headerBottomGap}px below)`,
+    pauseTopGap >= 10 &&
+      pauseTopGap <= 14 &&
+      pauseBottomGap >= 10 &&
+      pauseBottomGap <= 14 &&
+      Math.abs(pauseTopGap - pauseBottomGap) <= 2,
+    `Pause row padding stays balanced (${pauseTopGap}px above, ${pauseBottomGap}px below)`,
+  );
+  assert.ok(Math.abs(center(pauseBounds) - center(captionBounds)) <= 1);
+  assert.equal(await caption.evaluate((el) => Boolean(el.closest("a"))), false);
+  assert.equal(
+    await pauseImage.evaluate(
+      (el) => el.closest("tr") === el.closest("table")?.querySelector("tr"),
+    ),
+    false,
   );
   assert.equal(
     await hover.evaluate(
@@ -432,18 +446,11 @@ export async function reviewStatus(
       { x: pauseBounds.x + pauseBounds.width / 2, y: pauseBounds.y - 4 },
     ),
     false,
-    "Header padding does not enlarge the Pause/Resume click target",
+    "Pause row padding cannot invoke an action",
   );
-  assert.ok(
-    pauseBounds.x + pauseBounds.width < settingsBounds.x,
-    "Pause precedes Settings in the header",
-  );
-  assert.equal(
-    await pauseImage.evaluate(
-      (el) => el.closest("tr") === el.closest("table")?.querySelector("tr"),
-    ),
-    true,
-  );
+  await caption.click();
+  assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
+  assert.deepEqual(await hover.boundingBox(), hovered);
   const footerTopGap = dashboardBounds.y + 14 - (formatterBounds.y + 55);
   const footerBottomGap =
     hovered.y + hovered.height - 1 - (dashboardBounds.y + 14);

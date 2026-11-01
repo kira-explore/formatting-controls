@@ -69,8 +69,8 @@ test("formatting stays visible with context, formatter and footer actions", () =
   ])
     assert.ok(html.includes(label));
   assert.match(
-    statusHover({ ...context, paused: true }),
-    /title="Restore your previous formatting settings\."/,
+    statusArtwork({ ...context, paused: true }).pauseCaption.alt,
+    /Restore your previous formatting settings\./,
   );
   assert.match(
     statusArtwork({ ...context, paused: true }).pause.alt,
@@ -156,15 +156,15 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
   assert.match(variants[4]?.state.alt ?? "", /Mixed/);
   assert.doesNotMatch(statusHover(context), /alt="Pausing"|alt="Resuming"/);
   assert.match(
-    statusHover(context),
-    /title="Pause automatic formatting until you resume\."/,
+    statusArtwork(context).pauseCaption.alt,
+    /Pause automatic formatting until you resume\./,
   );
   assert.ok(
     statusHover(context).includes(statusHelp.file.replaceAll("\n", "&#10;")),
   );
 });
 
-test("information is hover-only and header actions retain their destinations", () => {
+test("information and pause explanations are passive while actions retain their destinations", () => {
   for (const paused of [false, true]) {
     const html = statusHover({ ...context, paused });
     const button = [
@@ -175,10 +175,7 @@ test("information is hover-only and header actions retain their destinations", (
       (match) => JSON.parse(decodeURIComponent(match[1] ?? ""))[1] === "pause",
     );
     assert.ok(button);
-    assert.equal(
-      button[2],
-      ` title="${paused ? statusHelp.resume : statusHelp.pause}"`,
-    );
+    assert.equal(button[2], "");
     assert.match(button[3] ?? "", /width="62" height="24"/);
     assert.doesNotMatch(
       button[3] ?? "",
@@ -190,7 +187,17 @@ test("information is hover-only and header actions retain their destinations", (
     );
     assert.match(
       rows[0] ?? "",
-      /alt="Kira Formatting Controls".*alt="(?:Pause|Resume)".*alt="Open VS Code Settings"/,
+      /alt="Kira Formatting Controls".*alt="Open VS Code Settings"/,
+    );
+    assert.doesNotMatch(rows[0] ?? "", /alt="(?:Pause|Resume)"/);
+    const pauseIndex = rows.findIndex((row) =>
+      row.includes(`alt="${paused ? "Resume" : "Pause"}"`),
+    );
+    assert.ok(
+      pauseIndex > rows.findIndex((row) => row.includes("Format on type:")),
+    );
+    assert.ok(
+      pauseIndex < rows.findIndex((row) => row.includes("Default formatter:")),
     );
     for (const row of rows.filter((row) =>
       /alt="(?:Active file:|Automatic formatting:)/.test(row),
@@ -207,6 +214,11 @@ test("information is hover-only and header actions retain their destinations", (
     assert.match(html, /title="Open Kira Formatting Controls dashboard"/);
     assert.match(html, /title="Open a new issue on GitHub"/);
     const art = statusArtwork({ ...context, paused });
+    assert.equal(
+      art.pauseCaption.alt,
+      paused ? statusHelp.resume : statusHelp.pause,
+    );
+    assert.match(art.pause.svg, /fill="none"/);
     for (const action of [art.dashboard, art.issue]) {
       assert.doesNotMatch(action.svg, /text-decoration/);
       assert.doesNotMatch(action.svg, /<rect/);

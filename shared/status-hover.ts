@@ -34,20 +34,16 @@ export function statusHover(
     );
   const fullRow = (contents: string) =>
     `<tr><td colspan="2">${contents}</td></tr>`;
-  const pauseTitle = context.paused
-    ? statusHelp.resume
-    : context.canPause
-      ? statusHelp.pause
-      : "Choose a project scope in the dashboard";
   const pause = context.canPause
-    ? `<a href="${link("pause")}" title="${pauseTitle}">${image(art.pause)}</a>`
-    : image(art.pause, pauseTitle);
+    ? `<a href="${link("pause")}">${image(art.pause)}</a>`
+    : image(art.pause);
   return `<table width="${art.context.width}"><colgroup><col width="${art.header.width}"><col width="${art.context.width - art.header.width}"></colgroup><tbody>${[
-    `<tr><td>${image(art.header)}</td><td align="right">${pause}${image(art.headerGap)}<a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}" title="Open VS Code Settings">${image(art.settings)}</a></td></tr>`,
+    `<tr><td>${image(art.header)}</td><td align="right"><a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}" title="Open VS Code Settings">${image(art.settings)}</a></td></tr>`,
     fullRow(titled(image(art.context), statusHelp.file)),
     fullRow(image(art.scopes)),
     fullRow(titled(image(art.summary), statusHelp.formatting)),
     fullRow(image(art.formatting)),
+    fullRow(image(art.pauseInset) + pause + image(art.pauseCaption)),
     fullRow(image(art.formatter)),
     fullRow(
       `<a href="command:formattingControls.dashboard" title="Open Kira Formatting Controls dashboard">${image(art.dashboard, undefined, "top")}</a>${image(art.footerGap, undefined, "top")}<a href="${issueUrl}" title="Open a new issue on GitHub">${image(art.issue, undefined, "top")}</a>`,

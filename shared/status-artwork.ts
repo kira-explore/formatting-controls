@@ -1,3 +1,4 @@
+import { statusHelp } from "./status-help";
 import type { HoverContext } from "./status-hover";
 
 export const escapeText = (value: string): string =>
@@ -29,8 +30,7 @@ const palettes = {
     input: "#181a1b",
     border: "#333536",
     button: "#2a2d2e",
-    primary: "#297aa0",
-    primaryForeground: "#ffffff",
+    pauseBorder: "#535658",
     checkbox: "#252526",
     checkboxBorder: "#707070",
   },
@@ -44,8 +44,7 @@ const palettes = {
     input: "#ffffff",
     border: "#929292",
     button: "#e6e6e6",
-    primary: "#0070a8",
-    primaryForeground: "#ffffff",
+    pauseBorder: "#929292",
     checkbox: "#ffffff",
     checkboxBorder: "#929292",
   },
@@ -59,8 +58,7 @@ const palettes = {
     input: "#000000",
     border: "#ffffff",
     button: "#000000",
-    primary: "#0e639c",
-    primaryForeground: "#ffffff",
+    pauseBorder: "#ffffff",
     checkbox: "#000000",
     checkboxBorder: "#ffffff",
   },
@@ -74,8 +72,7 @@ const palettes = {
     input: "#ffffff",
     border: "#000000",
     button: "#ffffff",
-    primary: "#0f4a85",
-    primaryForeground: "#ffffff",
+    pauseBorder: "#000000",
     checkbox: "#ffffff",
     checkboxBorder: "#000000",
   },
@@ -195,6 +192,11 @@ export function statusArtwork(
     )
     .join(" ");
   const pauseLabel = context.paused ? "Resume" : "Pause";
+  const pauseCaption = context.paused
+    ? statusHelp.resume
+    : context.canPause
+      ? statusHelp.pause
+      : "Choose a project scope in the dashboard";
   return {
     settings: image(
       24,
@@ -269,23 +271,29 @@ export function statusArtwork(
         0.5,
         61,
         23,
-        context.canPause ? p.primary : p.border,
-        context.canPause ? p.primary : p.button,
+        context.canPause ? p.pauseBorder : p.border,
+        "none",
       ) +
         centeredText(
           31,
           12,
           pauseLabel,
           12.5,
-          context.canPause ? p.primaryForeground : p.muted,
+          context.canPause ? p.fg : p.muted,
           "middle",
         ),
       pauseLabel,
       62,
     ),
-    // A taller, unlinked spacer centers the real buttons without enlarging
-    // their click targets. Native row insets provide the remaining padding.
-    headerGap: image(36, "", "", 8),
+    // Unlinked artwork centers the button and explanation without expanding
+    // the button's click target into the caption or vertical padding.
+    pauseInset: image(40, "", "", 5),
+    pauseCaption: image(
+      40,
+      centeredText(12, 20, pauseCaption, 12.5, p.muted),
+      pauseCaption,
+      313,
+    ),
     dashboard: image(
       28,
       `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="110.57" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,
