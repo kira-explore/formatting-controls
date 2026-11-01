@@ -1,3 +1,4 @@
+import { statusHelp } from "./status-help";
 import type { HoverContext } from "./status-hover";
 
 export const escapeText = (value: string): string =>
@@ -191,7 +192,17 @@ export function statusArtwork(
     : context.canPause
       ? "Pause automatic formatting until you resume."
       : "Choose a project scope in the dashboard";
+  const helpLines = context.help ? statusHelp[context.help].split("\n") : [];
   return {
+    help: image(
+      helpLines.length * 22 + 8,
+      helpLines
+        .map((text, index) =>
+          centeredText(5, 12 + index * 22, text, 13, p.muted),
+        )
+        .join(""),
+      helpLines.join(" "),
+    ),
     settings: image(
       24,
       rect(0.5, 0.5, 25, 23, p.border, p.button) +
@@ -284,16 +295,14 @@ export function statusArtwork(
     separator: image(11, line(0.5), ""),
     dashboard: image(
       28,
-      rect(0.5, 0.5, 138, 27, p.accent, "none") +
-        `<text x="12" y="14" dominant-baseline="central" font-size="13" textLength="115" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,
+      `<text x="12" y="14" dominant-baseline="central" font-size="13" textLength="115" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,
       "Open dashboard ↗",
       139,
     ),
     footerGap: image(36, "", "", 128),
     issue: image(
       28,
-      rect(0.5, 0.5, 132, 27, p.accent, "none") +
-        `<text x="12" y="14" dominant-baseline="central" font-size="13" textLength="109" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,
+      `<text x="12" y="14" dominant-baseline="central" font-size="13" textLength="109" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,
       "Report an issue ↗",
       133,
     ),

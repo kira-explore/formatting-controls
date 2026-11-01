@@ -225,8 +225,8 @@ export async function reviewStatus(
   assert.equal(await fileInfo.getAttribute("title"), statusHelp.file);
   assert.equal(
     await fileInfo.evaluate((el) => !!el.closest("a")),
-    false,
-    "File information is hover-only",
+    true,
+    "File information opens inline help",
   );
   const formattingInfo = hover.getByRole("img", {
     name: /^Automatic formatting:/,
@@ -237,8 +237,8 @@ export async function reviewStatus(
   );
   assert.equal(
     await formattingInfo.evaluate((el) => !!el.closest("a")),
-    false,
-    "Formatting information is hover-only",
+    true,
+    "Formatting information opens inline help",
   );
   const settings = hover.getByRole("link", {
     name: "Open VS Code Settings",
@@ -383,7 +383,7 @@ export async function reviewStatus(
   assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
   assert.deepEqual(await hover.boundingBox(), hovered);
   const feedback = [];
-  for (const link of [settings, dashboard, issue]) {
+  for (const link of [settings, dashboard, issue, fileInfo, formattingInfo]) {
     await page.mouse.move(5, 5);
     const before = await link.evaluate((el) => {
       const style = el.ownerDocument.defaultView?.getComputedStyle(el);
@@ -395,6 +395,13 @@ export async function reviewStatus(
       };
     });
     await link.hover();
+    assert.equal(
+      await link.evaluate(
+        (el) => el.ownerDocument.defaultView?.getComputedStyle(el).cursor,
+      ),
+      "pointer",
+      "Actions and information regions show the hand cursor",
+    );
     const after = await link.evaluate((el) => {
       const style = el.ownerDocument.defaultView?.getComputedStyle(el);
       if (!style) throw new Error("Missing rendered styles");
@@ -436,13 +443,39 @@ export async function reviewStatus(
     JSON.stringify(accessibility, null, 2),
   );
   assert.deepEqual(accessibility.violations, []);
-  await formattingInfo.click();
-  await flags.waitFor();
-  assert.deepEqual(
-    await hover.boundingBox(),
-    hovered,
-    "Formatting stays visible",
-  );
+  const notifications = await page
+    .locator(".notifications-toasts .notification-toast")
+    .count();
+  for (const [info, text] of [
+    [fileInfo, /^Shows the active file/],
+    [formattingInfo, /^Formatting status for save/],
+  ] as const) {
+    await info.click();
+    const explanation = hover.getByRole("img", { name: text });
+    await explanation.waitFor();
+    await page.waitForTimeout(300);
+    await hover.screenshot({
+      path: join(
+        directory,
+        info === fileInfo
+          ? "status-file-help.png"
+          : "status-formatting-help.png",
+      ),
+    });
+    assert.equal((await hover.boundingBox())?.width, hovered?.width);
+    assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
+    assert.equal(
+      await page.locator(".notifications-toasts .notification-toast").count(),
+      notifications,
+    );
+    await info.click();
+    await explanation.waitFor({ state: "hidden" });
+    assert.deepEqual(
+      await hover.boundingBox(),
+      hovered,
+      "Closing help restores the card bounds",
+    );
+  }
 
   // Exercise the unchanged confirmation workflow through its real native picker.
   const originalFlags = await flags.getAttribute("alt");

@@ -2,7 +2,8 @@
 
 ## 0.5.0 — Unreleased
 
-- Styled Open dashboard and Report an issue as transparent blue outlined buttons with Pause-sized height, no underline and a hand cursor across each complete button.
+- Styled Open dashboard and Report an issue as transparent blue borderless buttons with Pause-sized height, no underline and a hand cursor across each complete button.
+- Added borderless information actions with hand cursors, hover explanations and inline help that toggles inside the card without opening background notifications or changing settings.
 - Added the regular-VS-Code status card: hover and click share one anchored card, click pins it, and Escape dismisses it.
 - Show effective formatting, scope, language, formatter and saved/inherited sources through read-only checkbox/dropdown artwork. Formatting remains visible with a fixed Enabled/Disabled/Mixed badge and explanatory help.
 - Added formatting-only Pause/Resume with preview, confirmation and durable recovery that preserves save actions and later edits.

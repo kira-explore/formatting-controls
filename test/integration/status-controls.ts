@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import * as vscode from "vscode";
+import { statusHelp } from "../../shared/status-help";
 import { own, write } from "../../src/configuration";
 import { StatusControls } from "../../src/status-controls";
 import { Workflows } from "../../src/workflows";
@@ -46,6 +47,28 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
       [],
       "The shipped extension must not register custom-editor bridge commands.",
     );
+    const beforeHelp = flagsAtScope();
+    for (const help of ["file", "formatting"] as const) {
+      const closed = revision();
+      await controls.control(closed, `info-${help}`);
+      assert.ok(
+        (item.tooltip as vscode.MarkdownString).value.includes(
+          statusHelp[help].replaceAll("\n", " "),
+        ),
+      );
+      assert.deepEqual(
+        flagsAtScope(),
+        beforeHelp,
+        "Information changes no settings",
+      );
+      await assert.rejects(controls.control(closed, `info-${help}`), /changed/);
+      await controls.control(revision(), `info-${help}`);
+      assert.ok(
+        !(item.tooltip as vscode.MarkdownString).value.includes(
+          `alt="${statusHelp[help].split("\n").join(" ")}"`,
+        ),
+      );
+    }
     const tooltip = item.tooltip as vscode.MarkdownString;
     assert.equal(tooltip.supportHtml, true);
     assert.equal(tooltip.supportThemeIcons, false);
@@ -139,5 +162,13 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     await write(language, "editor.defaultFormatter", originalLanguageFormatter);
     workflows.dispose();
     item.dispose();
+  }
+  function flagsAtScope() {
+    return [
+      own(selection, "editor.formatOnSave"),
+      own(selection, "editor.formatOnPaste"),
+      own(selection, "editor.formatOnType"),
+      own(selection, "editor.codeActionsOnSave"),
+    ];
   }
 }
