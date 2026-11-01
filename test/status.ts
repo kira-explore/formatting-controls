@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import axe from "axe-core";
 import type { Page } from "playwright-core";
 import { statusArtwork } from "../shared/status-artwork";
@@ -564,14 +564,26 @@ export async function reviewStatus(
   const openFile = async (path: string) => {
     await page.keyboard.press(`${modifier}+P`);
     await picker.locator("input").fill(path);
-    await picker.locator(".monaco-list-row").first().waitFor();
+    await picker
+      .locator(".monaco-list-row")
+      .filter({ hasText: basename(path) })
+      .first()
+      .waitFor();
     await page.keyboard.press("Enter");
     await picker.waitFor({ state: "hidden" });
+    await page
+      .locator(".tab.active")
+      .filter({ hasText: basename(path) })
+      .waitFor();
   };
   await dismiss();
   await openFile(testFiles.settingsFile);
   await page.keyboard.press(`${modifier}+End`);
   await page.keyboard.type(" ");
+  await page
+    .locator(".tab.active.dirty")
+    .filter({ hasText: "settings.json" })
+    .waitFor();
   await reopen();
   await hover.getByRole("link", { name: "Pause", exact: true }).click();
   await picker.waitFor();
