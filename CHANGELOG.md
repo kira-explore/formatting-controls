@@ -2,43 +2,15 @@
 
 ## 0.5.0 — Unreleased
 
-Increased every status-card font by 1px: 14px headings and 13px body, fields, source notes, captions, status and links. Aligned Automatic formatting, its info icon and the status badge to a shared vertical center. Expanded footer hit areas only enough for the larger labels and retained an unlinked gutter.
-
-Increased the centered Settings glyph by another 10% to 12.2px, retaining the same outlined button dimensions.
-
-Unified the file-context and automatic-formatting info icons with the same 12px vector glyph, preserving their blue/gray colors and vertical centering. Moved the formatting icon closer to its label.
-
-Restored standard outlined checkbox and dropdown artwork, removing the disabled gray treatment while retaining read-only behavior. Increased the Settings glyph by another 5% to 11.1px and retained the formatting status info icon.
-
-Limited both footer click targets to their labels plus a small padding and made the blank gutter non-interactive. Gave read-only dropdowns muted disabled styling and enlarged the Settings glyph by a further 10% to 10.6px.
-
-Reduced Pause/Resume padding to match Default formatter, with approximately 13px above and below the button rather than 18px. Retained centered footer text after adjusting the separator placement.
-
-Balanced the vertical margins around the file/scope section, formatting summary, Pause/Resume and footer. Compensated for the native separator's line-height so the pause row is centered between rules. Sized the Settings glyph at 9.6px while keeping its outlined action target unchanged.
-
-Matched the approved status-card proportions with wider content, a boxed three-slider Settings glyph, increased icon/text gaps, disabled-style checkbox artwork and a larger filled Pause/Resume button. Footer actions now use measured underlined artwork to keep their alignment independent of native table-column sizing. Information and read-only cursor shapes remain controlled by VS Code's Markdown renderer.
-
-Made the active-file box and complete Automatic formatting summary hover-only information regions, with no click command or background notification. Boxed the compact Settings glyph, permanently underlined the footer links, added concise destination titles and retained normal cursors for read-only artwork. The formatting summary is one fixed-width image so Enabled, Disabled and Mixed never shift the layout.
-
-Implemented the approved Kira Formatting Controls card: full title, compact top-right sliders Settings icon, stable explanatory help, fixed-width Enabled/Disabled/Mixed badge beside Automatic formatting, checkbox-only states and readable source notes. Version details remain in the Extensions listing. Added repository issue reporting beside Open dashboard and enlarged the context info icon. Pause/Resume uses the agreed manual-resume captions with identical geometry; only the button is linked. Removed redundant Pause/Resume and footer hover titles. Native links retain the editor's hover/focus styling; custom Copilot icon-button hover fills and hover-only underlines remain outside the public tooltip API.
-
-Centered the active-file/workspace text block, context info icon and status badge labels. Automatic formatting is always visible; removed the collapse toggle and animation. Checkboxes align with the vertical center of each setting's label and source note. Pause confirmation and restoration behavior is unchanged.
-
-Aligned the read-only status card with Copilot's compact styling: 13px regular-weight title/section heading, 12px body and controls, 22px dropdowns/buttons, smaller checkbox spacing and a narrower card. Matched the supplied reference's muted dark colours and lighter outlines. Transparent artwork now uses the native hover background instead of drawing separate opaque blocks behind image sections.
-
-Matched the approved read-only status card using locally generated SVG artwork: outlined checkbox/dropdown displays, blue file/workspace context box, status badge, separators and typography. Hover and click have identical bounds. Values remain live; checkbox/dropdown displays open no picker. Pause/Resume and dashboard/Settings navigation remain actionable. The optional native Quick Controls command retains scope, language, checkbox and formatter pickers.
-
-Prepared the 0.5.0 release for regular VS Code: removed the custom-editor connection, private commands, prototype sources and build/CI tooling. Hover and click use the same anchored Markdown card; interactive checkbox/dropdown controls remain in the separate dashboard. Source notes reserve space for overrides so formatting changes keep the card in position. Added a polling fallback for missed native profile notifications.
-
-Hover and click now share one anchored Formatting Controls card, with click pinning the card instead of opening a docked view. Added clearer saved/inherited/override labels, active-file/workspace context and an always-visible formatting section. Full interactive controls remain in the existing dashboard; the docked-view draft was removed.
-
-Added formatting-only Pause/Resume with reviewed, durable recovery that preserves save actions and newer edits. Native tooltip actions use command links; the optional Quick Controls command provides native scope/language pickers. Real checkbox/select widgets are not exposed by VS Code's tooltip API. Added cold-click, hover/click placement, pinning, keyboard, no-new-surface and pause-preservation regression coverage.
-
-Renamed the Extensions display name to Kira Formatting Controls, retained the stable package/publisher identity, and replaced the app icon with the approved centered blue/white control symbol on a black background. The status item and card have no app icon.
-
-Added real Remote SSH regression coverage for scopes, host-owned profiles, import/export and persisted pause recovery after client reconnect, plus native UI review notes and remote User-scope guidance. Updated Node type declarations to ^26.6.5 while retaining Node 24 compatibility.
-
-Fixed saved-profile loss between simultaneous windows with coordinated private-file storage, stale overwrite/delete checks, live profile refresh and real two-window regression coverage. Existing profile storage migrates on first successful mutation.
+- Added the regular-VS-Code status card: hover and click share one anchored card, click pins it, and Escape dismisses it.
+- Show effective formatting, scope, language, formatter and saved/inherited sources through read-only checkbox/dropdown artwork. Formatting remains visible with a fixed Enabled/Disabled/Mixed badge and explanatory help.
+- Added formatting-only Pause/Resume with preview, confirmation and durable recovery that preserves save actions and later edits.
+- Refined typography, spacing, centered alignment, boxed Settings navigation and underlined Dashboard/Report an issue links with compact click targets.
+- Renamed the display name to Kira Formatting Controls and added the blue/white icon on black; the extension ID remains `rajudhami.formatting-controls`.
+- Prevented simultaneous-window profile loss with coordinated storage, stale-operation checks, migration and live refresh.
+- Added Remote SSH scope, import/export and reconnect/recovery coverage, plus two-window and status-card UI regression checks.
+- Updated Node type declarations to ^26.6.5 and packaging tooling to vsce 4.1.0. Applied a tested minimatch 11.0.3 override; dependency audits remain strict.
+- Consolidated documentation around the shipped UI, current validation and recovery behavior; removed obsolete phase reports and the superseded SVG logo.
 
 ## 0.4.0 — Unreleased
 
@@ -62,6 +34,6 @@ React dashboard with Overview, Formatting, Code Actions, Formatters, and Getting
 
 ## 0.1.0 — Unreleased
 
-Initial native control slice: explicit scopes, language overrides, effective status, source-action editing, inspection and confirmed single-setting reset. Dashboard and advanced features remain planned.
+Initial native control slice: explicit scopes, language overrides, effective status, source-action editing, inspection and confirmed single-setting reset.
 
 Hardened cancellation feedback and stale reset previews, with multi-root isolation and inherited source-action preservation integration coverage.

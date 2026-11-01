@@ -1,6 +1,6 @@
-# Phase 3 — Providers, diagnostics, profiles and pause
+# Providers, profiles and recovery
 
-## Delivered
+## Providers and diagnostics
 
 Provider adapters declare known languages, formatting capability, supported setting keys and candidate source actions for Biome, ESLint, Prettier and built-in JavaScript/TypeScript, JSON, HTML and CSS tooling. Runtime evidence comes from public VS Code configuration and extension metadata. Prettier has no invented fix-all actions; ESLint formatting is conditional on its formatting flag. Unknown formatter extensions remain selectable by ID without claiming adapter capabilities.
 
@@ -26,7 +26,7 @@ VS Code settings have no atomic transaction or compare-and-swap API. Concurrent 
 
 ## Temporary pause
 
-Pause is available only for Workspace and Workspace Folder scopes. User-wide pause is intentionally unavailable because it would affect other windows. It disables Save/Paste/Type formatting and currently configured save actions at the selected scope. Manual formatting, Auto Save itself and higher-priority overrides are unaffected.
+Pause is available only for Workspace and Workspace Folder scopes. User-wide pause is unavailable because it would affect other windows. The status card pauses only Save/Paste/Type formatting, preserving save actions. The Profiles page's temporary pause also disables currently configured save actions at the selected scope. Manual formatting, Auto Save itself and higher-priority overrides are unaffected. See [status-card behavior](status-controls.md).
 
 Pause writes real preferences and persists until Resume/restore; it is not automatically lifted when a window closes or reloads. Reload preserves the journal and presents a recovery reminder. The Command Palette's Restore Previous Settings command works without keeping the dashboard open. No automatic deactivation writes are attempted because extension-host shutdown cannot reliably await restoration.
 
@@ -40,4 +40,4 @@ Webview operations remain allowlisted and revision/scope checked. Provider Setti
 
 Pure tests cover schema rejection, action-preserving plans, journal persistence before mutation, storage failure, partial rollback, stale-value preservation, external-edit conflicts, provider capability distinctions and diagnostic confidence. Real VS Code tests cover scoped profile save/apply, cancellation, JSON file round trips and rejection, persistent pause state across service recreation, granular resume, language rules and storage failure isolation.
 
-Phase 4 still needs wider compatibility and remote-workspace coverage, full screen-reader and performance reviews, real multi-window concurrency exercises, release assets and Marketplace preparation. The development-only packaging advisory noted at this phase was subsequently resolved; see [packaging security](packaging-security.md).
+See [validation](validation.md) for automated coverage and remaining manual checks, [two-window storage](multi-window.md) for concurrent profile behavior, and [Remote SSH review](remote-workspace.md) for host-specific results. Dependency workarounds and release gates are documented in [packaging security](packaging-security.md) and [release preparation](releasing.md).
