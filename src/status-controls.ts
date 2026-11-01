@@ -201,9 +201,6 @@ export class StatusControls {
       );
   }
   async control(revision: unknown, action: unknown): Promise<void> {
-    // Native links provide the hand cursor. Info clicks must do nothing, even
-    // while another control is pending or their rendered revision is stale.
-    if (action === "info") return;
     if (action === "pause" && this.pending) return;
     this.assertCurrent(revision);
     if (this.pending)

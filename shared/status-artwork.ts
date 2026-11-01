@@ -194,11 +194,6 @@ export function statusArtwork(
         `Format on ${label}: ${context.flags[i] ? "Enabled" : "Disabled"}. ${sourceNotes[i]}.`,
     )
     .join(" ");
-  const pauseCaption = context.paused
-    ? "Restore your previous formatting settings."
-    : context.canPause
-      ? "Pause automatic formatting until you resume."
-      : "Choose a project scope in the dashboard";
   const pauseLabel = context.paused ? "Resume" : "Pause";
   return {
     settings: image(
@@ -261,7 +256,7 @@ export function statusArtwork(
       `${flagDescription} Checkbox displays are read-only.`,
     ),
     formatter: image(
-      // Include the native table inset in the Pause row's 13px padding.
+      // Keep the footer equally spaced between this rule and the hover frame.
       64,
       line(1) +
         centeredText(5, 29, "Default formatter") +
@@ -290,15 +285,7 @@ export function statusArtwork(
       pauseLabel,
       66,
     ),
-    pauseInset: image(28, "", "", 5),
-    pauseCaption: image(
-      28,
-      centeredText(12, 14, pauseCaption, 12, p.muted),
-      pauseCaption,
-      329,
-    ),
-    // Reserve height so the rule stays close to Pause within the native line box.
-    separator: image(11, line(0.5), ""),
+    headerGap: image(28, "", "", 8),
     dashboard: image(
       28,
       `<text x="12" y="14" dominant-baseline="central" font-size="12" textLength="106.15" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,

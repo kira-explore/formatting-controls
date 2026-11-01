@@ -71,8 +71,8 @@ export async function run(): Promise<void> {
       );
       assert.deepEqual(
         actions,
-        ["info", "info"],
-        "An empty window exposes only no-op information links, never workspace edits",
+        [],
+        "An empty window has no information commands or workspace edits",
       );
       assert.equal(
         own(user, "editor.formatOnSave"),

@@ -94,18 +94,6 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     });
     assert.match(tooltip.value, /Overridden by/);
     const stale = revision();
-    const beforeInfo = flags.map((flag) => own(selection, flag));
-    const recoveryBeforeInfo = workflows.recovery();
-    for (const revision of [stale, -1]) {
-      await controls.control(revision, "info");
-      assert.equal(item.tooltip, tooltip, "Info clicks never rebuild the card");
-      assert.deepEqual(
-        flags.map((flag) => own(selection, flag)),
-        beforeInfo,
-      );
-      assert.deepEqual(own(selection, "editor.codeActionsOnSave"), actions);
-      assert.deepEqual(workflows.recovery(), recoveryBeforeInfo);
-    }
     controls.refresh();
     assert.equal(
       revision(),
@@ -118,7 +106,6 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
       "Equivalent refreshes must not rebuild the hover",
     );
     const pending = controls.control(stale, 1);
-    await controls.control(stale, "info");
     await assert.rejects(controls.control(stale, 1), /Finish|changed/);
     await pending;
     assert.equal(
@@ -134,6 +121,7 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
       3,
       "0",
       "collapse",
+      "info",
       "info-file",
       "info-formatting",
       "editor.codeActionsOnSave",
@@ -367,7 +355,6 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
         "The card is closed while the chosen action applies",
       );
       await controls.control(current, "pause");
-      await controls.control(current, "info");
       controls.refresh();
       assert.equal(
         item.tooltip,

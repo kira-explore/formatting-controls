@@ -1,4 +1,6 @@
 export const statusHelp = {
+  pause: "Pause automatic formatting until you resume.",
+  resume: "Restore your previous formatting settings.",
   file: [
     "Shows the active file, its language and workspace.",
     "Settings may differ by language or folder.",

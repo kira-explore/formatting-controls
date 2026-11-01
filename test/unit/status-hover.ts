@@ -46,11 +46,7 @@ test("reference artwork has live values, accessible descriptions and read-only f
   const actions = [...html.matchAll(/statusControl\?([^"]*)/g)].map((match) =>
     JSON.parse(decodeURIComponent(match[1] ?? "")),
   );
-  assert.deepEqual(actions, [
-    [7, "info"],
-    [7, "info"],
-    [7, "pause"],
-  ]);
+  assert.deepEqual(actions, [[7, "pause"]]);
   assert.match(html, /width="400" height="76"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
   assert.match(art.state.alt, /Mixed/);
@@ -73,8 +69,8 @@ test("formatting stays visible with context, formatter and footer actions", () =
   ])
     assert.ok(html.includes(label));
   assert.match(
-    statusArtwork({ ...context, paused: true }).pauseCaption.alt,
-    /Restore your previous formatting settings/,
+    statusHover({ ...context, paused: true }),
+    /title="Restore your previous formatting settings\."/,
   );
   assert.match(
     statusArtwork({ ...context, paused: true }).pause.alt,
@@ -155,15 +151,15 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
   assert.match(variants[4]?.state.alt ?? "", /Mixed/);
   assert.doesNotMatch(statusHover(context), /alt="Pausing"|alt="Resuming"/);
   assert.match(
-    variants[0]?.pauseCaption.alt ?? "",
-    /Pause automatic formatting until you resume\./,
+    statusHover(context),
+    /title="Pause automatic formatting until you resume\."/,
   );
   assert.ok(
     statusHover(context).includes(statusHelp.file.replaceAll("\n", "&#10;")),
   );
 });
 
-test("information uses no-op links while actual actions retain their destinations", () => {
+test("information is hover-only and header actions retain their destinations", () => {
   for (const paused of [false, true]) {
     const html = statusHover({ ...context, paused });
     const button = [
@@ -174,13 +170,27 @@ test("information uses no-op links while actual actions retain their destination
       (match) => JSON.parse(decodeURIComponent(match[1] ?? ""))[1] === "pause",
     );
     assert.ok(button);
-    assert.equal(button[2], "");
+    assert.equal(
+      button[2],
+      ` title="${paused ? statusHelp.resume : statusHelp.pause}"`,
+    );
     assert.match(button[3] ?? "", /width="66" height="28"/);
     assert.doesNotMatch(
       button[3] ?? "",
       /until you resume|previous formatting/,
     );
     assert.doesNotMatch(html, /formattingControls\.statusInfo/);
+    const rows = [...html.matchAll(/<tr>(.*?)<\/tr>/g)].map(
+      (match) => match[1] ?? "",
+    );
+    assert.match(
+      rows[0] ?? "",
+      /alt="Kira Formatting Controls".*alt="(?:Pause|Resume)".*alt="Open VS Code Settings"/,
+    );
+    for (const row of rows.filter((row) =>
+      /alt="(?:Active file:|Automatic formatting:)/.test(row),
+    ))
+      assert.doesNotMatch(row, /<a\b/);
     assert.match(
       html,
       /title="Shows the active file, its language and workspace\.&#10;Settings may differ by language or folder\."/,
