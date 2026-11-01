@@ -26,7 +26,7 @@ Source-action writes merge only the selected target's object and preserve unrela
 
 ## Status card and dashboard
 
-Hover and click show the same anchored Markdown card; click focuses and pins it using the built-in hover command. Inert SVG artwork shows effective values, read-only checkboxes/dropdowns and source notes. Settings, Dashboard, Report an issue and reviewed Pause/Resume are real links. No status click creates a docked view or editor tab. [Status controls](status-controls.md) documents rendering, accessibility and public API limits.
+Hover and click show the same anchored Markdown card; click focuses and pins it using the built-in hover command. Inert SVG artwork shows effective values, read-only checkboxes/dropdowns and source notes. Settings, Dashboard, Report an issue and background Pause/Resume are real links. Information links deliberately do nothing on click and provide the native hand cursor with hover explanations. No status click creates a docked view or editor tab. [Status controls](status-controls.md) documents rendering, accessibility and public API limits.
 
 The status bar's ON/OFF/MIXED and the card's Enabled/Disabled/Mixed summarize only Save/Paste/Type formatting. They do not guarantee formatter availability or source-action execution. The status-card pause preserves save actions; the Profiles pause includes them. [Workflows and recovery](workflows.md) explains both and their restoration limits.
 

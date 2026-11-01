@@ -21,11 +21,15 @@ The complete file box and Automatic formatting summary row have stable explanato
 
 ## Manual Pause/Resume
 
-At a workspace/folder destination, **Pause** previews disabling only Save/Paste/Type. Its caption is **Pause automatic formatting until you resume.**
+At a workspace/folder destination, **Pause** disables only Save/Paste/Type in the background with one click. No preview tab or confirmation picker opens. Its caption is **Pause automatic formatting until you resume.**
 
-After confirmation and successful application, the button becomes **Resume**, with **Restore your previous formatting settings.** Only the 66px by 28px button is linked; clicking its caption does nothing. Resume restores unchanged pre-pause preferences while preserving newer edits; it does not enable every trigger automatically. After successful restoration the button and caption return to Pause. Both states reserve identical dimensions. Cancellation retains the prior state.
+While processing, the same 66px by 28px space shows **Pausing** or **Resuming** with muted text and no click link. Duplicate clicks are ignored. A brief minimum busy interval prevents a one-frame label flash; no custom fade animation is claimed. The button, caption and anchored card retain their dimensions and position.
 
-The existing native JSON preview, confirmation and durable recovery workflow are unchanged. Save actions and the formatter selection remain unchanged. No timer or automatic resumption is introduced.
+After successful application, the button becomes **Resume**, with **Restore your previous formatting settings.** Resume runs in the background and restores unchanged pre-pause preferences while preserving newer edits; it does not enable every trigger automatically. After complete restoration the button and caption return to Pause. Clicking the caption does nothing.
+
+Durable recovery and rollback remain in place. A failure before settings change retains the original label and configuration; an incomplete operation retains its recovery record. If restoration preserves conflicting external edits, Resume remains available and Profiles can review or keep those values. Already-disabled formatting still records a durable pause, so Pause/Resume remains a consistent pair. The status card's formatting-only pause leaves save actions and formatter selection unchanged; resuming a pause created in Profiles restores that record's unchanged values. No timer or automatic resumption is introduced.
+
+Dashboard/profile workflows and the Restore Previous Settings command retain their existing previews and confirmations. Background status Resume is restricted to project pause records; it cannot silently restore a saved profile.
 
 ## Rendering and compatibility
 

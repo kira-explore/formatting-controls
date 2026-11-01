@@ -5,14 +5,29 @@ import { flags } from "../../src/model";
 import { StatusControls } from "../../src/status-controls";
 import { Workflows } from "../../src/workflows";
 import { MemoryStore } from "./workflows";
+
+class ControlledStore extends MemoryStore {
+  block: Promise<void> | undefined;
+  fail = false;
+  override async update(key: string, value: unknown): Promise<void> {
+    if (this.fail) throw new Error("Test storage unavailable");
+    await this.block;
+    await super.update(key, value);
+  }
+}
 export async function runStatusTests(uri: vscode.Uri): Promise<void> {
   let document: vscode.TextDocument | undefined =
     await vscode.workspace.openTextDocument(uri);
   const item = vscode.window.createStatusBarItem();
+  const workspaceStore = new ControlledStore();
+  let confirmations = 0;
   const workflows = new Workflows(
     new MemoryStore(),
-    new MemoryStore(),
-    async () => true,
+    workspaceStore,
+    async () => {
+      confirmations++;
+      return true;
+    },
   );
   const controls = new StatusControls(item, () => document, workflows);
   const selection = { target: vscode.ConfigurationTarget.WorkspaceFolder, uri };
@@ -106,14 +121,57 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
       {},
     ])
       await assert.rejects(controls.control(revision(), action), /Unknown/);
-    await controls.control(revision(), "pause");
+    const beforeFailure = flags.map((flag) => own(selection, flag));
+    workspaceStore.fail = true;
+    await assert.rejects(
+      controls.control(revision(), "pause"),
+      /storage unavailable/,
+    );
+    workspaceStore.fail = false;
+    assert.deepEqual(
+      flags.map((flag) => own(selection, flag)),
+      beforeFailure,
+    );
+    assert.equal(workflows.recovery(), null);
+    assert.match((item.tooltip as vscode.MarkdownString).value, /alt="Pause"/);
+    await transition("Pausing");
     assert.equal(own(selection, "editor.formatOnSave"), false);
     assert.equal(own(selection, "editor.formatOnPaste"), false);
     assert.equal(own(selection, "editor.formatOnType"), false);
     assert.deepEqual(own(selection, "editor.codeActionsOnSave"), actions);
     assert.match((item.tooltip as vscode.MarkdownString).value, /Resume/);
-    await controls.control(revision(), "pause");
+    const recoveryBeforeFailure = workflows.recovery();
+    workspaceStore.fail = true;
+    await assert.rejects(
+      controls.control(revision(), "pause"),
+      /storage unavailable/,
+    );
+    workspaceStore.fail = false;
+    assert.deepEqual(workflows.recovery(), recoveryBeforeFailure);
+    assert.match((item.tooltip as vscode.MarkdownString).value, /alt="Resume"/);
+    await transition("Resuming");
     assert.equal(own(selection, "editor.formatOnPaste"), true);
+    assert.equal(
+      confirmations,
+      0,
+      "Status Pause/Resume never opens a preview or picker",
+    );
+    for (const flag of flags) await write(selection, flag, false);
+    controls.refresh();
+    await controls.control(revision(), "pause");
+    assert.equal(
+      workflows.recovery()?.kind,
+      "pause",
+      "Already-disabled formatting still gets a durable pause",
+    );
+    assert.match((item.tooltip as vscode.MarkdownString).value, /alt="Resume"/);
+    await controls.control(revision(), "pause");
+    assert.equal(workflows.recovery(), null);
+    assert.deepEqual(
+      flags.map((flag) => own(selection, flag)),
+      [false, false, false],
+    );
+    assert.match((item.tooltip as vscode.MarkdownString).value, /alt="Pause"/);
     await write(
       language,
       "editor.defaultFormatter",
@@ -155,5 +213,34 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     await write(language, "editor.defaultFormatter", originalLanguageFormatter);
     workflows.dispose();
     item.dispose();
+  }
+  async function transition(label: string): Promise<void> {
+    let release!: () => void;
+    workspaceStore.block = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const current = revision();
+    const running = controls.control(current, "pause");
+    try {
+      const busy = item.tooltip as vscode.MarkdownString;
+      assert.ok(busy.value.includes(`alt="${label}"`));
+      assert.ok(
+        !busy.value.includes(
+          encodeURIComponent(JSON.stringify([revision(), "pause"])),
+        ),
+      );
+      await controls.control(current, "pause");
+      await controls.control(current, "info");
+      controls.refresh();
+      assert.equal(
+        item.tooltip,
+        busy,
+        "Equivalent busy refreshes retain the card",
+      );
+    } finally {
+      workspaceStore.block = undefined;
+      release();
+    }
+    await running;
   }
 }

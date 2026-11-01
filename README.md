@@ -13,6 +13,7 @@ Hover or click the status bar to open the same **Kira Formatting Controls** card
 ## What you can do
 
 - **Keep a clear summary at the status bar.** Read formatting, scope, source notes and formatter details. Pause/Resume from the card affects only automatic formatting, preserving save actions.
+- **Pause without leaving the card.** Click Pause or Resume to run it in the background. Busy labels stay in the same button space; dashboard workflows retain their previews and confirmations.
 - **See the effective state.** The status bar shows ON, OFF, or MIXED for Format on Save, Paste, and Type in the active editor.
 - **Choose where changes belong.** Write to User, Workspace, or a specific workspace folder. Select a VS Code language ID for language overrides.
 - **Configure formatting and saving.** Toggle formatting triggers, select the save formatting mode, choose a default formatter, and configure Auto Save and its delay.

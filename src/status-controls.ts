@@ -14,6 +14,7 @@ export class StatusControls {
   private target: vscode.ConfigurationTarget | undefined;
   private languageOnly = false;
   private pending = false;
+  private pauseTransition: "pausing" | "resuming" | undefined;
   constructor(
     private readonly item: vscode.StatusBarItem,
     private readonly document: () => vscode.TextDocument | undefined,
@@ -101,7 +102,10 @@ export class StatusControls {
       return source;
     });
     const context = {
-      paused,
+      paused: this.pauseTransition
+        ? this.pauseTransition === "resuming"
+        : paused,
+      pauseBusy: this.pauseTransition !== undefined,
       canPause:
         !!this.workflows &&
         (paused || selection.target !== vscode.ConfigurationTarget.Global),
@@ -168,13 +172,27 @@ export class StatusControls {
     // Native links provide the hand cursor. Info clicks must do nothing, even
     // while another control is pending or their rendered revision is stale.
     if (action === "info") return;
+    if (action === "pause" && this.pauseTransition) return;
     this.assertCurrent(revision);
     if (this.pending)
       throw new Error("Finish the current formatting control first.");
     this.pending = true;
+    const started = Date.now();
     try {
+      if (action === "pause") {
+        this.pauseTransition =
+          this.workflows?.recovery()?.kind === "pause" ? "resuming" : "pausing";
+        this.refresh();
+      }
       await this.applyControl(revision, action);
     } finally {
+      if (this.pauseTransition) {
+        // Avoid a one-frame busy-label flash without changing button geometry.
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.max(0, 200 - (Date.now() - started))),
+        );
+        this.pauseTransition = undefined;
+      }
       this.pending = false;
       this.refresh();
     }
@@ -186,26 +204,30 @@ export class StatusControls {
     if (action === "pause") {
       if (!this.workflows) throw new Error("Pause storage is unavailable.");
       if (this.workflows.recovery()?.kind === "pause")
-        await this.workflows.restore();
+        await this.workflows.resumePause();
       else {
         const selection = this.selection();
-        await this.workflows.pauseFormatting(selection, {
-          target:
-            selection.target === vscode.ConfigurationTarget.Global
-              ? "user"
-              : selection.target === vscode.ConfigurationTarget.Workspace
-                ? "workspace"
-                : "folder",
-          ...(selection.target === vscode.ConfigurationTarget.WorkspaceFolder &&
-          selection.uri
-            ? {
-                folder: vscode.workspace
-                  .getWorkspaceFolder(selection.uri)
-                  ?.uri.toString() as string,
-              }
-            : {}),
-          ...(selection.language ? { language: selection.language } : {}),
-        });
+        await this.workflows.pauseFormatting(
+          selection,
+          {
+            target:
+              selection.target === vscode.ConfigurationTarget.Global
+                ? "user"
+                : selection.target === vscode.ConfigurationTarget.Workspace
+                  ? "workspace"
+                  : "folder",
+            ...(selection.target ===
+              vscode.ConfigurationTarget.WorkspaceFolder && selection.uri
+              ? {
+                  folder: vscode.workspace
+                    .getWorkspaceFolder(selection.uri)
+                    ?.uri.toString() as string,
+                }
+              : {}),
+            ...(selection.language ? { language: selection.language } : {}),
+          },
+          "background",
+        );
       }
     } else if (action === "scope") {
       const document = this.document();

@@ -16,6 +16,8 @@ export async function reviewStatus(
     { flags: [false, false, false], paused: false },
     { flags: [true, false, true], paused: false },
     { flags: [false, false, false], paused: true },
+    { flags: [true, false, true], paused: false, pauseBusy: true },
+    { flags: [false, false, false], paused: true, pauseBusy: true },
   ].map((state) =>
     statusArtwork({
       ...state,
@@ -42,6 +44,7 @@ export async function reviewStatus(
       summaryFits: boolean;
       headerFits: boolean;
       captionFits: boolean;
+      pauseFits: boolean;
     }>
   >(`(fixtures => {
     const namespace = "http://www.w3.org/2000/svg";
@@ -88,6 +91,7 @@ export async function reviewStatus(
           summaryFits: summaryHeading.x + summaryHeading.width < summaryIcon.x,
           headerFits: title.x + title.width <= art.header.width,
           captionFits: caption.x + caption.width <= art.pauseCaption.width - 2,
+          pauseFits: pauseText.x >= 1 && pauseText.x + pauseText.width <= art.pause.width - 1,
         };
       } finally { badge.remove(); context.remove(); pause.remove(); captionImage.remove(); header.remove(); summary.remove(); }
     });
@@ -113,6 +117,10 @@ export async function reviewStatus(
       );
     assert.ok(measurement.headerFits, "Full extension name fits");
     assert.ok(measurement.captionFits, "Both Pause/Resume captions fit");
+    assert.ok(
+      measurement.pauseFits,
+      "Idle and busy labels fit the same button",
+    );
     assert.ok(
       measurement.summaryFits,
       "The larger heading clears the info icon",
@@ -461,19 +469,18 @@ export async function reviewStatus(
     );
   }
 
-  // Exercise the unchanged confirmation workflow through its real native picker.
+  // Status Pause/Resume runs in place, without preview tabs or native pickers.
   const originalFlags = await flags.getAttribute("alt");
   for (const action of ["Pause", "Resume"]) {
     await hover.getByRole("link", { name: action, exact: true }).click();
-    const picker = page.locator(".quick-input-widget:visible");
-    await picker.waitFor();
-    await picker.getByText("Continue", { exact: true }).click();
-    await picker.waitFor({ state: "hidden" });
-    await page.waitForTimeout(500);
-    await button.click();
-    await loaded();
     const nextAction = action === "Pause" ? "Resume" : "Pause";
+    await loaded();
     await hover.getByRole("img", { name: nextAction, exact: true }).waitFor();
+    assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
+    assert.equal(
+      await page.locator(".editor-group-container .tab").count(),
+      tabs,
+    );
     const bounds = await hover.boundingBox();
     assert.equal(
       bounds?.width,
@@ -484,6 +491,11 @@ export async function reviewStatus(
       bounds?.height,
       hovered?.height,
       "Pause/Resume keeps the card height",
+    );
+    assert.deepEqual(
+      bounds,
+      hovered,
+      "Background Pause/Resume keeps the anchored position",
     );
     await hover.screenshot({
       path: join(directory, `status-${action.toLowerCase()}-complete.png`),

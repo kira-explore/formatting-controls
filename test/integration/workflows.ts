@@ -147,6 +147,7 @@ export async function runWorkflowTests(
       "source.removeUnusedImports": "never",
     });
     await workflows.apply("TSX Project", selection, scope);
+    await assert.rejects(workflows.resumePause(), /dashboard/);
     assert.equal(own(selection, "editor.formatOnSave"), true);
     assert.equal(
       (own(selection, "editor.codeActionsOnSave") as Record<string, unknown>)[

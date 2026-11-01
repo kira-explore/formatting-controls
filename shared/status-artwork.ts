@@ -191,6 +191,13 @@ export function statusArtwork(
     : context.canPause
       ? "Pause automatic formatting until you resume."
       : "Choose a project scope in the dashboard";
+  const pauseLabel = context.pauseBusy
+    ? context.paused
+      ? "Resuming"
+      : "Pausing"
+    : context.paused
+      ? "Resume"
+      : "Pause";
   return {
     settings: image(
       24,
@@ -266,12 +273,12 @@ export function statusArtwork(
         centeredText(
           33,
           14,
-          context.paused ? "Resume" : "Pause",
+          pauseLabel,
           13,
-          context.canPause ? p.fg : p.muted,
+          context.canPause && !context.pauseBusy ? p.fg : p.muted,
           "middle",
         ),
-      context.paused ? "Resume" : "Pause",
+      pauseLabel,
       66,
     ),
     pauseInset: image(28, "", "", 5),

@@ -2,11 +2,12 @@
 
 ## 0.5.0 — Unreleased
 
+- Made status-card Pause/Resume run in the background without preview tabs or confirmation pickers. Fixed-size Pausing/Resuming states prevent duplicate clicks and layout jumps; durable recovery and dashboard confirmations remain.
 - Styled Open dashboard and Report an issue as transparent blue borderless buttons with Pause-sized height, no underline and a hand cursor across each complete button.
 - Added no-op information links for hand cursors and hover explanations without any visible click behavior, and optically aligned the formatting info icon with its heading.
 - Added the regular-VS-Code status card: hover and click share one anchored card, click pins it, and Escape dismisses it.
 - Show effective formatting, scope, language, formatter and saved/inherited sources through read-only checkbox/dropdown artwork. Formatting remains visible with a fixed Enabled/Disabled/Mixed badge and explanatory help.
-- Added formatting-only Pause/Resume with preview, confirmation and durable recovery that preserves save actions and later edits.
+- Added formatting-only Pause/Resume with durable recovery that preserves save actions and later edits.
 - Refined typography, spacing, centered alignment, boxed Settings navigation and compact footer action targets.
 - Renamed the display name to Kira Formatting Controls and added the blue/white icon on black; the extension ID remains `rajudhami.formatting-controls`.
 - Prevented simultaneous-window profile loss with coordinated storage, stale-operation checks, migration and live refresh.

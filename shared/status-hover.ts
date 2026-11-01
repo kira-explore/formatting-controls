@@ -16,6 +16,7 @@ export interface HoverContext {
   languageScope: string;
   paused?: boolean;
   canPause?: boolean;
+  pauseBusy?: boolean;
   revision: number;
 }
 export function statusHover(
@@ -47,7 +48,7 @@ export function statusHover(
     fullRow(image(art.formatter)),
     fullRow(
       image(art.pauseInset) +
-        (context.canPause
+        (context.canPause && !context.pauseBusy
           ? `<a href="${link("pause")}">${image(art.pause)}</a>`
           : image(art.pause)) +
         image(art.pauseCaption),

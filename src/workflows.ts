@@ -398,6 +398,7 @@ export class Workflows implements vscode.Disposable {
     s: Selection,
     scope: Scope,
     kind: "profile" | "pause",
+    review = true,
   ): Promise<string> {
     this.assertSelection(s, scope);
     this.assertNewBatch();
@@ -414,7 +415,7 @@ export class Workflows implements vscode.Disposable {
       );
     if (Object.keys(profile.settings).length) parseProfile(profile);
     const changes = plan(profile, (key) => own(s, key));
-    if (!changes.length)
+    if (!changes.length && !(kind === "pause" && !review))
       return "These preferences already match the selected scope.";
     const scopeRecord: Scope = {
       target: scope.target,
@@ -434,7 +435,7 @@ export class Workflows implements vscode.Disposable {
       changes,
     });
     const title = `${kind === "pause" ? "Pause formatting at this scope" : `Apply profile ${profile.name}`}?${this.journal() ? " This replaces the previous restore point." : ""}`;
-    if (!(await this.confirm(title, changes, scopeRecord)))
+    if (review && !(await this.confirm(title, changes, scopeRecord)))
       return "Cancelled. No settings were changed.";
     await applyBatch(journal, this.port(journal));
     return kind === "pause"
@@ -540,7 +541,11 @@ export class Workflows implements vscode.Disposable {
       return this.applyProfile(profile, s, scope, "pause");
     });
   }
-  async pauseFormatting(s: Selection, scope: Scope): Promise<string> {
+  async pauseFormatting(
+    s: Selection,
+    scope: Scope,
+    interaction: "review" | "background" = "review",
+  ): Promise<string> {
     return this.exclusive(async () => {
       if (scope.target === "user")
         throw new Error(
@@ -560,13 +565,25 @@ export class Workflows implements vscode.Disposable {
         s,
         scope,
         "pause",
+        interaction === "review",
       );
     });
   }
   async restore(): Promise<string> {
+    return this.restoreSaved(true);
+  }
+  async resumePause(): Promise<string> {
+    return this.restoreSaved(false);
+  }
+  private async restoreSaved(review: boolean): Promise<string> {
     return this.exclusive(async () => {
       const journal = this.journal();
       if (!journal) return "No restore point is saved for this workspace.";
+      if (
+        !review &&
+        (journal.kind !== "pause" || journal.scope.target === "user")
+      )
+        throw new Error("Open the dashboard to review this restore point.");
       const port = this.port(journal);
       const reviewed = new Set<Change>();
       const preview = journal.changes.flatMap((c) => {
@@ -577,6 +594,7 @@ export class Workflows implements vscode.Disposable {
         return [{ ...c, before: current, after: c.before }];
       });
       if (
+        review &&
         !(await this.confirm(
           "Restore unchanged preferences? Externally edited values will be preserved.",
           preview,
