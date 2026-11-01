@@ -47,7 +47,7 @@ test("reference artwork has live values, accessible descriptions and read-only f
     JSON.parse(decodeURIComponent(match[1] ?? "")),
   );
   assert.deepEqual(actions, [[7, "pause"]]);
-  assert.match(html, /width="400" height="76"/);
+  assert.match(html, /width="380" height="76"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
   assert.match(art.state.alt, /Mixed/);
   assert.match(art.summary.alt, /Mixed/);
@@ -174,7 +174,7 @@ test("information is hover-only and header actions retain their destinations", (
       button[2],
       ` title="${paused ? statusHelp.resume : statusHelp.pause}"`,
     );
-    assert.match(button[3] ?? "", /width="66" height="28"/);
+    assert.match(button[3] ?? "", /width="62" height="28"/);
     assert.doesNotMatch(
       button[3] ?? "",
       /until you resume|previous formatting/,
@@ -193,11 +193,11 @@ test("information is hover-only and header actions retain their destinations", (
       assert.doesNotMatch(row, /<a\b/);
     assert.match(
       html,
-      /title="Shows the active file, its language and workspace\.&#10;Settings may differ by language or folder\."/,
+      /title="This summary is based on the active file\.&#10;Settings may differ by language or workspace folder\."/,
     );
     assert.match(
       html,
-      /title="Formatting status for save, paste and type\.&#10;1\. Enabled:/,
+      /title="Automatic formatting settings for save, paste and type\.&#10;1\. Enabled:/,
     );
     assert.match(html, /title="Open Kira Formatting Controls dashboard"/);
     assert.match(html, /title="Open a new issue on GitHub"/);

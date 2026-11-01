@@ -2,14 +2,14 @@ export const statusHelp = {
   pause: "Pause automatic formatting until you resume.",
   resume: "Restore your previous formatting settings.",
   file: [
-    "Shows the active file, its language and workspace.",
-    "Settings may differ by language or folder.",
+    "This summary is based on the active file.",
+    "Settings may differ by language or workspace folder.",
   ].join("\n"),
   formatting: [
-    "Formatting status for save, paste and type.",
-    "1. Enabled: All three triggers are enabled.",
-    "2. Disabled: All three triggers are disabled.",
-    "3. Mixed: Some triggers are enabled.",
+    "Automatic formatting settings for save, paste and type.",
+    "1. Enabled: All three are on.",
+    "2. Disabled: All three are off.",
+    "3. Mixed: Some are on; others are off.",
   ].join("\n"),
 } as const;
 

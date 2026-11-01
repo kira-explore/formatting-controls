@@ -79,7 +79,7 @@ export async function reviewStatus(
           badgeOffsetX: badgeText.x + badgeText.width/2 - 39,
           badgeOffsetY: badgeText.y + badgeText.height/2 - 14,
           contextOffsetY: (file.y + workspace.y + workspace.height)/2 - 42,
-          pauseOffsetX: pauseText.x + pauseText.width/2 - 33,
+          pauseOffsetX: pauseText.x + pauseText.width/2 - art.pause.width/2,
           pauseOffsetY: pauseText.y + pauseText.height/2 - 14,
           summaryHeadingOffsetY: summaryHeading.y + summaryHeading.height/2 - 14,
           summaryIconOffsetY: summaryIcon.y + summaryIcon.height/2 - 14,
@@ -301,6 +301,11 @@ export async function reviewStatus(
   const issueBounds = await issue.getByRole("img").boundingBox();
   assert.ok(contextBounds && dashboardBounds && issueBounds);
   assert.equal(
+    contextBounds.width,
+    380,
+    "The card uses the approved narrower content width",
+  );
+  assert.equal(
     dashboardBounds.x,
     contextBounds.x,
     "Footer shares the context artwork's left edge",
@@ -386,7 +391,7 @@ export async function reviewStatus(
   assert.equal(await pauseLink.getAttribute("title"), statusHelp.pause);
   const pauseImage = pauseLink.getByRole("img", { name: "Pause", exact: true });
   assert.equal(await pauseImage.getAttribute("title"), null);
-  assert.equal((await pauseImage.boundingBox())?.width, 66);
+  assert.equal((await pauseImage.boundingBox())?.width, 62);
   assert.equal((await pauseImage.boundingBox())?.height, 28);
   const pauseBounds = await pauseImage.boundingBox();
   const formatterBounds = await formatter.boundingBox();
@@ -400,6 +405,30 @@ export async function reviewStatus(
   const center = (box: { y: number; height: number }) => box.y + box.height / 2;
   assert.ok(Math.abs(center(pauseBounds) - center(settingsBounds)) <= 1);
   assert.ok(Math.abs(center(pauseBounds) - center(headerBounds)) <= 1);
+  const headerTopGap = pauseBounds.y - hovered.y;
+  const headerBottomGap =
+    contextBounds.y + 1 - (pauseBounds.y + pauseBounds.height);
+  assert.ok(
+    headerTopGap >= 10 &&
+      headerTopGap <= 14 &&
+      headerBottomGap >= 10 &&
+      headerBottomGap <= 14 &&
+      Math.abs(headerTopGap - headerBottomGap) <= 2,
+    `Header padding stays balanced around the button (${headerTopGap}px above, ${headerBottomGap}px below)`,
+  );
+  assert.equal(
+    await hover.evaluate(
+      (element, point) =>
+        Boolean(
+          element.ownerDocument
+            .elementFromPoint(point.x, point.y)
+            ?.closest("a"),
+        ),
+      { x: pauseBounds.x + pauseBounds.width / 2, y: pauseBounds.y - 4 },
+    ),
+    false,
+    "Header padding does not enlarge the Pause/Resume click target",
+  );
   assert.ok(
     pauseBounds.x + pauseBounds.width < settingsBounds.x,
     "Pause precedes Settings in the header",

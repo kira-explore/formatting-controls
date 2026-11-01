@@ -42,7 +42,7 @@ export function statusHover(
   const pause = context.canPause
     ? `<a href="${link("pause")}" title="${pauseTitle}">${image(art.pause)}</a>`
     : image(art.pause, pauseTitle);
-  return `<table width="400"><colgroup><col width="270"><col width="130"></colgroup><tbody>${[
+  return `<table width="${art.context.width}"><colgroup><col width="${art.header.width}"><col width="${art.context.width - art.header.width}"></colgroup><tbody>${[
     `<tr><td>${image(art.header)}</td><td align="right">${pause}${image(art.headerGap)}<a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}" title="Open VS Code Settings">${image(art.settings)}</a></td></tr>`,
     fullRow(titled(image(art.context), statusHelp.file)),
     fullRow(image(art.scopes)),

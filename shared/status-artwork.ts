@@ -118,7 +118,7 @@ export function statusArtwork(
     anchor: "start" | "middle" = "start",
   ) =>
     `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" text-anchor="${anchor}" dominant-baseline="central">${escapeText(value)}</text>`;
-  const line = (y: number) => `<path d="M5 ${y}H395" stroke="${p.line}"/>`;
+  const line = (y: number) => `<path d="M5 ${y}H375" stroke="${p.line}"/>`;
   const infoGlyph = (x: number, y: number, color: string) =>
     `<circle cx="${x}" cy="${y}" r="5" stroke="${color}" fill="none"/><circle cx="${x}" cy="${y - 2.75}" r=".55" fill="${color}"/><path d="M${x} ${y - 0.46}v3.2" stroke="${color}" stroke-width="1.1" stroke-linecap="round"/>`;
   const rect = (
@@ -132,10 +132,10 @@ export function statusArtwork(
   ) =>
     `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" stroke="${stroke}" fill="${fill}"/>`;
   const dropdown = (y: number, value: string) =>
-    rect(168, y, 227, 28) +
-    centeredText(178, y + 14, shortened(value, 30)) +
-    `<path d="M376.5 ${y + 12.25}l3.5 3.5 3.5-3.5" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
-  const svg = (height: number, contents: string, width = 400) =>
+    rect(168, y, 207, 28) +
+    centeredText(178, y + 14, shortened(value, 28)) +
+    `<path d="M356.5 ${y + 12.25}l3.5 3.5 3.5-3.5" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
+  const svg = (height: number, contents: string, width = 380) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g font-family="-apple-system, BlinkMacSystemFont, Segoe WPC, Segoe UI, system-ui, Ubuntu, Droid Sans, sans-serif" font-weight="400">${contents}</g></svg>`;
   const state = context.flags.every(Boolean)
     ? "Enabled"
@@ -165,7 +165,7 @@ export function statusArtwork(
     height: number,
     contents: string,
     alt: string,
-    width = 400,
+    width = 380,
   ) => ({ svg: svg(height, contents, width), alt, width, height });
   // Keep the info gap stable when the renderer selects a wider fallback font.
   const formattingHeading = `<text x="5" y="14" dominant-baseline="central" font-size="13.5" textLength="135" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>`;
@@ -181,7 +181,7 @@ export function statusArtwork(
         centeredText(
           33,
           y + 27,
-          shortened(sourceNotes[i] ?? "", 54),
+          shortened(sourceNotes[i] ?? "", 51),
           12.5,
           p.muted,
         )
@@ -210,18 +210,18 @@ export function statusArtwork(
       16,
     ),
     header: image(
-      28,
-      centeredText(5, 14, "Kira Formatting Controls", 13.5),
+      40,
+      centeredText(5, 20, "Kira Formatting Controls", 13.5),
       "Kira Formatting Controls",
-      270,
+      250,
     ),
     context: image(
       76,
       line(1) +
-        rect(5, 12, 390, 60, p.focus, p.info, 6) +
+        rect(5, 12, 370, 60, p.focus, p.info, 6) +
         infoGlyph(25, 42, p.focus) +
-        centeredText(45, 33, shortened(file, 51)) +
-        centeredText(45, 51, shortened(workspace, 51), 12.5, p.muted),
+        centeredText(45, 33, shortened(file, 48)) +
+        centeredText(45, 51, shortened(workspace, 48), 12.5, p.muted),
       `${file}. ${workspace}.`,
     ),
     scopes: image(
@@ -246,8 +246,8 @@ export function statusArtwork(
       formattingHeading +
         // Optical alignment with the heading's visible glyphs, not its font box.
         infoGlyph(153, 15, p.muted) +
-        rect(317, 2, 78, 24, p.border, "none") +
-        centeredText(356, 14, state, 12.5, p.fg, "middle"),
+        rect(297, 2, 78, 24, p.border, "none") +
+        centeredText(336, 14, state, 12.5, p.fg, "middle"),
       `Automatic formatting: ${state}`,
     ),
     formatting: image(
@@ -269,13 +269,13 @@ export function statusArtwork(
       rect(
         0.5,
         0.5,
-        65,
+        61,
         27,
         context.canPause ? p.primary : p.border,
         context.canPause ? p.primary : p.button,
       ) +
         centeredText(
-          33,
+          31,
           14,
           pauseLabel,
           12.5,
@@ -283,16 +283,18 @@ export function statusArtwork(
           "middle",
         ),
       pauseLabel,
-      66,
+      62,
     ),
-    headerGap: image(28, "", "", 8),
+    // A taller, unlinked spacer centers the real buttons without enlarging
+    // their click targets. Native row insets provide the remaining padding.
+    headerGap: image(40, "", "", 8),
     dashboard: image(
       28,
       `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="110.57" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,
       "Open dashboard ↗",
       139,
     ),
-    footerGap: image(36, "", "", 128),
+    footerGap: image(36, "", "", 108),
     issue: image(
       28,
       `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="104.81" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,
