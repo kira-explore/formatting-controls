@@ -568,8 +568,7 @@ export async function reviewStatus(
       .locator(".monaco-list-row")
       .filter({ hasText: basename(path) })
       .first()
-      .waitFor();
-    await page.keyboard.press("Enter");
+      .click();
     await picker.waitFor({ state: "hidden" });
     await page
       .locator(".tab.active")
@@ -593,10 +592,13 @@ export async function reviewStatus(
     hasText: "has unsaved changes. Save the file, then try again.",
   });
   await warning.waitFor();
+  // Start elsewhere so the next tab transition confirms that the warning's
+  // asynchronous Open action finished before saving and opening another file.
+  await openFile(testFiles.activeFile);
   await warning.getByRole("button", { name: "Open settings file" }).click();
   await page
-    .getByRole("tab", { name: /settings.json/ })
-    .first()
+    .locator(".tab.active")
+    .filter({ hasText: "settings.json" })
     .waitFor();
   await page.screenshot({
     path: join(directory, "status-unsaved-settings.png"),
