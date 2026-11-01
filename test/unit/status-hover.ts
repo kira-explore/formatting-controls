@@ -46,7 +46,11 @@ test("reference artwork has live values, accessible descriptions and read-only f
   const actions = [...html.matchAll(/statusControl\?([^"]*)/g)].map((match) =>
     JSON.parse(decodeURIComponent(match[1] ?? "")),
   );
-  assert.deepEqual(actions, [[7, "pause"]]);
+  assert.deepEqual(actions, [
+    [7, "info"],
+    [7, "info"],
+    [7, "pause"],
+  ]);
   assert.match(html, /width="400" height="76"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
   assert.match(art.state.alt, /Mixed/);
@@ -158,17 +162,21 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
   );
 });
 
-test("only actions are linked while information regions remain hover-only", () => {
+test("information uses no-op links while actual actions retain their destinations", () => {
   for (const paused of [false, true]) {
     const html = statusHover({ ...context, paused });
-    const button = html.match(
-      /<a href="command:formattingControls.statusControl\?[^"]*"([^>]*)>(.*?)<\/a>/,
+    const button = [
+      ...html.matchAll(
+        /<a href="command:formattingControls.statusControl\?([^"]*)"([^>]*)>(.*?)<\/a>/g,
+      ),
+    ].find(
+      (match) => JSON.parse(decodeURIComponent(match[1] ?? ""))[1] === "pause",
     );
     assert.ok(button);
-    assert.equal(button[1], "");
-    assert.match(button[2] ?? "", /width="66" height="28"/);
+    assert.equal(button[2], "");
+    assert.match(button[3] ?? "", /width="66" height="28"/);
     assert.doesNotMatch(
-      button[2] ?? "",
+      button[3] ?? "",
       /until you resume|previous formatting/,
     );
     assert.doesNotMatch(html, /formattingControls\.statusInfo/);

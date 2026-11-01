@@ -36,9 +36,13 @@ export function statusHover(
     `<tr><td colspan="2">${contents}</td></tr>`;
   return `<table width="400"><colgroup><col width="270"><col width="130"></colgroup><tbody>${[
     `<tr><td>${image(art.header)}</td><td align="right"><a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}" title="Open VS Code Settings">${image(art.settings)}</a></td></tr>`,
-    fullRow(titled(image(art.context), statusHelp.file)),
+    fullRow(
+      `<a href="${link("info")}">${titled(image(art.context), statusHelp.file)}</a>`,
+    ),
     fullRow(image(art.scopes)),
-    fullRow(titled(image(art.summary), statusHelp.formatting)),
+    fullRow(
+      `<a href="${link("info")}">${titled(image(art.summary), statusHelp.formatting)}</a>`,
+    ),
     fullRow(image(art.formatting)),
     fullRow(image(art.formatter)),
     fullRow(

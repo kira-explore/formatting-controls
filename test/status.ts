@@ -225,8 +225,8 @@ export async function reviewStatus(
   assert.equal(await fileInfo.getAttribute("title"), statusHelp.file);
   assert.equal(
     await fileInfo.evaluate((el) => !!el.closest("a")),
-    false,
-    "File information is hover-only",
+    true,
+    "File information uses a no-op link for the hand cursor",
   );
   const formattingInfo = hover.getByRole("img", {
     name: /^Automatic formatting:/,
@@ -237,8 +237,8 @@ export async function reviewStatus(
   );
   assert.equal(
     await formattingInfo.evaluate((el) => !!el.closest("a")),
-    false,
-    "Formatting information is hover-only",
+    true,
+    "Formatting information uses a no-op link for the hand cursor",
   );
   const settings = hover.getByRole("link", {
     name: "Open VS Code Settings",
@@ -383,7 +383,7 @@ export async function reviewStatus(
   assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
   assert.deepEqual(await hover.boundingBox(), hovered);
   const feedback = [];
-  for (const link of [settings, dashboard, issue]) {
+  for (const link of [settings, dashboard, issue, fileInfo, formattingInfo]) {
     await page.mouse.move(5, 5);
     const before = await link.evaluate((el) => {
       const style = el.ownerDocument.defaultView?.getComputedStyle(el);
@@ -395,6 +395,13 @@ export async function reviewStatus(
       };
     });
     await link.hover();
+    assert.equal(
+      await link.evaluate(
+        (el) => el.ownerDocument.defaultView?.getComputedStyle(el).cursor,
+      ),
+      "pointer",
+      "Actions and no-op information links show the hand cursor",
+    );
     const after = await link.evaluate((el) => {
       const style = el.ownerDocument.defaultView?.getComputedStyle(el);
       if (!style) throw new Error("Missing rendered styles");
