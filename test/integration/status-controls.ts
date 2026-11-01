@@ -9,8 +9,10 @@ import { MemoryStore } from "./workflows";
 class ControlledStore extends MemoryStore {
   block: Promise<void> | undefined;
   fail = false;
+  entered: (() => void) | undefined;
   override async update(key: string, value: unknown): Promise<void> {
     if (this.fail) throw new Error("Test storage unavailable");
+    this.entered?.();
     await this.block;
     await super.update(key, value);
   }
@@ -29,7 +31,20 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
       return true;
     },
   );
-  const controls = new StatusControls(item, () => document, workflows);
+  let pausePrompts = 0;
+  let acceptPause = true;
+  let pendingChoice: Promise<boolean> | undefined;
+  let promptOpened: (() => void) | undefined;
+  const controls = new StatusControls(
+    item,
+    () => document,
+    workflows,
+    async () => {
+      pausePrompts++;
+      promptOpened?.();
+      return pendingChoice ?? acceptPause;
+    },
+  );
   const selection = { target: vscode.ConfigurationTarget.WorkspaceFolder, uri };
   const key = "editor.formatOnPaste";
   const original = own(selection, key);
@@ -121,6 +136,45 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
       {},
     ])
       await assert.rejects(controls.control(revision(), action), /Unknown/);
+    const beforeCancel = flags.map((flag) => own(selection, flag));
+    const journalBeforeCancel = workflows.journal();
+    acceptPause = false;
+    await controls.pause();
+    acceptPause = true;
+    assert.deepEqual(
+      flags.map((flag) => own(selection, flag)),
+      beforeCancel,
+    );
+    assert.deepEqual(workflows.journal(), journalBeforeCancel);
+    assert.match((item.tooltip as vscode.MarkdownString).value, /alt="Pause"/);
+    let choose!: (accept: boolean) => void;
+    pendingChoice = new Promise((resolve) => {
+      choose = resolve;
+    });
+    const opened = new Promise<void>((resolve) => {
+      promptOpened = resolve;
+    });
+    const choosing = controls.pause();
+    await opened;
+    const beforeChoice = own(selection, key);
+    await write(selection, key, !beforeChoice);
+    controls.refresh();
+    choose(true);
+    await assert.rejects(
+      choosing,
+      /changed/,
+      "Changes while the picker is open invalidate its action",
+    );
+    assert.equal(
+      own(selection, key),
+      !beforeChoice,
+      "The later edit is preserved",
+    );
+    assert.deepEqual(workflows.journal(), journalBeforeCancel);
+    pendingChoice = undefined;
+    promptOpened = undefined;
+    await write(selection, key, beforeChoice);
+    controls.refresh();
     const beforeFailure = flags.map((flag) => own(selection, flag));
     workspaceStore.fail = true;
     await assert.rejects(
@@ -136,7 +190,7 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     assert.match((item.tooltip as vscode.MarkdownString).value, /alt="Pause"/);
     await dirtySettingsFailure("Pause");
     assert.equal(workflows.recovery(), null);
-    await transition("Pausing");
+    await transition("Pause");
     assert.equal(own(selection, "editor.formatOnSave"), false);
     assert.equal(own(selection, "editor.formatOnPaste"), false);
     assert.equal(own(selection, "editor.formatOnType"), false);
@@ -153,12 +207,16 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     workspaceStore.fail = false;
     assert.deepEqual(workflows.recovery(), recoveryBeforeFailure);
     assert.match((item.tooltip as vscode.MarkdownString).value, /alt="Resume"/);
-    await transition("Resuming");
+    await transition("Resume");
     assert.equal(own(selection, "editor.formatOnPaste"), true);
     assert.equal(
       confirmations,
       0,
-      "Status Pause/Resume never opens a preview or picker",
+      "Status Pause/Resume uses its native picker, without a dashboard preview",
+    );
+    assert.ok(
+      pausePrompts > 0,
+      "Pause/Resume goes through the native confirmation picker",
     );
     for (const flag of flags) await write(selection, flag, false);
     controls.refresh();
@@ -265,8 +323,14 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     workspaceStore.block = new Promise<void>((resolve) => {
       release = resolve;
     });
+    const entered = new Promise<void>((resolve) => {
+      workspaceStore.entered = resolve;
+    });
     const current = revision();
+    const before = item.tooltip as vscode.MarkdownString;
+    assert.match(before.value, new RegExp(`alt="${label}"`));
     const running = controls.control(current, "pause");
+    await entered;
     const busy = item.tooltip;
     const snapshots: (typeof busy)[] = [];
     const observe = () => {
@@ -278,13 +342,10 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
       vscode.workspace.onDidChangeConfiguration(observe),
     ];
     try {
-      assert.ok(
-        (busy as vscode.MarkdownString).value.includes(`alt="${label}"`),
-      );
-      assert.ok(
-        !(busy as vscode.MarkdownString).value.includes(
-          encodeURIComponent(JSON.stringify([revision(), "pause"])),
-        ),
+      assert.equal(
+        busy,
+        undefined,
+        "The card is closed while the chosen action applies",
       );
       await controls.control(current, "pause");
       await controls.control(current, "info");
@@ -292,10 +353,11 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
       assert.equal(
         item.tooltip,
         busy,
-        "Equivalent busy refreshes retain the card",
+        "Intermediate events cannot reopen the dismissed card",
       );
     } finally {
       workspaceStore.block = undefined;
+      workspaceStore.entered = undefined;
       release();
     }
     try {

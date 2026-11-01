@@ -105,15 +105,14 @@ export function statusArtwork(
     x: number,
     y: number,
     value: string,
-    size = 13,
+    size = 12.5,
     color: string = p.fg,
     anchor: "start" | "middle" = "start",
-    width?: number,
   ) =>
-    `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" text-anchor="${anchor}" dominant-baseline="central"${width === undefined ? "" : ` textLength="${width}" lengthAdjust="spacingAndGlyphs"`}>${escapeText(value)}</text>`;
+    `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" text-anchor="${anchor}" dominant-baseline="central">${escapeText(value)}</text>`;
   const line = (y: number) => `<path d="M5 ${y}H395" stroke="${p.line}"/>`;
   const infoGlyph = (x: number, y: number, color: string) =>
-    `<circle cx="${x}" cy="${y}" r="5.5" stroke="${color}" fill="none"/><circle cx="${x}" cy="${y - 3}" r=".6" fill="${color}"/><path d="M${x} ${y - 0.5}v3.5" stroke="${color}" stroke-width="1.2" stroke-linecap="round"/>`;
+    `<circle cx="${x}" cy="${y}" r="5.25" stroke="${color}" fill="none"/><circle cx="${x}" cy="${y - 2.875}" r=".575" fill="${color}"/><path d="M${x} ${y - 0.48}v3.35" stroke="${color}" stroke-width="1.15" stroke-linecap="round"/>`;
   const rect = (
     x: number,
     y: number,
@@ -127,7 +126,7 @@ export function statusArtwork(
   const dropdown = (y: number, value: string) =>
     rect(168, y, 227, 28) +
     centeredText(178, y + 14, shortened(value, 30)) +
-    `<path d="M376 ${y + 12}l4 4 4-4" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
+    `<path d="M376.25 ${y + 12.125}l3.75 3.75 3.75-3.75" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
   const svg = (height: number, contents: string, width = 400) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g font-family="-apple-system, BlinkMacSystemFont, Segoe WPC, Segoe UI, system-ui, Ubuntu, Droid Sans, sans-serif" font-weight="400">${contents}</g></svg>`;
   const state = context.flags.every(Boolean)
@@ -161,21 +160,21 @@ export function statusArtwork(
     width = 400,
   ) => ({ svg: svg(height, contents, width), alt, width, height });
   // Keep the info gap stable when the renderer selects a wider fallback font.
-  const formattingHeading = `<text x="5" y="14" dominant-baseline="central" font-size="14" textLength="140" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>`;
+  const formattingHeading = `<text x="5" y="14" dominant-baseline="central" font-size="13.5" textLength="135" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>`;
   const flagContents = ["save", "paste", "type"]
     .map((label, i) => {
       const y = i * 46;
       return (
-        rect(5, y + 9, 18, 18, p.checkboxBorder, p.checkbox, 2) +
+        rect(5.25, y + 9.25, 17.5, 17.5, p.checkboxBorder, p.checkbox, 2) +
         (context.flags[i]
-          ? `<path d="M8 ${y + 18}l4 4 8-9" stroke="${p.muted}" stroke-width="1.4" fill="none"/>`
+          ? `<path d="M8.167 ${y + 18}l3.889 3.889 7.777-8.75" stroke="${p.muted}" stroke-width="1.35" fill="none"/>`
           : "") +
         centeredText(33, y + 9, `Format on ${label}`) +
         centeredText(
           33,
           y + 27,
           shortened(sourceNotes[i] ?? "", 54),
-          13,
+          12.5,
           p.muted,
         )
       );
@@ -192,18 +191,12 @@ export function statusArtwork(
     : context.canPause
       ? "Pause automatic formatting until you resume."
       : "Choose a project scope in the dashboard";
-  const pauseLabel = context.pauseBusy
-    ? context.paused
-      ? "Resuming"
-      : "Pausing"
-    : context.paused
-      ? "Resume"
-      : "Pause";
+  const pauseLabel = context.paused ? "Resume" : "Pause";
   return {
     settings: image(
       24,
       rect(0.5, 0.5, 25, 23, p.border, p.button) +
-        `<g transform="translate(6.9016 6.6639) scale(.7623)" fill="none" stroke="${p.fg}" stroke-width="1.5"><path d="M0 2h16M0 7h16M0 12h16M5 0v4M11 5v4M7 10v4"/></g>`,
+        `<g transform="translate(7.15 6.88125) scale(.73125)" fill="none" stroke="${p.fg}" stroke-width="1.5"><path d="M0 2h16M0 7h16M0 12h16M5 0v4M11 5v4M7 10v4"/></g>`,
       "Open VS Code Settings",
       26,
     ),
@@ -215,7 +208,7 @@ export function statusArtwork(
     ),
     header: image(
       28,
-      centeredText(5, 14, "Kira Formatting Controls", 14),
+      centeredText(5, 14, "Kira Formatting Controls", 13.5),
       "Kira Formatting Controls",
       270,
     ),
@@ -225,7 +218,7 @@ export function statusArtwork(
         rect(5, 12, 390, 60, p.focus, p.info, 6) +
         infoGlyph(25, 42, p.focus) +
         centeredText(45, 33, shortened(file, 51)) +
-        centeredText(45, 51, shortened(workspace, 51), 13, p.muted),
+        centeredText(45, 51, shortened(workspace, 51), 12.5, p.muted),
       `${file}. ${workspace}.`,
     ),
     scopes: image(
@@ -241,7 +234,7 @@ export function statusArtwork(
     state: image(
       28,
       rect(0, 2, 78, 24, p.border, "none") +
-        centeredText(39, 14, state, 13, p.fg, "middle"),
+        centeredText(39, 14, state, 12.5, p.fg, "middle"),
       `Automatic formatting: ${state}`,
       78,
     ),
@@ -249,9 +242,9 @@ export function statusArtwork(
       28,
       formattingHeading +
         // Optical alignment with the heading's visible glyphs, not its font box.
-        infoGlyph(158, 15, p.muted) +
+        infoGlyph(153, 15, p.muted) +
         rect(317, 2, 78, 24, p.border, "none") +
-        centeredText(356, 14, state, 13, p.fg, "middle"),
+        centeredText(356, 14, state, 12.5, p.fg, "middle"),
       `Automatic formatting: ${state}`,
     ),
     formatting: image(
@@ -275,11 +268,9 @@ export function statusArtwork(
           33,
           14,
           pauseLabel,
-          13,
-          context.canPause && !context.pauseBusy ? p.fg : p.muted,
+          12.5,
+          context.canPause ? p.fg : p.muted,
           "middle",
-          // Reserve identical padding with wider Linux fallback fonts, too.
-          context.pauseBusy ? 54 : undefined,
         ),
       pauseLabel,
       66,
@@ -287,7 +278,7 @@ export function statusArtwork(
     pauseInset: image(28, "", "", 5),
     pauseCaption: image(
       28,
-      centeredText(12, 14, pauseCaption, 13, p.muted),
+      centeredText(12, 14, pauseCaption, 12.5, p.muted),
       pauseCaption,
       329,
     ),
@@ -295,14 +286,14 @@ export function statusArtwork(
     separator: image(11, line(0.5), ""),
     dashboard: image(
       28,
-      `<text x="12" y="14" dominant-baseline="central" font-size="13" textLength="115" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,
+      `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="110.58" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,
       "Open dashboard ↗",
       139,
     ),
     footerGap: image(36, "", "", 128),
     issue: image(
       28,
-      `<text x="12" y="14" dominant-baseline="central" font-size="13" textLength="109" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,
+      `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="104.81" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,
       "Report an issue ↗",
       133,
     ),

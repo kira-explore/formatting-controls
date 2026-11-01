@@ -38,7 +38,7 @@ test("reference artwork has live values, accessible descriptions and read-only f
     /Format on paste: Enabled.*Inherited from User settings/,
   );
   assert.equal(
-    [...art.formatting.svg.matchAll(/stroke-width="1.4"/g)].length,
+    [...art.formatting.svg.matchAll(/stroke-width="1.35"/g)].length,
     1,
   );
   const html = statusHover(context);
@@ -135,8 +135,6 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
     { flags: [true, false, true], paused: false },
     { flags: [false, false, false], paused: true },
     { flags: [true, false, true], paused: true },
-    { flags: [true, false, true], paused: false, pauseBusy: true },
-    { flags: [false, false, false], paused: true, pauseBusy: true },
   ].map((variant) => statusArtwork({ ...context, ...variant }));
   assert.equal(
     new Set(variants.map((art) => `${art.state.width}x${art.state.height}`))
@@ -155,15 +153,7 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
   );
   assert.match(variants[3]?.state.alt ?? "", /Disabled/);
   assert.match(variants[4]?.state.alt ?? "", /Mixed/);
-  assert.equal(variants[5]?.pause.alt, "Pausing");
-  assert.equal(variants[6]?.pause.alt, "Resuming");
-  assert.equal(variants[5]?.pauseCaption.alt, variants[0]?.pauseCaption.alt);
-  assert.equal(variants[6]?.pauseCaption.alt, variants[3]?.pauseCaption.alt);
-  assert.ok(
-    !statusHover({ ...context, pauseBusy: true }).includes(
-      encodeURIComponent(JSON.stringify([context.revision, "pause"])),
-    ),
-  );
+  assert.doesNotMatch(statusHover(context), /alt="Pausing"|alt="Resuming"/);
   assert.match(
     variants[0]?.pauseCaption.alt ?? "",
     /Pause automatic formatting until you resume\./,

@@ -255,6 +255,10 @@ export function activate(context: vscode.ExtensionContext): void {
       guarded(() => controls.open()),
     ),
     vscode.commands.registerCommand(
+      "formattingControls.pauseFormatting",
+      guarded(() => controls.pause()),
+    ),
+    vscode.commands.registerCommand(
       "formattingControls.statusControl",
       (revision: unknown, action: unknown) =>
         guarded(() => controls.control(revision, action))(),

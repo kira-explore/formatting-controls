@@ -16,8 +16,6 @@ export async function reviewStatus(
     { flags: [false, false, false], paused: false },
     { flags: [true, false, true], paused: false },
     { flags: [false, false, false], paused: true },
-    { flags: [true, false, true], paused: false, pauseBusy: true },
-    { flags: [false, false, false], paused: true, pauseBusy: true },
   ].map((state) =>
     statusArtwork({
       ...state,
@@ -119,7 +117,7 @@ export async function reviewStatus(
     assert.ok(measurement.captionFits, "Both Pause/Resume captions fit");
     assert.ok(
       measurement.pauseFits,
-      "Idle and busy labels fit the same button",
+      "Pause and Resume labels fit the same button",
     );
     assert.ok(
       measurement.summaryFits,
@@ -191,22 +189,44 @@ export async function reviewStatus(
     animations: "disabled",
     path: join(directory, "status-hover-window.png"),
   });
-  // Exercise actions from a hover-only card before any status click pins it.
-  for (const action of ["Pause", "Resume"]) {
-    await hover.getByRole("link", { name: action, exact: true }).click();
-    await loaded();
+  const picker = page.locator(".quick-input-widget:visible");
+  const reopen = async () => {
+    const deadline = Date.now() + 15000;
+    while (true) {
+      await page.mouse.move(10, 200);
+      await button.hover();
+      try {
+        await hover.waitFor({ state: "visible", timeout: 2500 });
+        await loaded();
+        return;
+      } catch (error) {
+        if (Date.now() >= deadline) {
+          await page.screenshot({
+            path: join(directory, "status-reopen-failure.png"),
+          });
+          writeFileSync(
+            join(directory, "status-reopen-failure.html"),
+            await page.locator(".part.statusbar").innerHTML(),
+          );
+          throw error;
+        }
+      }
+    }
+  };
+  // The hover-only entry point dismisses the card before opening its picker.
+  await hover.getByRole("link", { name: "Pause", exact: true }).click();
+  await picker.waitFor();
+  await hover.waitFor({ state: "hidden" });
+  await page.keyboard.press("Escape");
+  await picker.waitFor({ state: "hidden" });
+  await reopen();
+  assert.deepEqual(
     await hover
-      .getByRole("img", {
-        name: action === "Pause" ? "Resume" : "Pause",
-        exact: true,
-      })
-      .waitFor();
-    assert.deepEqual(
-      await hover.boundingBox(),
-      hovered,
-      "Hover-only Pause/Resume stays open and anchored",
-    );
-  }
+      .locator("img")
+      .evaluateAll((images) => images.map((img) => img.getAttribute("alt"))),
+    labels,
+    "Cancelling Pause keeps the settings and button state",
+  );
   await dismiss();
   await button.click();
   await loaded();
@@ -485,12 +505,23 @@ export async function reviewStatus(
     );
   }
 
-  // Status Pause/Resume runs in place, without preview tabs or native pickers.
+  // Pause/Resume applies only after the native picker closes the status card.
   const originalFlags = await flags.getAttribute("alt");
   for (const action of ["Pause", "Resume"]) {
     await hover.getByRole("link", { name: action, exact: true }).click();
+    await picker.waitFor();
+    await hover.waitFor({ state: "hidden" });
+    await picker
+      .locator(".monaco-list-row")
+      .filter({ hasText: `${action} automatic formatting` })
+      .waitFor();
+    await page.screenshot({
+      path: join(directory, `status-${action.toLowerCase()}-picker.png`),
+    });
+    await page.keyboard.press("Enter");
+    await picker.waitFor({ state: "hidden" });
     const nextAction = action === "Pause" ? "Resume" : "Pause";
-    await loaded();
+    await reopen();
     await hover.getByRole("img", { name: nextAction, exact: true }).waitFor();
     assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
     assert.equal(
@@ -511,7 +542,7 @@ export async function reviewStatus(
     assert.deepEqual(
       bounds,
       hovered,
-      "Background Pause/Resume keeps the anchored position",
+      "The reopened card keeps its anchored position",
     );
     await hover.screenshot({
       path: join(directory, `status-${action.toLowerCase()}-complete.png`),
@@ -524,6 +555,25 @@ export async function reviewStatus(
   );
 
   await dismiss();
+  await page.keyboard.press(
+    process.platform === "darwin" ? "Meta+Shift+P" : "Control+Shift+P",
+  );
+  await picker
+    .locator("input")
+    .fill(">Formatting Controls: Pause / Resume Automatic Formatting");
+  await picker
+    .locator(".monaco-list-row")
+    .filter({ hasText: "Pause / Resume Automatic Formatting" })
+    .waitFor();
+  await page.keyboard.press("Enter");
+  await picker
+    .locator(".monaco-list-row")
+    .filter({ hasText: "Pause automatic formatting" })
+    .waitFor();
+  await page.keyboard.press("Escape");
+  await picker.waitFor({ state: "hidden" });
+  await reopen();
+  await dismiss();
   await button.focus();
   await page.keyboard.press("Enter");
   await loaded();
@@ -533,6 +583,6 @@ export async function reviewStatus(
     .first()
     .waitFor();
   console.log(
-    "Approved status card verified: full title, stable hover/click and Pause/Resume bounds, button-only pause action without hover text, fixed status badge, read-only fields, stable info, native settings/issue links, keyboard access and accessible descriptions.",
+    "Status card verified: smaller text/icons, stable hover/click bounds, native Pause/Resume picker and Command Palette entry, cancellation, fixed badge, read-only fields, no-op info, keyboard access and accessible descriptions.",
   );
 }

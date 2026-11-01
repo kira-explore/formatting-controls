@@ -7,6 +7,32 @@ import { providersFor } from "./providers";
 import { statusTooltip } from "./status-hover";
 import type { Workflows } from "./workflows";
 
+type PausePrompt = (
+  paused: boolean,
+  destination: string,
+) => PromiseLike<boolean>;
+const choosePause: PausePrompt = async (paused, destination) => {
+  const label = paused
+    ? "Resume automatic formatting"
+    : "Pause automatic formatting";
+  const choice = await vscode.window.showQuickPick(
+    [
+      {
+        label,
+        description: destination,
+        detail: paused
+          ? "Restore unchanged pre-pause preferences. Later edits are preserved."
+          : "Pause formatting on save, paste and type until you resume. Save actions are unchanged.",
+      },
+    ],
+    {
+      title: "Kira Formatting Controls",
+      placeHolder: "Choose the action to continue, or press Escape to cancel.",
+    },
+  );
+  return choice !== undefined;
+};
+
 /** Hover and click share the same native anchored status card. */
 export class StatusControls {
   private revision = 0;
@@ -14,11 +40,13 @@ export class StatusControls {
   private target: vscode.ConfigurationTarget | undefined;
   private languageOnly = false;
   private pending = false;
-  private pauseTransition: "pausing" | "resuming" | undefined;
+  private applyingPause = false;
+  private pausePicker = false;
   constructor(
     private readonly item: vscode.StatusBarItem,
     private readonly document: () => vscode.TextDocument | undefined,
     private readonly workflows?: Workflows,
+    private readonly pausePrompt: PausePrompt = choosePause,
   ) {
     item.name = "Formatting Controls";
     item.command = "workbench.action.showHover";
@@ -59,11 +87,10 @@ export class StatusControls {
         : undefined,
     );
   }
-  refresh(showTransition = false): void {
-    // A batch emits recovery and configuration events for every write. Keep
-    // its busy card intact until the whole operation has settled; replacing
-    // the native Markdown hover for each intermediate value causes flicker.
-    if (this.pauseTransition && !showTransition) return;
+  refresh(): void {
+    // A confirmed pause batch publishes only its completed settings snapshot.
+    // While the picker is open, refreshes still invalidate stale choices.
+    if (this.applyingPause) return;
     const document = this.document();
     const selection = this.selection();
     const effective = this.effective();
@@ -106,10 +133,7 @@ export class StatusControls {
       return source;
     });
     const context = {
-      paused: this.pauseTransition
-        ? this.pauseTransition === "resuming"
-        : paused,
-      pauseBusy: this.pauseTransition !== undefined,
+      paused,
       canPause:
         !!this.workflows &&
         (paused || selection.target !== vscode.ConfigurationTarget.Global),
@@ -160,7 +184,11 @@ export class StatusControls {
     this.fingerprint = fingerprint;
     this.revision++;
     this.item.text = `Formatting: ${status(values)}`;
-    this.item.tooltip = statusTooltip({ ...context, revision: this.revision });
+    if (!this.pausePicker)
+      this.item.tooltip = statusTooltip({
+        ...context,
+        revision: this.revision,
+      });
     this.item.accessibilityInformation = {
       label: this.item.text.replace("$(settings-gear) ", ""),
     };
@@ -176,26 +204,20 @@ export class StatusControls {
     // Native links provide the hand cursor. Info clicks must do nothing, even
     // while another control is pending or their rendered revision is stale.
     if (action === "info") return;
-    if (action === "pause" && this.pauseTransition) return;
+    if (action === "pause" && this.pending) return;
     this.assertCurrent(revision);
     if (this.pending)
       throw new Error("Finish the current formatting control first.");
     this.pending = true;
-    const started = Date.now();
     try {
-      if (action === "pause") {
-        this.pauseTransition =
-          this.workflows?.recovery()?.kind === "pause" ? "resuming" : "pausing";
-        this.refresh(true);
-      }
       await this.applyControl(revision, action);
     } finally {
-      if (this.pauseTransition) {
-        // Avoid a one-frame busy-label flash without changing button geometry.
-        await new Promise((resolve) =>
-          setTimeout(resolve, Math.max(0, 200 - (Date.now() - started))),
-        );
-        this.pauseTransition = undefined;
+      this.applyingPause = false;
+      if (this.pausePicker) {
+        this.pausePicker = false;
+        this.fingerprint = "";
+        // Restore the tooltip on a fresh anchor after the picker releases focus.
+        this.item.hide();
       }
       this.pending = false;
       this.refresh();
@@ -207,10 +229,36 @@ export class StatusControls {
   ): Promise<void> {
     if (action === "pause") {
       if (!this.workflows) throw new Error("Pause storage is unavailable.");
-      if (this.workflows.recovery()?.kind === "pause")
-        await this.workflows.resumePause();
+      const recovery = this.workflows.recovery();
+      const selection = this.selection();
+      const paused = recovery?.kind === "pause";
+      if (!paused && selection.target === vscode.ConfigurationTarget.Global)
+        throw new Error(
+          "Choose a Workspace or Workspace folder scope before pausing formatting.",
+        );
+      const journal = JSON.stringify(this.workflows.journal());
+      const destination = paused
+        ? recovery.scope.target === "folder"
+          ? `Folder: ${vscode.workspace.workspaceFolders?.find((folder) => folder.uri.toString() === recovery.scope.folder)?.name ?? recovery.scope.folder}`
+          : "Workspace"
+        : this.scopeLabel(selection);
+      // Removing the anchor also dismisses a pinned native hover, which can
+      // survive clearing its tooltip. Immediately restore the status item before
+      // the picker takes focus; restore its tooltip when the operation exits.
+      this.pausePicker = true;
+      this.item.tooltip = undefined;
+      this.item.hide();
+      this.item.show();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      if (!(await this.pausePrompt(paused, destination))) return;
+      this.assertCurrent(revision);
+      if (JSON.stringify(this.workflows.journal()) !== journal)
+        throw new Error(
+          "The restore point changed while the picker was open. Reopen Pause/Resume and review the current action.",
+        );
+      this.applyingPause = true;
+      if (paused) await this.workflows.resumePause();
       else {
-        const selection = this.selection();
         await this.workflows.pauseFormatting(
           selection,
           {
@@ -359,6 +407,9 @@ export class StatusControls {
     } else {
       throw new Error("Unknown formatting control.");
     }
+  }
+  async pause(): Promise<void> {
+    await this.control(this.revision, "pause");
   }
   private scopeLabel(selection: Selection): string {
     return selection.target === vscode.ConfigurationTarget.Global
