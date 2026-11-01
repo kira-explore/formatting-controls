@@ -283,17 +283,19 @@ export function statusArtwork(
     // Reserve height so the rule stays close to Pause within the native line box.
     separator: image(11, line(0.5), ""),
     dashboard: image(
-      26,
-      `<text x="5" y="13" dominant-baseline="central" font-size="13" textLength="115" lengthAdjust="spacingAndGlyphs" fill="${p.accent}" text-decoration="underline">Open dashboard ↗</text>`,
+      28,
+      rect(0.5, 0.5, 138, 27, p.accent, "none") +
+        `<text x="12" y="14" dominant-baseline="central" font-size="13" textLength="115" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,
       "Open dashboard ↗",
-      125,
+      139,
     ),
-    footerGap: image(34, "", "", 156),
+    footerGap: image(36, "", "", 128),
     issue: image(
-      26,
-      `<text x="114" y="13" dominant-baseline="central" text-anchor="end" font-size="13" textLength="109" lengthAdjust="spacingAndGlyphs" fill="${p.accent}" text-decoration="underline">Report an issue ↗</text>`,
+      28,
+      rect(0.5, 0.5, 132, 27, p.accent, "none") +
+        `<text x="12" y="14" dominant-baseline="central" font-size="13" textLength="109" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,
       "Report an issue ↗",
-      119,
+      133,
     ),
   };
 }

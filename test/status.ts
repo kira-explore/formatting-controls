@@ -277,19 +277,49 @@ export async function reviewStatus(
   );
   assert.equal(
     dashboardBounds.width,
-    125,
-    "Dashboard hit area fits the text and padding",
+    139,
+    "Dashboard hit area fits its outlined button",
   );
   assert.equal(
     issueBounds.width,
-    119,
-    "Issue hit area fits the text and padding",
+    133,
+    "Issue hit area fits its outlined button",
   );
-  assert.equal(dashboardBounds.height, 26);
-  assert.equal(issueBounds.height, 26);
+  assert.equal(dashboardBounds.height, 28);
+  assert.equal(issueBounds.height, 28);
+  for (const [link, bounds] of [
+    [dashboard, dashboardBounds],
+    [issue, issueBounds],
+  ] as const) {
+    for (const x of [bounds.x + 3, bounds.x + bounds.width - 3]) {
+      await page.mouse.move(x, bounds.y + bounds.height / 2);
+      const hit = await link.evaluate(
+        (element, point) => {
+          const target = element.ownerDocument.elementFromPoint(
+            point.x,
+            point.y,
+          );
+          return {
+            linked: target?.closest("a") === element,
+            cursor: target
+              ? element.ownerDocument.defaultView?.getComputedStyle(target)
+                  .cursor
+              : undefined,
+          };
+        },
+        { x, y: bounds.y + bounds.height / 2 },
+      );
+      assert.equal(hit.linked, true, "The entire footer button is linked");
+      assert.equal(
+        hit.cursor,
+        "pointer",
+        "Footer padding uses the hand cursor",
+      );
+    }
+  }
   const gutter = {
     x: dashboardBounds.x + dashboardBounds.width + 20,
-    y: dashboardBounds.y + 13,
+    y: dashboardBounds.y + 14,
   };
   assert.equal(
     await hover.evaluate(
@@ -337,12 +367,12 @@ export async function reviewStatus(
       Math.abs(pauseBottomGap - formatterPadding) <= 2,
     "Pause/Resume padding matches Default formatter",
   );
-  const footerTopGap = dashboardBounds.y + 13 - (separatorBounds.y + 0.5);
+  const footerTopGap = dashboardBounds.y + 14 - (separatorBounds.y + 0.5);
   const footerBottomGap =
-    hovered.y + hovered.height - 1 - (dashboardBounds.y + 13);
+    hovered.y + hovered.height - 1 - (dashboardBounds.y + 14);
   assert.ok(
     Math.abs(footerTopGap - footerBottomGap) <= 2,
-    "Footer text is centered between its separator and the frame",
+    `Footer text is centered between its separator and the frame (${footerTopGap}px above, ${footerBottomGap}px below)`,
   );
   const caption = hover.getByRole("img", {
     name: "Pause automatic formatting until you resume.",

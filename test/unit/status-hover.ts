@@ -183,8 +183,15 @@ test("only actions are linked while information regions remain hover-only", () =
     assert.match(html, /title="Open Kira Formatting Controls dashboard"/);
     assert.match(html, /title="Open a new issue on GitHub"/);
     const art = statusArtwork({ ...context, paused });
-    assert.match(art.dashboard.svg, /text-decoration="underline"/);
-    assert.match(art.issue.svg, /text-decoration="underline"/);
+    for (const action of [art.dashboard, art.issue]) {
+      assert.doesNotMatch(action.svg, /text-decoration/);
+      assert.match(action.svg, /<rect[^>]+stroke="#47a1c7" fill="none"/);
+      assert.equal(action.height, art.pause.height);
+    }
+    assert.equal(
+      art.dashboard.width + art.footerGap.width + art.issue.width,
+      art.context.width,
+    );
   }
 });
 
