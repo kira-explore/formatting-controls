@@ -6,6 +6,43 @@ export interface Selection {
   uri?: vscode.Uri;
   language?: string;
 }
+export class UnsavedSettingsError extends Error {
+  constructor(readonly uri: vscode.Uri) {
+    super(
+      `${vscode.workspace.asRelativePath(uri)} has unsaved changes. Save the file, then try again.`,
+    );
+    this.name = "UnsavedSettingsError";
+  }
+}
+
+/** Resolve project settings through VS Code URIs, including remote workspaces. */
+export function projectSettingsFile(s: Selection): vscode.Uri | undefined {
+  if (s.target === vscode.ConfigurationTarget.Global) return undefined;
+  if (
+    s.target === vscode.ConfigurationTarget.Workspace &&
+    vscode.workspace.workspaceFile
+  )
+    return vscode.workspace.workspaceFile;
+  const folder =
+    s.target === vscode.ConfigurationTarget.WorkspaceFolder
+      ? s.uri && vscode.workspace.getWorkspaceFolder(s.uri)
+      : vscode.workspace.workspaceFolders?.[0];
+  return folder
+    ? vscode.Uri.joinPath(folder.uri, ".vscode", "settings.json")
+    : undefined;
+}
+
+export function assertSettingsSaved(s: Selection): void {
+  const uri = projectSettingsFile(s);
+  if (
+    uri &&
+    vscode.workspace.textDocuments.some(
+      (document) =>
+        document.isDirty && document.uri.toString() === uri.toString(),
+    )
+  )
+    throw new UnsavedSettingsError(uri);
+}
 export function configuration(s: Selection): vscode.WorkspaceConfiguration {
   return vscode.workspace.getConfiguration(
     undefined,
@@ -47,6 +84,7 @@ export async function write(
     throw new Error("Select a file inside the intended workspace folder.");
   if (s.language && key.startsWith("files."))
     throw new Error("Auto Save settings are not language-overridable.");
+  assertSettingsSaved(s);
   await configuration(s).update(key, value, s.target, Boolean(s.language));
 }
 export async function setAction(

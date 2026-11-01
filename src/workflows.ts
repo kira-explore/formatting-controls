@@ -18,7 +18,13 @@ import {
   slot,
   type Value,
 } from "../shared/workflows";
-import { configuration, own, type Selection, write } from "./configuration";
+import {
+  assertSettingsSaved,
+  configuration,
+  own,
+  type Selection,
+  write,
+} from "./configuration";
 import type { ProfileRepository } from "./profile-store";
 export interface Store {
   get<T>(key: string): T | undefined;
@@ -291,7 +297,7 @@ export class Workflows implements vscode.Disposable {
         "Restore or review the existing pause/recovery record before applying another batch.",
       );
   }
-  private port(journal: Journal): BatchPort {
+  private journalSelection(journal: Journal): Selection {
     const s: Selection = {
       target:
         journal.scope.target === "user"
@@ -316,6 +322,10 @@ export class Workflows implements vscode.Disposable {
       )
     )
       throw new Error("Reopen the recorded workspace folder before restoring.");
+    return s;
+  }
+  private port(journal: Journal): BatchPort {
+    const s = this.journalSelection(journal);
     const ensure = () => {
       if (
         s.target === vscode.ConfigurationTarget.Workspace &&
@@ -437,6 +447,7 @@ export class Workflows implements vscode.Disposable {
     const title = `${kind === "pause" ? "Pause formatting at this scope" : `Apply profile ${profile.name}`}?${this.journal() ? " This replaces the previous restore point." : ""}`;
     if (review && !(await this.confirm(title, changes, scopeRecord)))
       return "Cancelled. No settings were changed.";
+    if (changes.length) assertSettingsSaved(s);
     await applyBatch(journal, this.port(journal));
     return kind === "pause"
       ? "Paused at the selected scope. Resume from Profiles; overrides may still apply."
@@ -602,6 +613,7 @@ export class Workflows implements vscode.Disposable {
         ))
       )
         return "Restore cancelled. Current preferences were kept.";
+      if (preview.length) assertSettingsSaved(this.journalSelection(journal));
       const conflicts = await restoreBatch(journal, port, reviewed);
       return conflicts
         ? `${conflicts} externally edited values were preserved. Review the record in Profiles or keep current values.`

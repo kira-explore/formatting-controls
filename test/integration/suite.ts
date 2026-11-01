@@ -3,10 +3,13 @@ import { existsSync, writeFileSync } from "node:fs";
 import * as vscode from "vscode";
 import type { Response } from "../../shared/protocol";
 import {
+  assertSettingsSaved,
   configuration,
   own,
+  projectSettingsFile,
   resetIfUnchanged,
   setAction,
+  UnsavedSettingsError,
   write,
 } from "../../src/configuration";
 import { Dashboard } from "../../src/dashboard";
@@ -74,6 +77,41 @@ export async function run(): Promise<void> {
   try {
     await write(user, "editor.formatOnSave", true);
     await write(workspace, "editor.formatOnSave", false);
+    assert.equal(projectSettingsFile(user), undefined);
+    assert.equal(
+      projectSettingsFile(first)?.toString(),
+      vscode.Uri.joinPath(folder.uri, ".vscode", "settings.json").toString(),
+    );
+    assert.ok(vscode.workspace.workspaceFile);
+    assert.equal(
+      projectSettingsFile(workspace)?.toString(),
+      vscode.workspace.workspaceFile.toString(),
+    );
+    const workspaceDocument = await vscode.workspace.openTextDocument(
+      vscode.workspace.workspaceFile,
+    );
+    const dirtyEdit = new vscode.WorkspaceEdit();
+    dirtyEdit.insert(
+      workspaceDocument.uri,
+      workspaceDocument.positionAt(workspaceDocument.getText().length),
+      "\n ",
+    );
+    assert.ok(await vscode.workspace.applyEdit(dirtyEdit));
+    try {
+      assert.ok(workspaceDocument.isDirty);
+      assert.doesNotThrow(() => assertSettingsSaved(first));
+      await assert.rejects(
+        write(workspace, "editor.formatOnSave", true),
+        (error: unknown) =>
+          error instanceof UnsavedSettingsError &&
+          error.uri.toString() === workspaceDocument.uri.toString(),
+      );
+      assert.ok(workspaceDocument.isDirty);
+      assert.equal(own(workspace, "editor.formatOnSave"), false);
+    } finally {
+      // Save only the disposable test workspace so later checks can proceed.
+      assert.ok(await workspaceDocument.save());
+    }
     assert.equal(configuration(workspace).get("editor.formatOnSave"), false);
     assert.equal(own(user, "editor.formatOnSave"), true);
     await write(language, "editor.formatOnSave", true);
@@ -327,6 +365,13 @@ export async function run(): Promise<void> {
           true,
         );
         await write(first, "editor.formatOnType", undefined);
+        writeFileSync(
+          `${process.env.FORMATTING_CONTROLS_REPORT_DIR}/status-workspace.json`,
+          JSON.stringify({
+            settingsFile: projectSettingsFile(first)?.fsPath,
+            activeFile: uri.fsPath,
+          }),
+        );
       } else {
         await dashboard.open();
       }

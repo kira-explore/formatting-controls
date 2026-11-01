@@ -38,7 +38,7 @@ test("reference artwork has live values, accessible descriptions and read-only f
     /Format on paste: Enabled.*Inherited from User settings/,
   );
   assert.equal(
-    [...art.formatting.svg.matchAll(/stroke-width="1.35"/g)].length,
+    [...art.formatting.svg.matchAll(/stroke-width="1.3"/g)].length,
     1,
   );
   const html = statusHover(context);

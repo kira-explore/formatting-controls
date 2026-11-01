@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import axe from "axe-core";
 import type { Page } from "playwright-core";
@@ -553,6 +553,44 @@ export async function reviewStatus(
     originalFlags,
     "Resume restores the previous formatting snapshot",
   );
+
+  const testFiles = JSON.parse(
+    readFileSync(join(directory, "status-workspace.json"), "utf8"),
+  ) as { settingsFile: string; activeFile: string };
+  const modifier = process.platform === "darwin" ? "Meta" : "Control";
+  const openFile = async (path: string) => {
+    await page.keyboard.press(`${modifier}+P`);
+    await picker.locator("input").fill(path);
+    await picker.locator(".monaco-list-row").first().waitFor();
+    await page.keyboard.press("Enter");
+    await picker.waitFor({ state: "hidden" });
+  };
+  await dismiss();
+  await openFile(testFiles.settingsFile);
+  await page.keyboard.press(`${modifier}+End`);
+  await page.keyboard.type(" ");
+  await reopen();
+  await hover.getByRole("link", { name: "Pause", exact: true }).click();
+  await picker.waitFor();
+  await page.keyboard.press("Enter");
+  await picker.waitFor({ state: "hidden" });
+  const warning = page.locator(".notification-toast").filter({
+    hasText: "has unsaved changes. Save the file, then try again.",
+  });
+  await warning.waitFor();
+  await warning.getByRole("button", { name: "Open settings file" }).click();
+  await page
+    .getByRole("tab", { name: /settings.json/ })
+    .first()
+    .waitFor();
+  await page.screenshot({
+    path: join(directory, "status-unsaved-settings.png"),
+  });
+  // Save only the disposable test document; the extension does not save it.
+  await page.keyboard.press(`${modifier}+S`);
+  await openFile(testFiles.activeFile);
+  await reopen();
+  assert.equal(await flags.getAttribute("alt"), originalFlags);
 
   await dismiss();
   await page.keyboard.press(

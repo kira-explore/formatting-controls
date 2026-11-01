@@ -29,6 +29,8 @@ const palettes = {
     input: "#181a1b",
     border: "#333536",
     button: "#2a2d2e",
+    primary: "#297aa0",
+    primaryForeground: "#ffffff",
     checkbox: "#252526",
     checkboxBorder: "#707070",
   },
@@ -42,6 +44,8 @@ const palettes = {
     input: "#ffffff",
     border: "#929292",
     button: "#e6e6e6",
+    primary: "#0070a8",
+    primaryForeground: "#ffffff",
     checkbox: "#ffffff",
     checkboxBorder: "#929292",
   },
@@ -55,6 +59,8 @@ const palettes = {
     input: "#000000",
     border: "#ffffff",
     button: "#000000",
+    primary: "#0e639c",
+    primaryForeground: "#ffffff",
     checkbox: "#000000",
     checkboxBorder: "#ffffff",
   },
@@ -68,6 +74,8 @@ const palettes = {
     input: "#ffffff",
     border: "#000000",
     button: "#ffffff",
+    primary: "#0f4a85",
+    primaryForeground: "#ffffff",
     checkbox: "#ffffff",
     checkboxBorder: "#000000",
   },
@@ -105,14 +113,14 @@ export function statusArtwork(
     x: number,
     y: number,
     value: string,
-    size = 12.5,
+    size = 12,
     color: string = p.fg,
     anchor: "start" | "middle" = "start",
   ) =>
     `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" text-anchor="${anchor}" dominant-baseline="central">${escapeText(value)}</text>`;
   const line = (y: number) => `<path d="M5 ${y}H395" stroke="${p.line}"/>`;
   const infoGlyph = (x: number, y: number, color: string) =>
-    `<circle cx="${x}" cy="${y}" r="5.25" stroke="${color}" fill="none"/><circle cx="${x}" cy="${y - 2.875}" r=".575" fill="${color}"/><path d="M${x} ${y - 0.48}v3.35" stroke="${color}" stroke-width="1.15" stroke-linecap="round"/>`;
+    `<circle cx="${x}" cy="${y}" r="5" stroke="${color}" fill="none"/><circle cx="${x}" cy="${y - 2.75}" r=".55" fill="${color}"/><path d="M${x} ${y - 0.46}v3.2" stroke="${color}" stroke-width="1.1" stroke-linecap="round"/>`;
   const rect = (
     x: number,
     y: number,
@@ -126,7 +134,7 @@ export function statusArtwork(
   const dropdown = (y: number, value: string) =>
     rect(168, y, 227, 28) +
     centeredText(178, y + 14, shortened(value, 30)) +
-    `<path d="M376.25 ${y + 12.125}l3.75 3.75 3.75-3.75" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
+    `<path d="M376.5 ${y + 12.25}l3.5 3.5 3.5-3.5" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
   const svg = (height: number, contents: string, width = 400) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g font-family="-apple-system, BlinkMacSystemFont, Segoe WPC, Segoe UI, system-ui, Ubuntu, Droid Sans, sans-serif" font-weight="400">${contents}</g></svg>`;
   const state = context.flags.every(Boolean)
@@ -160,21 +168,21 @@ export function statusArtwork(
     width = 400,
   ) => ({ svg: svg(height, contents, width), alt, width, height });
   // Keep the info gap stable when the renderer selects a wider fallback font.
-  const formattingHeading = `<text x="5" y="14" dominant-baseline="central" font-size="13.5" textLength="135" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>`;
+  const formattingHeading = `<text x="5" y="14" dominant-baseline="central" font-size="13" textLength="130" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>`;
   const flagContents = ["save", "paste", "type"]
     .map((label, i) => {
       const y = i * 46;
       return (
-        rect(5.25, y + 9.25, 17.5, 17.5, p.checkboxBorder, p.checkbox, 2) +
+        rect(5.5, y + 9.5, 17, 17, p.checkboxBorder, p.checkbox, 2) +
         (context.flags[i]
-          ? `<path d="M8.167 ${y + 18}l3.889 3.889 7.777-8.75" stroke="${p.muted}" stroke-width="1.35" fill="none"/>`
+          ? `<path d="M8.333 ${y + 18}l3.778 3.778 7.556-8.5" stroke="${p.muted}" stroke-width="1.3" fill="none"/>`
           : "") +
         centeredText(33, y + 9, `Format on ${label}`) +
         centeredText(
           33,
           y + 27,
           shortened(sourceNotes[i] ?? "", 54),
-          12.5,
+          12,
           p.muted,
         )
       );
@@ -196,7 +204,7 @@ export function statusArtwork(
     settings: image(
       24,
       rect(0.5, 0.5, 25, 23, p.border, p.button) +
-        `<g transform="translate(7.15 6.88125) scale(.73125)" fill="none" stroke="${p.fg}" stroke-width="1.5"><path d="M0 2h16M0 7h16M0 12h16M5 0v4M11 5v4M7 10v4"/></g>`,
+        `<g transform="translate(7.4 7.1) scale(.7)" fill="none" stroke="${p.fg}" stroke-width="1.5"><path d="M0 2h16M0 7h16M0 12h16M5 0v4M11 5v4M7 10v4"/></g>`,
       "Open VS Code Settings",
       26,
     ),
@@ -208,7 +216,7 @@ export function statusArtwork(
     ),
     header: image(
       28,
-      centeredText(5, 14, "Kira Formatting Controls", 13.5),
+      centeredText(5, 14, "Kira Formatting Controls", 13),
       "Kira Formatting Controls",
       270,
     ),
@@ -218,7 +226,7 @@ export function statusArtwork(
         rect(5, 12, 390, 60, p.focus, p.info, 6) +
         infoGlyph(25, 42, p.focus) +
         centeredText(45, 33, shortened(file, 51)) +
-        centeredText(45, 51, shortened(workspace, 51), 12.5, p.muted),
+        centeredText(45, 51, shortened(workspace, 51), 12, p.muted),
       `${file}. ${workspace}.`,
     ),
     scopes: image(
@@ -234,7 +242,7 @@ export function statusArtwork(
     state: image(
       28,
       rect(0, 2, 78, 24, p.border, "none") +
-        centeredText(39, 14, state, 12.5, p.fg, "middle"),
+        centeredText(39, 14, state, 12, p.fg, "middle"),
       `Automatic formatting: ${state}`,
       78,
     ),
@@ -242,9 +250,9 @@ export function statusArtwork(
       28,
       formattingHeading +
         // Optical alignment with the heading's visible glyphs, not its font box.
-        infoGlyph(153, 15, p.muted) +
+        infoGlyph(148, 15, p.muted) +
         rect(317, 2, 78, 24, p.border, "none") +
-        centeredText(356, 14, state, 12.5, p.fg, "middle"),
+        centeredText(356, 14, state, 12, p.fg, "middle"),
       `Automatic formatting: ${state}`,
     ),
     formatting: image(
@@ -263,13 +271,20 @@ export function statusArtwork(
     ),
     pause: image(
       28,
-      rect(0.5, 0.5, 65, 27, p.border, p.button) +
+      rect(
+        0.5,
+        0.5,
+        65,
+        27,
+        context.canPause ? p.primary : p.border,
+        context.canPause ? p.primary : p.button,
+      ) +
         centeredText(
           33,
           14,
           pauseLabel,
-          12.5,
-          context.canPause ? p.fg : p.muted,
+          12,
+          context.canPause ? p.primaryForeground : p.muted,
           "middle",
         ),
       pauseLabel,
@@ -278,7 +293,7 @@ export function statusArtwork(
     pauseInset: image(28, "", "", 5),
     pauseCaption: image(
       28,
-      centeredText(12, 14, pauseCaption, 12.5, p.muted),
+      centeredText(12, 14, pauseCaption, 12, p.muted),
       pauseCaption,
       329,
     ),
@@ -286,14 +301,14 @@ export function statusArtwork(
     separator: image(11, line(0.5), ""),
     dashboard: image(
       28,
-      `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="110.58" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,
+      `<text x="12" y="14" dominant-baseline="central" font-size="12" textLength="106.15" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,
       "Open dashboard ↗",
       139,
     ),
     footerGap: image(36, "", "", 128),
     issue: image(
       28,
-      `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="104.81" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,
+      `<text x="12" y="14" dominant-baseline="central" font-size="12" textLength="100.62" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,
       "Report an issue ↗",
       133,
     ),

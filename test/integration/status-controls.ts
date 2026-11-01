@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import * as vscode from "vscode";
-import { own, write } from "../../src/configuration";
+import {
+  assertSettingsSaved,
+  own,
+  UnsavedSettingsError,
+  write,
+} from "../../src/configuration";
 import { flags } from "../../src/model";
 import { StatusControls } from "../../src/status-controls";
 import { Workflows } from "../../src/workflows";
@@ -285,6 +290,7 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
       vscode.Uri.joinPath(folder.uri, ".vscode", "settings.json"),
     );
     const before = flags.map((flag) => own(selection, flag));
+    const recovery = structuredClone(workflows.journal());
     const edit = new vscode.WorkspaceEdit();
     edit.insert(
       settings.uri,
@@ -295,10 +301,23 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
     assert.ok(settings.isDirty);
     const unsaved = settings.getText();
     try {
+      assert.doesNotThrow(() =>
+        assertSettingsSaved({
+          target: vscode.ConfigurationTarget.Workspace,
+          uri,
+        }),
+      );
       await assert.rejects(
         controls.control(revision(), "pause"),
-        /unsaved changes/,
+        (error: unknown) =>
+          error instanceof UnsavedSettingsError &&
+          error.uri.toString() === settings.uri.toString(),
         "A dirty settings file blocks both Pause and Resume",
+      );
+      assert.deepEqual(
+        workflows.journal(),
+        recovery,
+        "Preflight must preserve the recovery record and its phase",
       );
       assert.equal(settings.getText(), unsaved, "Unsaved edits are preserved");
       assert.ok(
