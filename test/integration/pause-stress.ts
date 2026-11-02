@@ -96,6 +96,33 @@ export async function run(): Promise<void> {
       controls.refresh();
     }),
   ];
+  // Simulate editing and saving settings.json, rather than using our writer.
+  const manualSave = async (values: Array<boolean | undefined>) => {
+    const settings = JSON.parse(document.getText());
+    for (const [index, key] of flags.entries()) {
+      if (values[index] === undefined) delete settings[key];
+      else settings[key] = values[index];
+    }
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(
+      settingsUri,
+      new vscode.Range(
+        document.positionAt(0),
+        document.positionAt(document.getText().length),
+      ),
+      JSON.stringify(settings, null, 2),
+    );
+    assert.ok(await vscode.workspace.applyEdit(edit));
+    assert.ok(await document.save());
+    for (let attempt = 0; ; attempt++) {
+      if (flags.every((key, index) => own(selection, key) === values[index]))
+        break;
+      assert.ok(attempt < 100, "Manual save must refresh configuration");
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    assert.equal(document.isDirty, false);
+    controls.refresh();
+  };
   try {
     const initial = snapshot("initial");
     assert.deepEqual(initial.effective, [true, true, true]);
@@ -177,8 +204,95 @@ export async function run(): Promise<void> {
     assert.deepEqual(recovered.disk, initial.disk);
     assert.equal(document.isDirty, false);
     assert.equal(workflows.recovery(), null);
+    for (let mask = 0; mask < 8; mask++) {
+      const expected = flags.map((_, bit) => Boolean(mask & (1 << bit)));
+      action = `seed combination ${mask}`;
+      await manualSave(expected);
+      const baseline = snapshot("combination baseline");
+      assert.deepEqual(baseline.effective, expected);
+      for (cycle = 0; cycle < 10; cycle++) {
+        action = `pause combination ${mask}`;
+        await controls.pause();
+        const paused = snapshot("combination paused");
+        assert.deepEqual(paused.effective, [false, false, false], action);
+        assert.deepEqual(paused.disk, [false, false, false], action);
+        assert.equal(document.isDirty, false, action);
+        action = `resume combination ${mask}`;
+        await controls.pause();
+        const restored = snapshot("combination restored");
+        assert.deepEqual(restored.owned, expected, action);
+        assert.deepEqual(restored.effective, expected, action);
+        assert.deepEqual(restored.disk, expected, action);
+        assert.equal(document.isDirty, false, action);
+        assert.equal(workflows.recovery(), null, action);
+      }
+    }
+    for (let mask = 0; mask < 8; mask++) {
+      action = `manual edit during inherited pause ${mask}`;
+      await manualSave([undefined, undefined, undefined]);
+      await controls.pause();
+      const edited = flags.map((_, bit) => Boolean(mask & (1 << bit)));
+      await manualSave(edited);
+      await controls.pause();
+      const manualRestored = snapshot("manual edit preserved on resume");
+      // True values differ from the pause's false values, so keep them.
+      // Unchanged false values still restore the original inherited settings.
+      const expected = edited.map((value) => (value ? true : undefined));
+      assert.deepEqual(manualRestored.owned, expected, action);
+      assert.deepEqual(manualRestored.effective, [true, true, true], action);
+      assert.deepEqual(manualRestored.disk, expected, action);
+      assert.equal(
+        workflows.recovery(),
+        null,
+        "A successful Resume must finish the pause after preserving manual edits",
+      );
+      await controls.pause();
+      assert.deepEqual(snapshot("new pause after manual edit").effective, [
+        false,
+        false,
+        false,
+      ]);
+      await controls.pause();
+      assert.deepEqual(snapshot("fresh baseline restored").owned, expected);
+      assert.equal(workflows.recovery(), null);
+    }
+    action = "resume an already saved conflict record";
+    await manualSave([undefined, undefined, undefined]);
+    await controls.pause();
+    const legacy = workflows.journal();
+    assert.ok(legacy);
+    await manualSave([true, undefined, undefined]);
+    await workspaceStore.update("formattingControls.recovery.v1", {
+      ...legacy,
+      phase: "conflicts",
+      changes: legacy.changes.filter((change) => change.key === flags[0]),
+    });
+    const reloaded = new Workflows(new MemoryStore(), workspaceStore);
+    try {
+      await reloaded.resumePause();
+      assert.equal(reloaded.recovery(), null);
+      assert.deepEqual(
+        flags.map((key) => own(selection, key)),
+        [true, undefined, undefined],
+      );
+    } finally {
+      reloaded.dispose();
+    }
+    controls.refresh();
+    await controls.pause();
+    assert.deepEqual(snapshot("new pause after legacy conflict").effective, [
+      false,
+      false,
+      false,
+    ]);
+    await controls.pause();
+    assert.deepEqual(
+      snapshot("legacy conflict fresh baseline restored").owned,
+      [true, undefined, undefined],
+    );
+    assert.equal(workflows.recovery(), null);
     console.log(
-      "Single-folder all-enabled Pause/Resume: 50 cycles and interrupted restore passed",
+      "Single-folder Pause/Resume: 50 inherited cycles, interrupted restore, all 8 explicit combinations × 10 cycles and all 8 saved edits during pause with fresh cycles passed",
     );
   } finally {
     writeFileSync(join(report, "trace.json"), JSON.stringify(trace, null, 2));

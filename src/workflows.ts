@@ -620,6 +620,14 @@ export class Workflows implements vscode.Disposable {
       )
         return "Restore cancelled. Current preferences were kept.";
       const conflicts = await restoreBatch(journal, port, reviewed);
+      if (!review && conflicts) {
+        // Resume has finished restoring unchanged settings. Values edited
+        // during the pause are now the user's current preferences, not pending
+        // work: keeping this record would make every later Pause run Resume.
+        // Failed/dirty writes still throw above and retain their recovery data.
+        await port.save(undefined);
+        return "Resumed formatting. Settings edited during the pause were kept.";
+      }
       return conflicts
         ? `${conflicts} externally edited values were preserved. Review the record in Profiles or keep current values.`
         : "Restored previous preferences. Unrelated values were preserved.";
