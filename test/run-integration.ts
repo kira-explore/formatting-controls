@@ -77,6 +77,8 @@ import { reviewDashboard } from "./dashboard";
         `dist/test/integration/${stress ? "pause-stress" : empty ? "empty" : "suite"}.js`,
       ),
       extensionTestsEnv: {
+        FORMATTING_CONTROLS_EXHAUSTIVE:
+          process.env.FORMATTING_CONTROLS_EXHAUSTIVE ?? "",
         FORMATTING_CONTROLS_STRESS_BIOME: process.env
           .FORMATTING_CONTROLS_STRESS_EXTENSION
           ? "1"

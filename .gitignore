@@ -6,3 +6,4 @@ dist/
 test-results/
 *.vsix.sha256
 release-notes.md
+outputs/

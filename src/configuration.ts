@@ -144,8 +144,23 @@ export async function write(
         document.version !== version + 1
       )
         throw new UnsavedSettingsError(document.uri);
-      if (!(await document.save()) || document.isDirty)
-        throw new UnsavedSettingsError(document.uri);
+      for (let attempt = 0; document.isDirty; attempt++) {
+        if (attempt >= 3 || document.version !== version + 1)
+          throw new UnsavedSettingsError(document.uri);
+        await document.save();
+        if (document.isDirty)
+          await new Promise((resolve) =>
+            setTimeout(resolve, 20 * (attempt + 1)),
+          );
+      }
+      // The first native request may have reloaded configuration before its
+      // cancelled save was completed above. Repeating the same native update
+      // refreshes that cache without relying on a file-watcher event. Only do
+      // this while the single owned edit is still the entire document change.
+      if (document.version === version + 1) {
+        await update();
+        if (document.isDirty) throw new UnsavedSettingsError(document.uri);
+      }
     }
   } finally {
     opened.dispose();

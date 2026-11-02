@@ -44,15 +44,55 @@ export async function runConfigurationWriteTests(
   try {
     // Reproduce the native update promise resolving after its edit but before
     // persistence. The adapter deliberately does not save the disposable file.
+    let updates = 0;
     await write(selection, key, true, async () => {
+      if (++updates > 1) return;
       const data = JSON.parse(document.getText());
       data[key] = true;
       await replace(JSON.stringify(data, null, 2));
       assert.ok(document.isDirty);
     });
+    assert.equal(
+      updates,
+      2,
+      "Refresh native configuration after completing its cancelled save",
+    );
     assert.equal(document.isDirty, false);
     assert.equal(own(selection, key), true);
     assert.equal(JSON.parse(readFileSync(file.fsPath, "utf8"))[key], true);
+    let participantRan = false;
+    const participant = vscode.workspace.onWillSaveTextDocument((event) => {
+      if (event.document !== document || participantRan) return;
+      participantRan = true;
+      event.waitUntil(
+        Promise.resolve([
+          vscode.TextEdit.insert(
+            document.positionAt(document.getText().length),
+            "\n",
+          ),
+        ]),
+      );
+    });
+    let formattedUpdates = 0;
+    try {
+      await write(selection, key, false, async () => {
+        formattedUpdates++;
+        const data = JSON.parse(document.getText());
+        data[key] = false;
+        await replace(JSON.stringify(data, null, 2));
+      });
+      assert.ok(participantRan);
+      assert.equal(
+        formattedUpdates,
+        1,
+        "A save-participant edit must not authorize a native retry",
+      );
+      assert.equal(document.isDirty, false);
+      assert.equal(own(selection, key), false);
+    } finally {
+      participant.dispose();
+    }
+    await write(selection, key, true);
     const clean = document.getText();
 
     // A no-op update cannot claim a later editor change as its own.
