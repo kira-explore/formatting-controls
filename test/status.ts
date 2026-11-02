@@ -170,6 +170,18 @@ export async function reviewStatus(
     hovered.y + hovered.height - 8,
     { steps: 4 },
   );
+  // Keep the pointer over the actual action while collecting screenshots.
+  // Resting in the bottom padding can let the native transient hover expire
+  // before Playwright finishes waiting for a stable click target (notably HC).
+  const hoverPauseBounds = await hover
+    .getByRole("link", { name: "Pause", exact: true })
+    .boundingBox();
+  assert.ok(hoverPauseBounds);
+  await page.mouse.move(
+    hoverPauseBounds.x + hoverPauseBounds.width / 2,
+    hoverPauseBounds.y + hoverPauseBounds.height / 2,
+    { steps: 8 },
+  );
   writeFileSync(
     join(directory, "status-row-layout.json"),
     JSON.stringify(
