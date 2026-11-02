@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -15,6 +16,43 @@ import { reviewDashboard } from "./dashboard";
     workspace,
     JSON.stringify({ folders: [{ path: "first" }, { path: "second" }] }),
   );
+  const stress = process.argv.includes("--pause-stress");
+  if (stress) {
+    fs.mkdirSync(path.join(temp, "first", ".vscode"));
+    fs.writeFileSync(
+      path.join(temp, "first", ".vscode", "settings.json"),
+      "{}\n",
+    );
+    fs.writeFileSync(
+      path.join(temp, "first", "biome.json"),
+      JSON.stringify({
+        vcs: { enabled: true, clientKind: "git" },
+        formatter: { enabled: true, indentStyle: "space" },
+        linter: { enabled: true },
+      }),
+    );
+    spawnSync("git", ["init", "--quiet"], { cwd: path.join(temp, "first") });
+    fs.mkdirSync(path.join(temp, "user", "User"), { recursive: true });
+    fs.writeFileSync(
+      path.join(temp, "user", "User", "settings.json"),
+      JSON.stringify({
+        "editor.formatOnSave": true,
+        "editor.formatOnPaste": true,
+        "editor.formatOnType": true,
+        "[jsonc]": {
+          "editor.defaultFormatter": "vscode.json-language-features",
+        },
+        "editor.codeActionsOnSave": {
+          "source.fixAll.biome": "explicit",
+          "source.organizeImports.biome": "explicit",
+        },
+        "files.autoSave": "afterDelay",
+        "files.autoSaveDelay": 10000,
+        "files.autoSaveWhenNoErrors": true,
+        "files.autoSaveWorkspaceFilesOnly": true,
+      }),
+    );
+  }
   const statusUi = process.argv.includes("--status-ui");
   const ui = process.argv.includes("--ui") || statusUi;
   const empty = process.argv.includes("--empty");
@@ -22,17 +60,28 @@ import { reviewDashboard } from "./dashboard";
     done = path.join(temp, "ui-done");
   const report = path.resolve(
     "test-results",
-    `${process.platform}-${process.env.VSCODE_VERSION ?? "stable"}-${(process.env.FORMATTING_CONTROLS_UI_THEME ?? "Dark Modern").replaceAll(" ", "-")}${statusUi ? "-status" : ""}`,
+    `${process.platform}-${process.env.VSCODE_VERSION ?? "stable"}-${(process.env.FORMATTING_CONTROLS_UI_THEME ?? "Dark Modern").replaceAll(" ", "-")}${statusUi ? "-status" : stress ? "-pause-stress" : ""}`,
   );
   let hostFinished = false;
   try {
     const host = runTests({
       version: process.env.VSCODE_VERSION ?? "stable",
-      extensionDevelopmentPath: path.resolve("."),
+      extensionDevelopmentPath:
+        stress && process.env.FORMATTING_CONTROLS_STRESS_EXTENSION
+          ? [
+              path.resolve("."),
+              path.resolve(process.env.FORMATTING_CONTROLS_STRESS_EXTENSION),
+            ]
+          : path.resolve("."),
       extensionTestsPath: path.resolve(
-        `dist/test/integration/${empty ? "empty" : "suite"}.js`,
+        `dist/test/integration/${stress ? "pause-stress" : empty ? "empty" : "suite"}.js`,
       ),
       extensionTestsEnv: {
+        FORMATTING_CONTROLS_STRESS_BIOME: process.env
+          .FORMATTING_CONTROLS_STRESS_EXTENSION
+          ? "1"
+          : "",
+        FORMATTING_CONTROLS_STRESS_REPORT: report,
         FORMATTING_CONTROLS_STATUS_UI: statusUi ? "1" : "",
         FORMATTING_CONTROLS_UI_THEME:
           process.env.FORMATTING_CONTROLS_UI_THEME ?? (ui ? "Dark Modern" : ""),
@@ -48,7 +97,11 @@ import { reviewDashboard } from "./dashboard";
         ...(ui || process.env.FORMATTING_CONTROLS_UI_REVIEW
           ? ["--remote-debugging-port=9333"]
           : []),
-        ...(empty ? ["--new-window"] : [workspace]),
+        ...(empty
+          ? ["--new-window"]
+          : stress
+            ? [path.join(temp, "first")]
+            : [workspace]),
         "--user-data-dir",
         path.join(temp, "user"),
         "--extensions-dir",

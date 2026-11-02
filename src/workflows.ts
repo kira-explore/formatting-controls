@@ -18,7 +18,14 @@ import {
   slot,
   type Value,
 } from "../shared/workflows";
-import { configuration, own, type Selection, write } from "./configuration";
+import {
+  assertSettingsSaved,
+  configuration,
+  own,
+  type Selection,
+  waitForSettingsSave,
+  write,
+} from "./configuration";
 import type { ProfileRepository } from "./profile-store";
 export interface Store {
   get<T>(key: string): T | undefined;
@@ -291,7 +298,7 @@ export class Workflows implements vscode.Disposable {
         "Restore or review the existing pause/recovery record before applying another batch.",
       );
   }
-  private port(journal: Journal): BatchPort {
+  private journalSelection(journal: Journal): Selection {
     const s: Selection = {
       target:
         journal.scope.target === "user"
@@ -316,6 +323,10 @@ export class Workflows implements vscode.Disposable {
       )
     )
       throw new Error("Reopen the recorded workspace folder before restoring.");
+    return s;
+  }
+  private port(journal: Journal): BatchPort {
+    const s = this.journalSelection(journal);
     const ensure = () => {
       if (
         s.target === vscode.ConfigurationTarget.Workspace &&
@@ -337,6 +348,10 @@ export class Workflows implements vscode.Disposable {
       },
       read: (c) => {
         ensure();
+        // A dirty buffer can contain an attempted write that is absent from
+        // the saved configuration cache. Keep recovery instead of concluding
+        // that the old disk value means this change was already restored.
+        assertSettingsSaved(s);
         const current = own(s, c.key);
         if (!c.action) return slot(current);
         try {
@@ -398,6 +413,7 @@ export class Workflows implements vscode.Disposable {
     s: Selection,
     scope: Scope,
     kind: "profile" | "pause",
+    review = true,
   ): Promise<string> {
     this.assertSelection(s, scope);
     this.assertNewBatch();
@@ -414,7 +430,7 @@ export class Workflows implements vscode.Disposable {
       );
     if (Object.keys(profile.settings).length) parseProfile(profile);
     const changes = plan(profile, (key) => own(s, key));
-    if (!changes.length)
+    if (!changes.length && !(kind === "pause" && !review))
       return "These preferences already match the selected scope.";
     const scopeRecord: Scope = {
       target: scope.target,
@@ -434,8 +450,9 @@ export class Workflows implements vscode.Disposable {
       changes,
     });
     const title = `${kind === "pause" ? "Pause formatting at this scope" : `Apply profile ${profile.name}`}?${this.journal() ? " This replaces the previous restore point." : ""}`;
-    if (!(await this.confirm(title, changes, scopeRecord)))
+    if (review && !(await this.confirm(title, changes, scopeRecord)))
       return "Cancelled. No settings were changed.";
+    if (changes.length) await waitForSettingsSave(s);
     await applyBatch(journal, this.port(journal));
     return kind === "pause"
       ? "Paused at the selected scope. Resume from Profiles; overrides may still apply."
@@ -540,7 +557,11 @@ export class Workflows implements vscode.Disposable {
       return this.applyProfile(profile, s, scope, "pause");
     });
   }
-  async pauseFormatting(s: Selection, scope: Scope): Promise<string> {
+  async pauseFormatting(
+    s: Selection,
+    scope: Scope,
+    interaction: "review" | "background" = "review",
+  ): Promise<string> {
     return this.exclusive(async () => {
       if (scope.target === "user")
         throw new Error(
@@ -560,13 +581,26 @@ export class Workflows implements vscode.Disposable {
         s,
         scope,
         "pause",
+        interaction === "review",
       );
     });
   }
   async restore(): Promise<string> {
+    return this.restoreSaved(true);
+  }
+  async resumePause(): Promise<string> {
+    return this.restoreSaved(false);
+  }
+  private async restoreSaved(review: boolean): Promise<string> {
     return this.exclusive(async () => {
       const journal = this.journal();
       if (!journal) return "No restore point is saved for this workspace.";
+      if (
+        !review &&
+        (journal.kind !== "pause" || journal.scope.target === "user")
+      )
+        throw new Error("Open the dashboard to review this restore point.");
+      await waitForSettingsSave(this.journalSelection(journal));
       const port = this.port(journal);
       const reviewed = new Set<Change>();
       const preview = journal.changes.flatMap((c) => {
@@ -577,6 +611,7 @@ export class Workflows implements vscode.Disposable {
         return [{ ...c, before: current, after: c.before }];
       });
       if (
+        review &&
         !(await this.confirm(
           "Restore unchanged preferences? Externally edited values will be preserved.",
           preview,
@@ -585,6 +620,14 @@ export class Workflows implements vscode.Disposable {
       )
         return "Restore cancelled. Current preferences were kept.";
       const conflicts = await restoreBatch(journal, port, reviewed);
+      if (!review && conflicts) {
+        // Resume has finished restoring unchanged settings. Values edited
+        // during the pause are now the user's current preferences, not pending
+        // work: keeping this record would make every later Pause run Resume.
+        // Failed/dirty writes still throw above and retain their recovery data.
+        await port.save(undefined);
+        return "Resumed formatting. Settings edited during the pause were kept.";
+      }
       return conflicts
         ? `${conflicts} externally edited values were preserved. Review the record in Profiles or keep current values.`
         : "Restored previous preferences. Unrelated values were preserved.";

@@ -20,6 +20,7 @@ export async function run(): Promise<void> {
     "welcome",
     "restore",
     "quickControls",
+    "pauseFormatting",
   ])
     assert.ok(commands.includes(`formattingControls.${command}`));
   const workflows = new Workflows(
@@ -62,10 +63,16 @@ export async function run(): Promise<void> {
       const tooltip = (item.tooltip as vscode.MarkdownString).value;
       assert.ok(tooltip.includes("User"));
       assert.equal(item.command, "workbench.action.showHover");
-      assert.doesNotMatch(
-        tooltip,
-        /href="command:formattingControls.statusControl\?/,
-        "An empty window exposes no workspace Pause or formatting edits",
+      const actions = Array.from(
+        tooltip.matchAll(
+          /href="command:formattingControls.statusControl\?([^"]*)"/g,
+        ),
+        (match) => JSON.parse(decodeURIComponent(match[1] ?? ""))[1],
+      );
+      assert.deepEqual(
+        actions,
+        [],
+        "An empty window has no information commands or workspace edits",
       );
       assert.equal(
         own(user, "editor.formatOnSave"),

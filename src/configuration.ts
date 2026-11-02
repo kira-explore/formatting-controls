@@ -6,6 +6,68 @@ export interface Selection {
   uri?: vscode.Uri;
   language?: string;
 }
+export class UnsavedSettingsError extends Error {
+  constructor(readonly uri: vscode.Uri) {
+    super(
+      `${vscode.workspace.asRelativePath(uri)} has unsaved changes. Save the file, then try again.`,
+    );
+    this.name = "UnsavedSettingsError";
+  }
+}
+
+/** Resolve project settings through VS Code URIs, including remote workspaces. */
+export function projectSettingsFile(s: Selection): vscode.Uri | undefined {
+  if (s.target === vscode.ConfigurationTarget.Global) return undefined;
+  if (
+    s.target === vscode.ConfigurationTarget.Workspace &&
+    vscode.workspace.workspaceFile
+  )
+    return vscode.workspace.workspaceFile;
+  const folder =
+    s.target === vscode.ConfigurationTarget.WorkspaceFolder
+      ? s.uri && vscode.workspace.getWorkspaceFolder(s.uri)
+      : vscode.workspace.workspaceFolders?.[0];
+  return folder
+    ? vscode.Uri.joinPath(folder.uri, ".vscode", "settings.json")
+    : undefined;
+}
+
+function dirtySettingsDocument(s: Selection): vscode.TextDocument | undefined {
+  const uri = projectSettingsFile(s);
+  return uri
+    ? vscode.workspace.textDocuments.find(
+        (document) =>
+          document.isDirty && document.uri.toString() === uri.toString(),
+      )
+    : undefined;
+}
+export function assertSettingsSaved(s: Selection): void {
+  const document = dirtySettingsDocument(s);
+  if (document) throw new UnsavedSettingsError(document.uri);
+}
+
+/** Let an existing native save settle; never save or discard editor changes. */
+export async function waitForSettingsSave(s: Selection): Promise<void> {
+  if (!dirtySettingsDocument(s)) return;
+  await new Promise<void>((resolve) => {
+    const finish = () => {
+      clearTimeout(timeout);
+      for (const listener of listeners) listener.dispose();
+      resolve();
+    };
+    const check = () => {
+      if (!dirtySettingsDocument(s)) finish();
+    };
+    const listeners = [
+      vscode.workspace.onDidSaveTextDocument(check),
+      vscode.workspace.onDidChangeTextDocument(check),
+      vscode.workspace.onDidCloseTextDocument(check),
+    ];
+    const timeout = setTimeout(finish, 1000);
+    check();
+  });
+  assertSettingsSaved(s);
+}
 export function configuration(s: Selection): vscode.WorkspaceConfiguration {
   return vscode.workspace.getConfiguration(
     undefined,
@@ -33,6 +95,8 @@ export async function write(
   s: Selection,
   key: SettingKey,
   value: unknown,
+  update = () =>
+    configuration(s).update(key, value, s.target, Boolean(s.language)),
 ): Promise<void> {
   if (
     s.target !== vscode.ConfigurationTarget.Global &&
@@ -47,7 +111,64 @@ export async function write(
     throw new Error("Select a file inside the intended workspace folder.");
   if (s.language && key.startsWith("files."))
     throw new Error("Auto Save settings are not language-overridable.");
-  await configuration(s).update(key, value, s.target, Boolean(s.language));
+  await waitForSettingsSave(s);
+  assertSettingsSaved(s);
+  const changesValue = !isDeepStrictEqual(own(s, key), value);
+  const uri = projectSettingsFile(s);
+  let document =
+    uri &&
+    vscode.workspace.textDocuments.find(
+      (candidate) => candidate.uri.toString() === uri.toString(),
+    );
+  let version = document?.version;
+  const opened = vscode.workspace.onDidOpenTextDocument((candidate) => {
+    if (
+      !document &&
+      uri &&
+      candidate.uri.toString() === uri.toString() &&
+      !candidate.isDirty
+    ) {
+      document = candidate;
+      version = candidate.version;
+    }
+  });
+  try {
+    await update();
+    if (document?.isDirty) {
+      // A save participant can cancel the native settings save even though
+      // update() resolves. Finish only the single edit made by this update;
+      // any intervening model edit leaves ownership uncertain and is blocked.
+      if (
+        !changesValue ||
+        version === undefined ||
+        document.version !== version + 1
+      )
+        throw new UnsavedSettingsError(document.uri);
+      if (!(await document.save()) || document.isDirty)
+        throw new UnsavedSettingsError(document.uri);
+    }
+  } finally {
+    opened.dispose();
+  }
+  if (!isDeepStrictEqual(own(s, key), value)) {
+    await new Promise<void>((resolve) => {
+      const finish = () => {
+        clearTimeout(timeout);
+        listener.dispose();
+        resolve();
+      };
+      const check = () => {
+        if (isDeepStrictEqual(own(s, key), value)) finish();
+      };
+      const listener = vscode.workspace.onDidChangeConfiguration(check);
+      const timeout = setTimeout(finish, 1000);
+      check();
+    });
+    if (!isDeepStrictEqual(own(s, key), value))
+      throw new Error(
+        `VS Code did not confirm the saved value of ${key}. Review the current settings before retrying.`,
+      );
+  }
 }
 export async function setAction(
   s: Selection,

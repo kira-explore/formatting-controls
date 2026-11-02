@@ -12,7 +12,8 @@ Hover or click the status bar to open the same **Kira Formatting Controls** card
 
 ## What you can do
 
-- **Keep a clear summary at the status bar.** Read formatting, scope, source notes and formatter details. Pause/Resume from the card affects only automatic formatting, preserving save actions.
+- **Keep a clear summary at the status bar.** Read formatting, scope, source notes and formatter details. Pause/Resume sits beneath the three formatting triggers with a visible explanation and preserves save actions. Information rows explain the summary on hover without being clickable.
+- **Pause through native commands.** Pause/Resume opens a native picker before changing settings. The hover card closes first, avoiding live-update flicker. The same action is available from the Command Palette; Escape cancels it.
 - **See the effective state.** The status bar shows ON, OFF, or MIXED for Format on Save, Paste, and Type in the active editor.
 - **Choose where changes belong.** Write to User, Workspace, or a specific workspace folder. Select a VS Code language ID for language overrides.
 - **Configure formatting and saving.** Toggle formatting triggers, select the save formatting mode, choose a default formatter, and configure Auto Save and its delay.
@@ -112,18 +113,19 @@ In VS Code, run **Extensions: Install from VSIX…** and select `formatting-cont
 
 Hover the status-bar item to open the anchored **Kira Formatting Controls** card. Click it to focus and keep that same card open above the status bar; no docked panel or editor tab is created. Its checkbox and dropdown displays are read-only. Open the dashboard for edits, save actions and advanced workflows, or use the optional native Quick Controls command. Command Palette entries:
 
-| Command                                             | Purpose                                                          |
-| --------------------------------------------------- | ---------------------------------------------------------------- |
-| **Formatting Controls: Open Dashboard**             | Open the full settings dashboard                                 |
-| **Formatting Controls: Quick Controls**             | Optional formatting-only native picker                           |
-| **Formatting Controls: Native Quick Controls**      | Edit a setting using the original native pickers                 |
-| **Formatting Controls: Inspect Effective Settings** | Open a JSON report of effective values and scope sources         |
-| **Formatting Controls: Restore Previous Settings**  | Restore untouched values from the latest batch in this workspace |
-| **Formatting Controls: Getting Started**            | Reopen the welcome page                                          |
+| Command                                                      | Purpose                                                              |
+| ------------------------------------------------------------ | -------------------------------------------------------------------- |
+| **Formatting Controls: Open Dashboard**                      | Open the full settings dashboard                                     |
+| **Formatting Controls: Quick Controls**                      | Optional formatting-only native picker                               |
+| **Formatting Controls: Pause / Resume Automatic Formatting** | Confirm a formatting-only project pause or resume in a native picker |
+| **Formatting Controls: Native Quick Controls**               | Edit a setting using the original native pickers                     |
+| **Formatting Controls: Inspect Effective Settings**          | Open a JSON report of effective values and scope sources             |
+| **Formatting Controls: Restore Previous Settings**           | Restore untouched values from the latest batch in this workspace     |
+| **Formatting Controls: Getting Started**                     | Reopen the welcome page                                              |
 
 The welcome page appears once on first activation. It introduces the workflow and links to settings, documentation, and GitHub; it does not apply a preset automatically.
 
-The card's fixed **Enabled / Disabled / Mixed** badge summarizes the three formatting triggers. Its information regions explain the file context and summary. The top-right icon opens Settings; the footer opens the dashboard or a new GitHub issue. [Status-card details and API limits](docs/status-controls.md).
+The card's right-aligned **Enabled / Disabled / Mixed** status text summarizes the three formatting triggers. Its information regions explain the file context and summary. The top-right icon opens Settings; the footer opens the dashboard or a new GitHub issue. [Status-card details and API limits](docs/status-controls.md).
 
 ![Native formatting summary above the status bar in Dark Modern](docs/assets/status-card-dark.png)
 

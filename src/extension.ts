@@ -6,6 +6,7 @@ import {
   resetIfUnchanged,
   type Selection,
   setAction,
+  UnsavedSettingsError,
   write,
 } from "./configuration";
 import { Dashboard } from "./dashboard";
@@ -234,6 +235,15 @@ export function activate(context: vscode.ExtensionContext): void {
     try {
       await fn();
     } catch (error) {
+      if (error instanceof UnsavedSettingsError) {
+        const action = await vscode.window.showWarningMessage(
+          `Formatting Controls: ${error.message}`,
+          "Open settings file",
+        );
+        if (action === "Open settings file")
+          await vscode.window.showTextDocument(error.uri);
+        return;
+      }
       await vscode.window.showErrorMessage(
         `Formatting Controls: ${error instanceof Error ? error.message : String(error)}`,
       );
@@ -253,6 +263,10 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(
       "formattingControls.quickControls",
       guarded(() => controls.open()),
+    ),
+    vscode.commands.registerCommand(
+      "formattingControls.pauseFormatting",
+      guarded(() => controls.pause()),
     ),
     vscode.commands.registerCommand(
       "formattingControls.statusControl",

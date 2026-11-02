@@ -83,6 +83,10 @@
       {
         "command": "formattingControls.quickControls",
         "title": "Formatting Controls: Quick Controls"
+      },
+      {
+        "command": "formattingControls.pauseFormatting",
+        "title": "Formatting Controls: Pause / Resume Automatic Formatting"
       }
     ]
   },

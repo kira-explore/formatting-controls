@@ -1,3 +1,4 @@
+import { statusHelp } from "./status-help";
 import type { HoverContext } from "./status-hover";
 
 export const escapeText = (value: string): string =>
@@ -105,14 +106,14 @@ export function statusArtwork(
     x: number,
     y: number,
     value: string,
-    size = 13,
+    size = 12.5,
     color: string = p.fg,
-    anchor: "start" | "middle" = "start",
+    anchor: "start" | "middle" | "end" = "start",
   ) =>
     `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" text-anchor="${anchor}" dominant-baseline="central">${escapeText(value)}</text>`;
-  const line = (y: number) => `<path d="M5 ${y}H395" stroke="${p.line}"/>`;
+  const line = (y: number) => `<path d="M5 ${y}H375" stroke="${p.line}"/>`;
   const infoGlyph = (x: number, y: number, color: string) =>
-    `<circle cx="${x}" cy="${y}" r="5.5" stroke="${color}" fill="none"/><circle cx="${x}" cy="${y - 3}" r=".6" fill="${color}"/><path d="M${x} ${y - 0.5}v3.5" stroke="${color}" stroke-width="1.2" stroke-linecap="round"/>`;
+    `<circle cx="${x}" cy="${y}" r="5" stroke="${color}" fill="none"/><circle cx="${x}" cy="${y - 2.75}" r=".55" fill="${color}"/><path d="M${x} ${y - 0.46}v3.2" stroke="${color}" stroke-width="1.1" stroke-linecap="round"/>`;
   const rect = (
     x: number,
     y: number,
@@ -124,10 +125,10 @@ export function statusArtwork(
   ) =>
     `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" stroke="${stroke}" fill="${fill}"/>`;
   const dropdown = (y: number, value: string) =>
-    rect(168, y, 227, 28) +
-    centeredText(178, y + 14, shortened(value, 30)) +
-    `<path d="M376 ${y + 12}l4 4 4-4" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
-  const svg = (height: number, contents: string, width = 400) =>
+    rect(168, y, 207, 28) +
+    centeredText(178, y + 14, shortened(value, 28)) +
+    `<path d="M356.5 ${y + 12.25}l3.5 3.5 3.5-3.5" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
+  const svg = (height: number, contents: string, width = 380) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g font-family="-apple-system, BlinkMacSystemFont, Segoe WPC, Segoe UI, system-ui, Ubuntu, Droid Sans, sans-serif" font-weight="400">${contents}</g></svg>`;
   const state = context.flags.every(Boolean)
     ? "Enabled"
@@ -157,24 +158,24 @@ export function statusArtwork(
     height: number,
     contents: string,
     alt: string,
-    width = 400,
+    width = 380,
   ) => ({ svg: svg(height, contents, width), alt, width, height });
   // Keep the info gap stable when the renderer selects a wider fallback font.
-  const formattingHeading = `<text x="5" y="14" dominant-baseline="central" font-size="14" textLength="140" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>`;
+  const formattingHeading = `<text x="5" y="14" dominant-baseline="central" font-size="13.5" textLength="135" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>`;
   const flagContents = ["save", "paste", "type"]
     .map((label, i) => {
       const y = i * 46;
       return (
-        rect(5, y + 9, 18, 18, p.checkboxBorder, p.checkbox, 2) +
+        rect(5.5, y + 9.5, 17, 17, p.checkboxBorder, p.checkbox, 2) +
         (context.flags[i]
-          ? `<path d="M8 ${y + 18}l4 4 8-9" stroke="${p.muted}" stroke-width="1.4" fill="none"/>`
+          ? `<path d="M8.333 ${y + 18}l3.778 3.778 7.556-8.5" stroke="${p.muted}" stroke-width="1.3" fill="none"/>`
           : "") +
         centeredText(33, y + 9, `Format on ${label}`) +
         centeredText(
           33,
           y + 27,
-          shortened(sourceNotes[i] ?? "", 54),
-          13,
+          shortened(sourceNotes[i] ?? "", 51),
+          12.5,
           p.muted,
         )
       );
@@ -186,16 +187,17 @@ export function statusArtwork(
         `Format on ${label}: ${context.flags[i] ? "Enabled" : "Disabled"}. ${sourceNotes[i]}.`,
     )
     .join(" ");
+  const pauseLabel = context.paused ? "Resume" : "Pause";
   const pauseCaption = context.paused
-    ? "Restore your previous formatting settings."
+    ? statusHelp.resume
     : context.canPause
-      ? "Pause automatic formatting until you resume."
+      ? statusHelp.pause
       : "Choose a project scope in the dashboard";
   return {
     settings: image(
       24,
       rect(0.5, 0.5, 25, 23, p.border, p.button) +
-        `<g transform="translate(6.9016 6.6639) scale(.7623)" fill="none" stroke="${p.fg}" stroke-width="1.5"><path d="M0 2h16M0 7h16M0 12h16M5 0v4M11 5v4M7 10v4"/></g>`,
+        `<g transform="translate(7.4 7.1) scale(.7)" fill="none" stroke="${p.fg}" stroke-width="1.5"><path d="M0 2h16M0 7h16M0 12h16M5 0v4M11 5v4M7 10v4"/></g>`,
       "Open VS Code Settings",
       26,
     ),
@@ -206,18 +208,18 @@ export function statusArtwork(
       16,
     ),
     header: image(
-      28,
-      centeredText(5, 14, "Kira Formatting Controls", 14),
+      36,
+      centeredText(5, 18, "Kira Formatting Controls", 13.5),
       "Kira Formatting Controls",
-      270,
+      250,
     ),
     context: image(
       76,
       line(1) +
-        rect(5, 12, 390, 60, p.focus, p.info, 6) +
+        rect(5, 12, 370, 60, p.focus, p.info, 6) +
         infoGlyph(25, 42, p.focus) +
-        centeredText(45, 33, shortened(file, 51)) +
-        centeredText(45, 51, shortened(workspace, 51), 13, p.muted),
+        centeredText(45, 33, shortened(file, 48)) +
+        centeredText(45, 51, shortened(workspace, 48), 12.5, p.muted),
       `${file}. ${workspace}.`,
     ),
     scopes: image(
@@ -229,20 +231,19 @@ export function statusArtwork(
         line(83),
       `Write to: ${scope}. Apply to language: ${language}. Read-only.`,
     ),
-    heading: image(28, formattingHeading, "Automatic formatting", 148),
+    heading: image(28, formattingHeading, "Automatic formatting", 153),
     state: image(
       28,
-      rect(0, 2, 78, 24, p.border, "none") +
-        centeredText(39, 14, state, 13, p.fg, "middle"),
+      centeredText(78, 14, state, 12.5, p.muted, "end"),
       `Automatic formatting: ${state}`,
       78,
     ),
     summary: image(
       28,
       formattingHeading +
-        infoGlyph(158, 14, p.muted) +
-        rect(317, 2, 78, 24, p.border, "none") +
-        centeredText(356, 14, state, 13, p.fg, "middle"),
+        // Optical alignment with the heading's visible glyphs, not its font box.
+        infoGlyph(153, 15, p.muted) +
+        centeredText(375, 14, state, 12.5, p.muted, "end"),
       `Automatic formatting: ${state}`,
     ),
     formatting: image(
@@ -251,7 +252,7 @@ export function statusArtwork(
       `${flagDescription} Checkbox displays are read-only.`,
     ),
     formatter: image(
-      // Include the native table inset in the Pause row's 13px padding.
+      // Keep the footer equally spaced between this rule and the hover frame.
       64,
       line(1) +
         centeredText(5, 29, "Default formatter") +
@@ -265,35 +266,35 @@ export function statusArtwork(
         centeredText(
           33,
           14,
-          context.paused ? "Resume" : "Pause",
-          13,
+          pauseLabel,
+          12.5,
           context.canPause ? p.fg : p.muted,
           "middle",
         ),
-      context.paused ? "Resume" : "Pause",
+      pauseLabel,
       66,
     ),
-    pauseInset: image(28, "", "", 5),
+    // Unlinked artwork centers the button and explanation without expanding
+    // the button's click target into the caption or vertical padding.
+    pauseInset: image(44, "", "", 5),
     pauseCaption: image(
-      28,
-      centeredText(12, 14, pauseCaption, 13, p.muted),
+      44,
+      centeredText(12, 22, pauseCaption, 12.5, p.muted),
       pauseCaption,
-      329,
+      309,
     ),
-    // Reserve height so the rule stays close to Pause within the native line box.
-    separator: image(11, line(0.5), ""),
     dashboard: image(
-      26,
-      `<text x="5" y="13" dominant-baseline="central" font-size="13" textLength="115" lengthAdjust="spacingAndGlyphs" fill="${p.accent}" text-decoration="underline">Open dashboard ↗</text>`,
+      28,
+      `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="110.57" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,
       "Open dashboard ↗",
-      125,
+      139,
     ),
-    footerGap: image(34, "", "", 156),
+    footerGap: image(36, "", "", 108),
     issue: image(
-      26,
-      `<text x="114" y="13" dominant-baseline="central" text-anchor="end" font-size="13" textLength="109" lengthAdjust="spacingAndGlyphs" fill="${p.accent}" text-decoration="underline">Report an issue ↗</text>`,
+      28,
+      `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="104.81" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,
       "Report an issue ↗",
-      119,
+      133,
     ),
   };
 }
