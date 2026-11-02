@@ -658,6 +658,40 @@ export async function reviewStatus(
   assert.equal(await flags.getAttribute("alt"), originalFlags);
 
   await dismiss();
+  await openFile(testFiles.settingsFile);
+  await reopen();
+  const settingsFlags = await flags.getAttribute("alt");
+  for (let cycle = 0; cycle < 4; cycle++) {
+    for (const action of ["Pause", "Resume"]) {
+      await hover.getByRole("link", { name: action, exact: true }).click();
+      const choice = picker
+        .locator(".monaco-list-row")
+        .filter({ hasText: `${action} automatic formatting` });
+      await choice.waitFor();
+      if (cycle % 2) await choice.click();
+      else await page.keyboard.press("Enter");
+      await picker.waitFor({ state: "hidden" });
+      await reopen();
+      await hover
+        .getByRole("img", {
+          name: action === "Pause" ? "Resume" : "Pause",
+          exact: true,
+        })
+        .waitFor();
+      assert.equal(
+        await page.locator(".tab.active.dirty").count(),
+        0,
+        `${action} cycle ${cycle} leaves settings saved`,
+      );
+    }
+    assert.equal(await flags.getAttribute("alt"), settingsFlags);
+  }
+  await dismiss();
+  await openFile(testFiles.activeFile);
+  await reopen();
+  assert.equal(await flags.getAttribute("alt"), originalFlags);
+
+  await dismiss();
   await page.keyboard.press(
     process.platform === "darwin" ? "Meta+Shift+P" : "Control+Shift+P",
   );

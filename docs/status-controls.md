@@ -23,6 +23,8 @@ The complete file box and Automatic formatting summary row have stable explanato
 
 At a workspace/folder destination, **Pause** opens a native picker to confirm disabling only Save/Paste/Type. Its visible explanation is **Pause automatic formatting until you resume.** The Command Palette command **Formatting Controls: Pause / Resume Automatic Formatting** opens the same flow.
 
+If the destination settings document is briefly dirty because a save is already running, the operation waits up to one second for it to become clean. Clean documents incur no wait. If it stays dirty, the warning still blocks the operation before its restore point changes. The extension does not call Save or discard edits on the user’s behalf.
+
 The card closes before the picker opens, and the status-bar item is immediately restored. Choose the displayed action to continue, or press Escape to cancel without changing settings or recovery data. Repeated requests while the picker or operation is active are ignored. Changes to the editor/settings or restore point while choosing invalidate the pending action.
 
 Settings are updated after confirmation with the hover dismissed. The tooltip is restored after cancellation, completion or error, without automatically reopening it. There is no intermediate Pausing/Resuming artwork or artificial animation delay. Reopening the card shows the completed result in the same layout, avoiding native whole-card fade restarts during an inline toggle.

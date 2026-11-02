@@ -270,6 +270,110 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
       [false, false, false],
     );
     assert.match((item.tooltip as vscode.MarkdownString).value, /alt="Pause"/);
+    const editorBeforeCycles = document;
+    const cycleFolder = vscode.workspace.getWorkspaceFolder(uri);
+    assert.ok(cycleFolder);
+    const settingsForCycles = await vscode.workspace.openTextDocument(
+      vscode.Uri.joinPath(cycleFolder.uri, ".vscode", "settings.json"),
+    );
+    const cycleEvents: object[] = [];
+    const cycleListener = vscode.workspace.onDidChangeTextDocument((event) => {
+      if (event.document === settingsForCycles)
+        cycleEvents.push({
+          event: "change",
+          dirty: event.document.isDirty,
+          version: event.document.version,
+          time: Date.now(),
+        });
+    });
+    try {
+      await vscode.window.showTextDocument(settingsForCycles);
+      document = settingsForCycles;
+      await write(selection, "editor.formatOnSave", true);
+      // A native save (including a formatter/save participant) may still be
+      // finishing when the user chooses the next Pause/Resume action.
+      for (const action of ["Pause", "Resume"]) {
+        let releaseSave!: () => void;
+        const saveGate = new Promise<vscode.TextEdit[]>((resolve) => {
+          releaseSave = () => resolve([]);
+        });
+        let saveEntered!: () => void;
+        const enteredSave = new Promise<void>((resolve) => {
+          saveEntered = resolve;
+        });
+        const saveListener = vscode.workspace.onWillSaveTextDocument(
+          (event) => {
+            if (event.document === settingsForCycles) {
+              event.waitUntil(saveGate);
+              saveEntered();
+            }
+          },
+        );
+        const formattingEdit = new vscode.WorkspaceEdit();
+        formattingEdit.insert(
+          settingsForCycles.uri,
+          settingsForCycles.positionAt(settingsForCycles.getText().length),
+          "\n ",
+        );
+        assert.ok(await vscode.workspace.applyEdit(formattingEdit));
+        const recoveryBeforeSave = structuredClone(workflows.journal());
+        const saving = settingsForCycles.save(); // Disposable fixture only.
+        try {
+          await enteredSave;
+          controls.refresh();
+          const duringSave = controls.pause().then(
+            () => null,
+            (error: unknown) => error,
+          );
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          assert.deepEqual(
+            workflows.journal(),
+            recoveryBeforeSave,
+            `${action} must not modify its restore point while the file is saving`,
+          );
+          releaseSave();
+          assert.ok(await saving);
+          assert.equal(
+            await duringSave,
+            null,
+            `An in-progress save should finish before ${action} checks for unsaved edits`,
+          );
+        } finally {
+          releaseSave();
+          saveListener.dispose();
+          await saving;
+        }
+      }
+      assert.equal(workflows.recovery(), null);
+      const values = [true, false, undefined];
+      for (let cycle = 0; cycle < 12; cycle++) {
+        for (const [index, flag] of flags.entries())
+          await write(selection, flag, values[(cycle + index) % values.length]);
+        const previous = flags.map((flag) => own(selection, flag));
+        controls.refresh();
+        await controls.pause();
+        assert.equal(settingsForCycles.isDirty, false, `Pause cycle ${cycle}`);
+        assert.deepEqual(
+          flags.map((flag) => own(selection, flag)),
+          [false, false, false],
+        );
+        await controls.pause();
+        assert.equal(settingsForCycles.isDirty, false, `Resume cycle ${cycle}`);
+        assert.deepEqual(
+          flags.map((flag) => own(selection, flag)),
+          previous,
+        );
+        assert.equal(workflows.recovery(), null);
+      }
+    } catch (error) {
+      console.error("Pause/resume settings-document audit", cycleEvents);
+      throw error;
+    } finally {
+      cycleListener.dispose();
+      document = editorBeforeCycles;
+      if (document) await vscode.window.showTextDocument(document);
+      controls.refresh();
+    }
     await write(
       language,
       "editor.defaultFormatter",

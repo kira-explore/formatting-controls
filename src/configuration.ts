@@ -32,16 +32,41 @@ export function projectSettingsFile(s: Selection): vscode.Uri | undefined {
     : undefined;
 }
 
-export function assertSettingsSaved(s: Selection): void {
+function dirtySettingsDocument(s: Selection): vscode.TextDocument | undefined {
   const uri = projectSettingsFile(s);
-  if (
-    uri &&
-    vscode.workspace.textDocuments.some(
-      (document) =>
-        document.isDirty && document.uri.toString() === uri.toString(),
-    )
-  )
-    throw new UnsavedSettingsError(uri);
+  return uri
+    ? vscode.workspace.textDocuments.find(
+        (document) =>
+          document.isDirty && document.uri.toString() === uri.toString(),
+      )
+    : undefined;
+}
+export function assertSettingsSaved(s: Selection): void {
+  const document = dirtySettingsDocument(s);
+  if (document) throw new UnsavedSettingsError(document.uri);
+}
+
+/** Let an existing native save settle; never save or discard editor changes. */
+export async function waitForSettingsSave(s: Selection): Promise<void> {
+  if (!dirtySettingsDocument(s)) return;
+  await new Promise<void>((resolve) => {
+    const finish = () => {
+      clearTimeout(timeout);
+      for (const listener of listeners) listener.dispose();
+      resolve();
+    };
+    const check = () => {
+      if (!dirtySettingsDocument(s)) finish();
+    };
+    const listeners = [
+      vscode.workspace.onDidSaveTextDocument(check),
+      vscode.workspace.onDidChangeTextDocument(check),
+      vscode.workspace.onDidCloseTextDocument(check),
+    ];
+    const timeout = setTimeout(finish, 1000);
+    check();
+  });
+  assertSettingsSaved(s);
 }
 export function configuration(s: Selection): vscode.WorkspaceConfiguration {
   return vscode.workspace.getConfiguration(
@@ -84,7 +109,7 @@ export async function write(
     throw new Error("Select a file inside the intended workspace folder.");
   if (s.language && key.startsWith("files."))
     throw new Error("Auto Save settings are not language-overridable.");
-  assertSettingsSaved(s);
+  await waitForSettingsSave(s);
   await configuration(s).update(key, value, s.target, Boolean(s.language));
 }
 export async function setAction(

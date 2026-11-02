@@ -2,6 +2,8 @@
 
 ## 0.5.0 — Unreleased
 
+- Wait up to one second for an existing settings save before Pause/Resume or another settings write checks for unsaved edits. Genuine unsaved changes still block writes; the extension never saves or discards them automatically. Added delayed-save and repeated-toggle regression checks.
+
 - Routed Pause/Resume through a native picker and Command Palette command. The card closes before settings change; cancellation preserves preferences and no live Pausing/Resuming redraw is used. Durable recovery and dashboard confirmations remain.
 - Set card typography to 13.5px headings and 12.5px body text, with proportionally smaller settings/info glyphs, checkboxes and arrows. Pause/Resume uses a fixed-size button with a subtle gray fill.
 - Detect unsaved destination settings before Pause/Resume starts, preserving edits and recovery data. An Open settings file warning helps users save the document and retry; unrelated dirty files do not block changes.

@@ -58,3 +58,5 @@ Zero automated axe violations does not establish complete WCAG conformance. Imag
 - Strict dependency audit and verified packaging must pass on each release candidate. Current workarounds and removal conditions are in [packaging security](packaging-security.md).
 
 See [release preparation](releasing.md) for the final manual review and publication process.
+
+Pause/Resume regression coverage includes a settings document held in an in-progress save, genuine unsaved edits, twelve immediate pause/resume pairs across explicit and inherited values, and repeated real picker selections with settings.json active. Delayed saves finish before the next write; persistent edits and the previous recovery record remain untouched.

@@ -19,10 +19,10 @@ import {
   type Value,
 } from "../shared/workflows";
 import {
-  assertSettingsSaved,
   configuration,
   own,
   type Selection,
+  waitForSettingsSave,
   write,
 } from "./configuration";
 import type { ProfileRepository } from "./profile-store";
@@ -447,7 +447,7 @@ export class Workflows implements vscode.Disposable {
     const title = `${kind === "pause" ? "Pause formatting at this scope" : `Apply profile ${profile.name}`}?${this.journal() ? " This replaces the previous restore point." : ""}`;
     if (review && !(await this.confirm(title, changes, scopeRecord)))
       return "Cancelled. No settings were changed.";
-    if (changes.length) assertSettingsSaved(s);
+    if (changes.length) await waitForSettingsSave(s);
     await applyBatch(journal, this.port(journal));
     return kind === "pause"
       ? "Paused at the selected scope. Resume from Profiles; overrides may still apply."
@@ -613,7 +613,8 @@ export class Workflows implements vscode.Disposable {
         ))
       )
         return "Restore cancelled. Current preferences were kept.";
-      if (preview.length) assertSettingsSaved(this.journalSelection(journal));
+      if (preview.length)
+        await waitForSettingsSave(this.journalSelection(journal));
       const conflicts = await restoreBatch(journal, port, reviewed);
       return conflicts
         ? `${conflicts} externally edited values were preserved. Review the record in Profiles or keep current values.`
