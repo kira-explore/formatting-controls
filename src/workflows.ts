@@ -19,6 +19,7 @@ import {
   type Value,
 } from "../shared/workflows";
 import {
+  assertSettingsSaved,
   configuration,
   own,
   type Selection,
@@ -347,6 +348,10 @@ export class Workflows implements vscode.Disposable {
       },
       read: (c) => {
         ensure();
+        // A dirty buffer can contain an attempted write that is absent from
+        // the saved configuration cache. Keep recovery instead of concluding
+        // that the old disk value means this change was already restored.
+        assertSettingsSaved(s);
         const current = own(s, c.key);
         if (!c.action) return slot(current);
         try {
@@ -595,6 +600,7 @@ export class Workflows implements vscode.Disposable {
         (journal.kind !== "pause" || journal.scope.target === "user")
       )
         throw new Error("Open the dashboard to review this restore point.");
+      await waitForSettingsSave(this.journalSelection(journal));
       const port = this.port(journal);
       const reviewed = new Set<Change>();
       const preview = journal.changes.flatMap((c) => {
@@ -613,8 +619,6 @@ export class Workflows implements vscode.Disposable {
         ))
       )
         return "Restore cancelled. Current preferences were kept.";
-      if (preview.length)
-        await waitForSettingsSave(this.journalSelection(journal));
       const conflicts = await restoreBatch(journal, port, reviewed);
       return conflicts
         ? `${conflicts} externally edited values were preserved. Review the record in Profiles or keep current values.`

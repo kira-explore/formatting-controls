@@ -14,6 +14,7 @@ import {
 } from "../../src/configuration";
 import { Dashboard } from "../../src/dashboard";
 import { Workflows } from "../../src/workflows";
+import { runConfigurationWriteTests } from "./configuration-write";
 import { profileDashboard } from "./performance";
 import { runStatusTests } from "./status-controls";
 import { MemoryStore, runWorkflowTests } from "./workflows";
@@ -342,6 +343,7 @@ export async function run(): Promise<void> {
     } finally {
       await changeFolders(1, 0, { uri: other.uri, name: other.name });
     }
+    await runConfigurationWriteTests(uri);
     await runStatusTests(uri);
     await runWorkflowTests(ext.extensionUri, uri);
     await profileDashboard(dashboard);

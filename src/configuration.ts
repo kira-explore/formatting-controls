@@ -95,6 +95,8 @@ export async function write(
   s: Selection,
   key: SettingKey,
   value: unknown,
+  update = () =>
+    configuration(s).update(key, value, s.target, Boolean(s.language)),
 ): Promise<void> {
   if (
     s.target !== vscode.ConfigurationTarget.Global &&
@@ -110,7 +112,63 @@ export async function write(
   if (s.language && key.startsWith("files."))
     throw new Error("Auto Save settings are not language-overridable.");
   await waitForSettingsSave(s);
-  await configuration(s).update(key, value, s.target, Boolean(s.language));
+  assertSettingsSaved(s);
+  const changesValue = !isDeepStrictEqual(own(s, key), value);
+  const uri = projectSettingsFile(s);
+  let document =
+    uri &&
+    vscode.workspace.textDocuments.find(
+      (candidate) => candidate.uri.toString() === uri.toString(),
+    );
+  let version = document?.version;
+  const opened = vscode.workspace.onDidOpenTextDocument((candidate) => {
+    if (
+      !document &&
+      uri &&
+      candidate.uri.toString() === uri.toString() &&
+      !candidate.isDirty
+    ) {
+      document = candidate;
+      version = candidate.version;
+    }
+  });
+  try {
+    await update();
+    if (document?.isDirty) {
+      // A save participant can cancel the native settings save even though
+      // update() resolves. Finish only the single edit made by this update;
+      // any intervening model edit leaves ownership uncertain and is blocked.
+      if (
+        !changesValue ||
+        version === undefined ||
+        document.version !== version + 1
+      )
+        throw new UnsavedSettingsError(document.uri);
+      if (!(await document.save()) || document.isDirty)
+        throw new UnsavedSettingsError(document.uri);
+    }
+  } finally {
+    opened.dispose();
+  }
+  if (!isDeepStrictEqual(own(s, key), value)) {
+    await new Promise<void>((resolve) => {
+      const finish = () => {
+        clearTimeout(timeout);
+        listener.dispose();
+        resolve();
+      };
+      const check = () => {
+        if (isDeepStrictEqual(own(s, key), value)) finish();
+      };
+      const listener = vscode.workspace.onDidChangeConfiguration(check);
+      const timeout = setTimeout(finish, 1000);
+      check();
+    });
+    if (!isDeepStrictEqual(own(s, key), value))
+      throw new Error(
+        `VS Code did not confirm the saved value of ${key}. Review the current settings before retrying.`,
+      );
+  }
 }
 export async function setAction(
   s: Selection,
