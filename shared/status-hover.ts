@@ -45,7 +45,6 @@ export function statusHover(
     fullRow(titled(image(art.summary), statusHelp.formatting)),
     fullRow(image(art.formatting)),
     fullRow(image(art.pauseInset) + pause + image(art.pauseCaption)),
-    fullRow(image(art.footerSeparator)),
     fullRow(
       `<a href="command:formattingControls.dashboard" title="Open Kira Formatting Controls dashboard">${image(art.dashboard, undefined, "top")}</a>${image(art.footerGap, undefined, "top")}<a href="${issueUrl}" title="Open a new issue on GitHub">${image(art.issue, undefined, "top")}</a>`,
     ),

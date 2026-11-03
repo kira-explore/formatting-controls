@@ -223,12 +223,12 @@ export function statusArtwork(
       `${file}. ${workspace}.`,
     ),
     scopes: image(
-      84,
-      centeredText(5, 20, "Settings scope") +
+      72,
+      centeredText(5, 20, "Scope") +
         dropdown(6, scope) +
-        centeredText(5, 58, "Language scope") +
+        centeredText(5, 58, "Language") +
         dropdown(44, language),
-      `Settings scope: ${scope}. Language scope: ${language}. Read-only.`,
+      `Scope: ${scope}. Language: ${language}. Read-only.`,
     ),
     heading: image(28, formattingHeading, "Automatic formatting", 153),
     state: image(
@@ -252,13 +252,12 @@ export function statusArtwork(
     ),
     formatter: image(
       // Separate scope and formatter details from automatic formatting.
-      64,
-      centeredText(5, 29, "Default formatter") +
-        dropdown(15, context.formatter ?? "Not configured") +
-        line(55),
-      `Default formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
+      48,
+      centeredText(5, 20, "Formatter") +
+        dropdown(6, context.formatter ?? "Not configured") +
+        line(46),
+      `Formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
     ),
-    footerSeparator: image(28, line(1), ""),
     pause: image(
       28,
       rect(0.5, 0.5, 65, 27, p.border, p.button) +
@@ -283,15 +282,15 @@ export function statusArtwork(
       309,
     ),
     dashboard: image(
-      28,
-      `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="110.57" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,
+      36,
+      `<path d="M5 1H139" stroke="${p.line}"/><text x="12" y="21" dominant-baseline="central" font-size="12.5" textLength="110.57" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,
       "Open dashboard ↗",
       139,
     ),
-    footerGap: image(54, "", "", 108),
+    footerGap: image(36, `<path d="M0 1H108" stroke="${p.line}"/>`, "", 108),
     issue: image(
-      28,
-      `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="104.81" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,
+      36,
+      `<path d="M0 1H128" stroke="${p.line}"/><text x="12" y="21" dominant-baseline="central" font-size="12.5" textLength="104.81" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,
       "Report an issue ↗",
       133,
     ),

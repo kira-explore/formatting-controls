@@ -130,8 +130,8 @@ export async function reviewStatus(
   const loaded = async () => {
     await hover.waitFor({ state: "visible" });
     const images = hover.locator("img");
-    await images.nth(13).waitFor();
-    assert.equal(await images.count(), 14, "All status artwork is rendered");
+    await images.nth(12).waitFor();
+    assert.equal(await images.count(), 13, "All status artwork is rendered");
   };
   const captureCard = async (name: string) => {
     const bounds = await hover.boundingBox();
@@ -275,9 +275,9 @@ export async function reviewStatus(
     await hover.locator("input,select,button,script,style").count(),
     0,
   );
-  const scopes = hover.getByRole("img", { name: /^Settings scope:/ });
+  const scopes = hover.getByRole("img", { name: /^Scope:/ });
   const flags = hover.getByRole("img", { name: /^Format on save:/ });
-  const formatter = hover.getByRole("img", { name: /^Default formatter:/ });
+  const formatter = hover.getByRole("img", { name: /^Formatter:/ });
   for (const image of [scopes, flags, formatter])
     assert.equal(
       await image.evaluate((el) => !!el.closest("a")),
@@ -359,8 +359,8 @@ export async function reviewStatus(
     133,
     "Issue hit area fits its outlined button",
   );
-  assert.equal(dashboardBounds.height, 28);
-  assert.equal(issueBounds.height, 28);
+  assert.equal(dashboardBounds.height, 36);
+  assert.equal(issueBounds.height, 36);
   for (const [link, bounds] of [
     [dashboard, dashboardBounds],
     [issue, issueBounds],
@@ -393,7 +393,7 @@ export async function reviewStatus(
   }
   const gutter = {
     x: dashboardBounds.x + dashboardBounds.width + 20,
-    y: dashboardBounds.y + 14,
+    y: dashboardBounds.y + 21,
   };
   assert.equal(
     await hover.evaluate(
@@ -426,6 +426,7 @@ export async function reviewStatus(
   const separatorBounds = await pauseLink
     .locator("xpath=ancestor::tr/following-sibling::tr[1]")
     .locator("img")
+    .first()
     .boundingBox();
   const settingsBounds = await settings.getByRole("img").boundingBox();
   const headerBounds = await hover
@@ -479,9 +480,9 @@ export async function reviewStatus(
   await caption.click();
   assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
   assert.deepEqual(await hover.boundingBox(), hovered);
-  const footerTopGap = dashboardBounds.y + 14 - (separatorBounds.y + 1);
+  const footerTopGap = dashboardBounds.y + 21 - (separatorBounds.y + 1);
   const footerBottomGap =
-    hovered.y + hovered.height - 1 - (dashboardBounds.y + 14);
+    hovered.y + hovered.height - 1 - (dashboardBounds.y + 21);
   assert.ok(
     Math.abs(footerTopGap - footerBottomGap) <= 2,
     `Footer text is centered between its separator and the frame (${footerTopGap}px above, ${footerBottomGap}px below)`,

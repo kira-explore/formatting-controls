@@ -62,9 +62,9 @@ test("formatting stays visible with context, formatter and footer actions", () =
     "Format on save:",
     "Format on paste:",
     "Format on type:",
-    "Settings scope",
-    "Language scope",
-    "Default formatter",
+    "Scope",
+    "Language",
+    "Formatter",
     "Open dashboard",
     "Pause",
     "Settings",
@@ -200,7 +200,7 @@ test("information and pause explanations are passive while actions retain their 
       pauseIndex > rows.findIndex((row) => row.includes("Format on type:")),
     );
     assert.ok(
-      rows.findIndex((row) => row.includes("Default formatter:")) <
+      rows.findIndex((row) => row.includes("Formatter:")) <
         rows.findIndex((row) => row.includes("Automatic formatting:")),
     );
     for (const row of rows.filter((row) =>
@@ -225,7 +225,7 @@ test("information and pause explanations are passive while actions retain their 
     for (const action of [art.dashboard, art.issue]) {
       assert.doesNotMatch(action.svg, /text-decoration/);
       assert.doesNotMatch(action.svg, /<rect/);
-      assert.equal(action.height, 28);
+      assert.equal(action.height, 36);
     }
     assert.equal(
       art.dashboard.width + art.footerGap.width + art.issue.width,
