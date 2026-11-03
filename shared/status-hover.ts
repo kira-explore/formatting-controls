@@ -41,10 +41,11 @@ export function statusHover(
     `<tr><td>${image(art.header)}</td><td align="right"><a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}" title="Open VS Code Settings">${image(art.settings)}</a></td></tr>`,
     fullRow(titled(image(art.context), statusHelp.file)),
     fullRow(image(art.scopes)),
+    fullRow(image(art.formatter)),
     fullRow(titled(image(art.summary), statusHelp.formatting)),
     fullRow(image(art.formatting)),
     fullRow(image(art.pauseInset) + pause + image(art.pauseCaption)),
-    fullRow(image(art.formatter)),
+    fullRow(image(art.footerSeparator)),
     fullRow(
       `<a href="command:formattingControls.dashboard" title="Open Kira Formatting Controls dashboard">${image(art.dashboard, undefined, "top")}</a>${image(art.footerGap, undefined, "top")}<a href="${issueUrl}" title="Open a new issue on GitHub">${image(art.issue, undefined, "top")}</a>`,
     ),

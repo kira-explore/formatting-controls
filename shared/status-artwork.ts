@@ -224,12 +224,11 @@ export function statusArtwork(
     ),
     scopes: image(
       84,
-      centeredText(5, 20, "Write to") +
+      centeredText(5, 20, "Settings scope") +
         dropdown(6, scope) +
-        centeredText(5, 58, "Apply to language") +
-        dropdown(44, language) +
-        line(83),
-      `Write to: ${scope}. Apply to language: ${language}. Read-only.`,
+        centeredText(5, 58, "Language scope") +
+        dropdown(44, language),
+      `Settings scope: ${scope}. Language scope: ${language}. Read-only.`,
     ),
     heading: image(28, formattingHeading, "Automatic formatting", 153),
     state: image(
@@ -252,14 +251,14 @@ export function statusArtwork(
       `${flagDescription} Checkbox displays are read-only.`,
     ),
     formatter: image(
-      // Keep the footer equally spaced between this rule and the hover frame.
+      // Separate scope and formatter details from automatic formatting.
       64,
-      line(1) +
-        centeredText(5, 29, "Default formatter") +
+      centeredText(5, 29, "Default formatter") +
         dropdown(15, context.formatter ?? "Not configured") +
         line(55),
       `Default formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
     ),
+    footerSeparator: image(28, line(1), ""),
     pause: image(
       28,
       rect(0.5, 0.5, 65, 27, p.border, p.button) +
@@ -289,7 +288,7 @@ export function statusArtwork(
       "Open dashboard ↗",
       139,
     ),
-    footerGap: image(36, "", "", 108),
+    footerGap: image(54, "", "", 108),
     issue: image(
       28,
       `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="104.81" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,

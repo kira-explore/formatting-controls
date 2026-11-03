@@ -2,6 +2,8 @@
 
 ## 0.6.0 — Unreleased
 
+- Move Default formatter below Language scope and above Automatic formatting in the status card; rename the scope labels to Settings scope and Language scope.
+
 - Retry a cancelled settings save up to three times, only while the document still contains the extension's single owned edit. Pre-existing and intervening edits remain protected.
 - Refresh VS Code's configuration cache after completing an owned save, so Pause/Resume does not rely solely on file-watcher delivery. Save-participant formatting can complete without authorizing another write.
 - Add an opt-in matrix of 1,024 saved-edit sequences covering every starting, intermediate and final Save/Paste/Type combination in paused and resumed states, including edits changed back before Resume and the next fresh cycle.

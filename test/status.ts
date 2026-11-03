@@ -130,8 +130,8 @@ export async function reviewStatus(
   const loaded = async () => {
     await hover.waitFor({ state: "visible" });
     const images = hover.locator("img");
-    await images.nth(12).waitFor();
-    assert.equal(await images.count(), 13, "All status artwork is rendered");
+    await images.nth(13).waitFor();
+    assert.equal(await images.count(), 14, "All status artwork is rendered");
   };
   const captureCard = async (name: string) => {
     const bounds = await hover.boundingBox();
@@ -275,7 +275,7 @@ export async function reviewStatus(
     await hover.locator("input,select,button,script,style").count(),
     0,
   );
-  const scopes = hover.getByRole("img", { name: /^Write to:/ });
+  const scopes = hover.getByRole("img", { name: /^Settings scope:/ });
   const flags = hover.getByRole("img", { name: /^Format on save:/ });
   const formatter = hover.getByRole("img", { name: /^Default formatter:/ });
   for (const image of [scopes, flags, formatter])
@@ -423,13 +423,16 @@ export async function reviewStatus(
   assert.equal((await pauseImage.boundingBox())?.width, 66);
   assert.equal((await pauseImage.boundingBox())?.height, 28);
   const pauseBounds = await pauseImage.boundingBox();
-  const formatterBounds = await formatter.boundingBox();
+  const separatorBounds = await pauseLink
+    .locator("xpath=ancestor::tr/following-sibling::tr[1]")
+    .locator("img")
+    .boundingBox();
   const settingsBounds = await settings.getByRole("img").boundingBox();
   const headerBounds = await hover
     .getByRole("img", { name: "Kira Formatting Controls", exact: true })
     .boundingBox();
   assert.ok(
-    pauseBounds && formatterBounds && settingsBounds && headerBounds && hovered,
+    pauseBounds && separatorBounds && settingsBounds && headerBounds && hovered,
   );
   const center = (box: { y: number; height: number }) => box.y + box.height / 2;
   assert.equal(settingsBounds.height, 24, "Settings keeps its current size");
@@ -443,7 +446,7 @@ export async function reviewStatus(
   assert.ok(flagBounds && captionBounds);
   const pauseTopGap = pauseBounds.y - (flagBounds.y + flagBounds.height);
   const pauseBottomGap =
-    formatterBounds.y + 1 - (pauseBounds.y + pauseBounds.height);
+    separatorBounds.y + 1 - (pauseBounds.y + pauseBounds.height);
   assert.ok(
     pauseTopGap >= 10 &&
       pauseTopGap <= 14 &&
@@ -476,7 +479,7 @@ export async function reviewStatus(
   await caption.click();
   assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
   assert.deepEqual(await hover.boundingBox(), hovered);
-  const footerTopGap = dashboardBounds.y + 14 - (formatterBounds.y + 55);
+  const footerTopGap = dashboardBounds.y + 14 - (separatorBounds.y + 1);
   const footerBottomGap =
     hovered.y + hovered.height - 1 - (dashboardBounds.y + 14);
   assert.ok(

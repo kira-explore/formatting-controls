@@ -62,6 +62,8 @@ test("formatting stays visible with context, formatter and footer actions", () =
     "Format on save:",
     "Format on paste:",
     "Format on type:",
+    "Settings scope",
+    "Language scope",
     "Default formatter",
     "Open dashboard",
     "Pause",
@@ -198,7 +200,8 @@ test("information and pause explanations are passive while actions retain their 
       pauseIndex > rows.findIndex((row) => row.includes("Format on type:")),
     );
     assert.ok(
-      pauseIndex < rows.findIndex((row) => row.includes("Default formatter:")),
+      rows.findIndex((row) => row.includes("Default formatter:")) <
+        rows.findIndex((row) => row.includes("Automatic formatting:")),
     );
     for (const row of rows.filter((row) =>
       /alt="(?:Active file:|Automatic formatting:)/.test(row),
