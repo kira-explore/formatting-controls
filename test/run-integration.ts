@@ -60,7 +60,7 @@ import { reviewDashboard } from "./dashboard";
     done = path.join(temp, "ui-done");
   const report = path.resolve(
     "test-results",
-    `${process.platform}-${process.env.VSCODE_VERSION ?? "stable"}-${(process.env.FORMATTING_CONTROLS_UI_THEME ?? "Dark Modern").replaceAll(" ", "-")}${statusUi ? "-status" : stress ? "-pause-stress" : ""}`,
+    `${process.platform}-${process.env.VSCODE_VERSION ?? "stable"}-${(process.env.FORMATTING_CONTROLS_UI_THEME ?? "Dark Modern").replaceAll(" ", "-")}${statusUi ? "-status" : stress ? "-pause-stress" : ""}${stress && process.env.FORMATTING_CONTROLS_STRESS_EXTENSION ? "-biome" : ""}`,
   );
   let hostFinished = false;
   try {

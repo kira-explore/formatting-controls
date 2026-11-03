@@ -1,8 +1,15 @@
 # Changelog
 
-## 0.5.0 — Unreleased
+## 0.6.0 — Unreleased
 
-- Bound owned cancelled saves to three version-checked attempts and refresh native configuration after finishing the save, avoiding a stale cache when a file-watcher event is missed. Added an opt-in 1,024-sequence boolean matrix covering successive saved edits in both paused and resumed states, including edits changed back before Resume.
+- Retry a cancelled settings save up to three times, only while the document still contains the extension's single owned edit. Pre-existing and intervening edits remain protected.
+- Refresh VS Code's configuration cache after completing an owned save, so Pause/Resume does not rely solely on file-watcher delivery. Save-participant formatting can complete without authorizing another write.
+- Add an opt-in matrix of 1,024 saved-edit sequences covering every starting, intermediate and final Save/Paste/Type combination in paused and resumed states, including edits changed back before Resume and the next fresh cycle.
+- Keep generated reports and installers out of the source history and packaged extension.
+
+Pause/Resume still compares final saved values, not edit history. A setting that ends at the same false value Pause wrote restores its pre-pause preference. Save actions, Auto Save and formatter selection are unchanged.
+
+## 0.5.0 — 2026-11-02
 
 - Finish a successful Pause/Resume cycle after preserving manual edits, including inherited-to-explicit changes and conflict records from older builds. The next Pause captures current preferences instead of repeatedly resuming an old record. Failed or unsaved operations still retain recovery. Added all eight true/false combinations, saved edits before/during pause and fresh-cycle regression checks.
 
@@ -26,7 +33,7 @@
 - Updated Node type declarations to ^26.6.5 and packaging tooling to vsce 4.1.0. Applied a tested minimatch 11.0.3 override; dependency audits remain strict.
 - Consolidated documentation around the shipped UI, current validation and recovery behavior; removed obsolete phase reports and the superseded SVG logo.
 
-## 0.4.0 — Unreleased
+## 0.4.0 — 2026-11-02
 
 Resolved the packaging MSAL advisory with a scoped, compatibility-tested override to 7.1.1. Removed the audit exception so PR and release checks require no vulnerabilities.
 
@@ -34,19 +41,19 @@ Final VSIX validation now runs after the prepublish build and checks archived co
 
 Added cross-platform/minimum-host CI, automated dashboard accessibility and security checks, warm snapshot CPU profiles and size budgets, verified VSIX contents/checksums, Marketplace icon/metadata, support/security documentation, and a manual release-draft workflow gated by strict dependency audit. Improved initial focus, keyboard skip navigation, control names, code contrast and narrow layouts.
 
-## 0.3.0 — Unreleased
+## 0.3.0 — 2026-11-02
 
 Hardened restore previews against intervening edits, preserved legacy action lists while restoring unrelated settings, and rechecked values after journal persistence before writing.
 
 Added provider adapters and setting evidence, Diagnostics with confidence levels, Language Rules, named profiles and presets, native JSON import/export, preview/apply with a persistent per-action recovery journal, and workspace/folder pause with conflict-aware resume. Added a Restore Previous Settings command, rollback/recovery tests, and documentation of non-atomic settings limitations.
 
-## 0.2.0 — Unreleased
+## 0.2.0 — 2026-11-02
 
 Fixed dashboard recovery after invalid input, stale navigation updates, scope persistence across webview reloads, and folder context labels. Added removed-folder and language-mode regression coverage and aligned native input validation with dashboard limits.
 
 React dashboard with Overview, Formatting, Code Actions, Formatters, and Getting Started pages. Includes explicit folder/language selection, effective values and scope inspection, typed controls, validated revision-aware messaging, theme tokens, responsive layouts, first-run welcome, and real-editor bridge tests. Refreshed README, screenshots, badges, and GitHub About metadata.
 
-## 0.1.0 — Unreleased
+## 0.1.0 — 2026-11-02
 
 Initial native control slice: explicit scopes, language overrides, effective status, source-action editing, inspection and confirmed single-setting reset.
 

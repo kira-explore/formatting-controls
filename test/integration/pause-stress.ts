@@ -96,6 +96,15 @@ export async function run(): Promise<void> {
       controls.refresh();
     }),
   ];
+  const heartbeat = process.env.FORMATTING_CONTROLS_STRESS_BIOME
+    ? setInterval(
+        () =>
+          console.log(
+            `Biome test in progress: ${action}, cycle ${cycle}, settings dirty=${document.isDirty}`,
+          ),
+        15000,
+      )
+    : undefined;
   // Simulate editing and saving settings.json, rather than using our writer.
   const manualSave = async (values: Array<boolean | undefined>) => {
     const settings = JSON.parse(document.getText());
@@ -194,6 +203,8 @@ export async function run(): Promise<void> {
         `Resume left settings dirty in cycle ${cycle}`,
       );
       assert.equal(workflows.recovery(), null);
+      if (cycle % 10 === 9)
+        console.log(`Inherited cycles completed: ${cycle + 1}/50`);
       await new Promise((resolve) =>
         setTimeout(resolve, cycle % 3 === 0 ? 150 : 5),
       );
@@ -203,6 +214,7 @@ export async function run(): Promise<void> {
         `Delayed drift in cycle ${cycle}`,
       );
     }
+    console.log("Completed 50 inherited Pause/Resume cycles");
     action = "interrupted resume";
     await controls.pause();
     await write(selection, "editor.formatOnType", undefined);
@@ -384,6 +396,7 @@ export async function run(): Promise<void> {
       "Single-folder Pause/Resume: 50 inherited cycles, interrupted restore, all 8 explicit combinations × 10 cycles and all 8 saved edits during pause with fresh cycles passed",
     );
   } finally {
+    if (heartbeat) clearInterval(heartbeat);
     writeFileSync(join(report, "trace.json"), JSON.stringify(trace, null, 2));
     for (const listener of listeners) listener.dispose();
     workflows.dispose();

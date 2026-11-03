@@ -43,7 +43,7 @@ assert.ok(entry, "Changelog entry is missing");
 assert.ok(entry.trim(), "Changelog entry is empty");
 writeFileSync(
   "release-notes.md",
-  `# Formatting Controls ${version}\n\n${entry.split("\n").slice(1).join("\n").trim()}\n\nReview the security and compatibility gates in docs/releasing.md before publication.\n`,
+  `# ${manifest.displayName} ${version}\n\n${entry.split("\n").slice(1).join("\n").trim()}\n\nReview the security and compatibility gates in docs/releasing.md before publication.\n`,
 );
 console.log(
   `Release metadata verified: ${manifest.publisher}.${manifest.name} ${version}`,
