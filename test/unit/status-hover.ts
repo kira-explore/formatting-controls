@@ -47,10 +47,11 @@ test("reference artwork has live values, accessible descriptions and read-only f
     JSON.parse(decodeURIComponent(match[1] ?? "")),
   );
   assert.deepEqual(actions, [[7, "pause"]]);
-  assert.match(html, /width="380" height="76"/);
+  assert.match(html, /width="330" height="76"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
   assert.match(art.state.alt, /Mixed/);
-  assert.match(art.summary.alt, /Mixed/);
+  assert.doesNotMatch(art.context.alt, /Automatic formatting:/);
+  assert.match(html, /alt="Automatic formatting: Mixed"/);
   assert.match(html, /data:image\/svg\+xml;base64,/);
 });
 
@@ -62,7 +63,9 @@ test("formatting stays visible with context, formatter and footer actions", () =
     "Format on save:",
     "Format on paste:",
     "Format on type:",
-    "Default formatter",
+    "Scope",
+    "Language",
+    "Formatter",
     "Open dashboard",
     "Pause",
     "Settings",
@@ -129,6 +132,7 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
     { flags: [true, true, true], paused: false },
     { flags: [false, false, false], paused: false },
     { flags: [true, false, true], paused: false },
+    { flags: [true, true, true], paused: true },
     { flags: [false, false, false], paused: true },
     { flags: [true, false, true], paused: true },
   ].map((variant) => statusArtwork({ ...context, ...variant }));
@@ -149,12 +153,17 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
   );
   for (const art of variants) {
     assert.equal(art.pause.width, 66);
-    assert.equal(art.pause.height, 28);
+    assert.equal(art.pause.height, art.settings.height);
     assert.doesNotMatch(art.state.svg, /<rect\b/);
     assert.doesNotMatch(art.summary.svg, /<rect\b/);
   }
-  assert.match(variants[3]?.state.alt ?? "", /Disabled/);
-  assert.match(variants[4]?.state.alt ?? "", /Mixed/);
+  assert.match(variants[4]?.state.alt ?? "", /Disabled/);
+  assert.match(variants[5]?.state.alt ?? "", /Mixed/);
+  assert.notEqual(
+    variants[0]?.pause.svg,
+    variants[3]?.pause.svg,
+    "Resume has distinct artwork without changing its dimensions",
+  );
   assert.doesNotMatch(statusHover(context), /alt="Pausing"|alt="Resuming"/);
   assert.match(
     statusArtwork(context).pauseCaption.alt,
@@ -176,11 +185,14 @@ test("information and pause explanations are passive while actions retain their 
       (match) => JSON.parse(decodeURIComponent(match[1] ?? ""))[1] === "pause",
     );
     assert.ok(button);
-    assert.equal(button[2], "");
-    assert.match(button[3] ?? "", /width="66" height="28"/);
-    assert.doesNotMatch(
+    assert.equal(
+      button[2],
+      ` title="${paused ? statusHelp.resume : statusHelp.pause}"`,
+    );
+    assert.match(button[3] ?? "", /width="66" height="24"/);
+    assert.match(
       button[3] ?? "",
-      /until you resume|previous formatting/,
+      /title="(?:Pause automatic|Restore your previous)/,
     );
     assert.doesNotMatch(html, /formattingControls\.statusInfo/);
     const rows = [...html.matchAll(/<tr>(.*?)<\/tr>/g)].map(
@@ -188,21 +200,25 @@ test("information and pause explanations are passive while actions retain their 
     );
     assert.match(
       rows[0] ?? "",
-      /alt="Kira Formatting Controls".*alt="Open VS Code Settings"/,
+      /alt="Kira Formatting Controls".*alt="(?:Pause|Resume)".*alt="Open VS Code Settings"/,
     );
-    assert.doesNotMatch(rows[0] ?? "", /alt="(?:Pause|Resume)"/);
+    assert.doesNotMatch(rows[0] ?? "", /alt="Automatic formatting:/);
     const pauseIndex = rows.findIndex((row) =>
       row.includes(`alt="${paused ? "Resume" : "Pause"}"`),
     );
     assert.ok(
-      pauseIndex > rows.findIndex((row) => row.includes("Format on type:")),
+      pauseIndex < rows.findIndex((row) => row.includes("Format on type:")),
+    );
+    assert.equal(pauseIndex, 0);
+    const statusIndex = rows.findIndex((row) =>
+      row.includes('alt="Automatic formatting: Mixed"'),
     );
     assert.ok(
-      pauseIndex < rows.findIndex((row) => row.includes("Default formatter:")),
+      rows.findIndex((row) => row.includes("Formatter:")) < statusIndex,
     );
-    for (const row of rows.filter((row) =>
-      /alt="(?:Active file:|Automatic formatting:)/.test(row),
-    ))
+    assert.match(rows[statusIndex] ?? "", /alt="Automatic formatting"/);
+    assert.doesNotMatch(rows[statusIndex] ?? "", /<a\b/);
+    for (const row of rows.filter((row) => /alt="Active file:/.test(row)))
       assert.doesNotMatch(row, /<a\b/);
     assert.match(
       html,
@@ -222,7 +238,7 @@ test("information and pause explanations are passive while actions retain their 
     for (const action of [art.dashboard, art.issue]) {
       assert.doesNotMatch(action.svg, /text-decoration/);
       assert.doesNotMatch(action.svg, /<rect/);
-      assert.equal(action.height, 28);
+      assert.equal(action.height, 36);
     }
     assert.equal(
       art.dashboard.width + art.footerGap.width + art.issue.width,
@@ -246,4 +262,35 @@ test("theme palettes change the artwork and read-only User pause has no action",
       encodeURIComponent(JSON.stringify([7, "pause"])),
     ),
   );
+});
+
+test("file context uses distinct short language labels and a separate folder line", () => {
+  for (const [language, label] of [
+    ["javascript", "JS"],
+    ["typescript", "TS"],
+    ["javascriptreact", "JSX"],
+    ["typescriptreact", "TSX"],
+    ["json", "JSON"],
+    ["jsonc", "JSONC"],
+    ["python", "PY"],
+    ["custom", "custom"],
+  ] as const) {
+    const art = statusArtwork({
+      ...context,
+      language,
+      folder: "second-project",
+    });
+    assert.equal(art.context.height, 94);
+    assert.match(art.context.svg, /y="51"[^>]*>Workspace: project<\/text>/);
+    assert.match(art.context.svg, /y="69"[^>]*>Folder: second-project<\/text>/);
+    assert.ok(art.context.svg.includes(` · ${label}</text>`));
+    assert.match(
+      art.context.alt,
+      /Workspace: project\. Folder: second-project\./,
+    );
+  }
+  const single = statusArtwork(context);
+  assert.equal(single.context.height, 76);
+  assert.doesNotMatch(single.context.svg, /Folder:/);
+  assert.match(single.context.alt, /TypeScript/);
 });

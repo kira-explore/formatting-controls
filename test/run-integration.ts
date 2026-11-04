@@ -60,7 +60,7 @@ import { reviewDashboard } from "./dashboard";
     done = path.join(temp, "ui-done");
   const report = path.resolve(
     "test-results",
-    `${process.platform}-${process.env.VSCODE_VERSION ?? "stable"}-${(process.env.FORMATTING_CONTROLS_UI_THEME ?? "Dark Modern").replaceAll(" ", "-")}${statusUi ? "-status" : stress ? "-pause-stress" : ""}`,
+    `${process.platform}-${process.env.VSCODE_VERSION ?? "stable"}-${(process.env.FORMATTING_CONTROLS_UI_THEME ?? "Dark Modern").replaceAll(" ", "-")}${statusUi ? "-status" : stress ? "-pause-stress" : ""}${stress && process.env.FORMATTING_CONTROLS_STRESS_EXTENSION ? "-biome" : ""}`,
   );
   let hostFinished = false;
   try {
@@ -77,6 +77,8 @@ import { reviewDashboard } from "./dashboard";
         `dist/test/integration/${stress ? "pause-stress" : empty ? "empty" : "suite"}.js`,
       ),
       extensionTestsEnv: {
+        FORMATTING_CONTROLS_EXHAUSTIVE:
+          process.env.FORMATTING_CONTROLS_EXHAUSTIVE ?? "",
         FORMATTING_CONTROLS_STRESS_BIOME: process.env
           .FORMATTING_CONTROLS_STRESS_EXTENSION
           ? "1"

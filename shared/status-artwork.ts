@@ -30,6 +30,9 @@ const palettes = {
     input: "#181a1b",
     border: "#333536",
     button: "#2a2d2e",
+    resume: "#203d4b",
+    resumeText: "#9dd9f6",
+    resumeBorder: "#38637a",
     checkbox: "#252526",
     checkboxBorder: "#707070",
   },
@@ -43,6 +46,9 @@ const palettes = {
     input: "#ffffff",
     border: "#929292",
     button: "#e6e6e6",
+    resume: "#e3f1f8",
+    resumeText: "#075378",
+    resumeBorder: "#8cbcd4",
     checkbox: "#ffffff",
     checkboxBorder: "#929292",
   },
@@ -56,6 +62,9 @@ const palettes = {
     input: "#000000",
     border: "#ffffff",
     button: "#000000",
+    resume: "#000000",
+    resumeText: "#5cdeff",
+    resumeBorder: "#5cdeff",
     checkbox: "#000000",
     checkboxBorder: "#ffffff",
   },
@@ -69,6 +78,9 @@ const palettes = {
     input: "#ffffff",
     border: "#000000",
     button: "#ffffff",
+    resume: "#ffffff",
+    resumeText: "#004fa3",
+    resumeBorder: "#004fa3",
     checkbox: "#ffffff",
     checkboxBorder: "#000000",
   },
@@ -96,6 +108,35 @@ const languageName = (id: string): string =>
     python: "Python",
   })[id] ?? id;
 
+const languageCode = (id: string): string =>
+  ({
+    javascript: "JS",
+    typescript: "TS",
+    javascriptreact: "JSX",
+    typescriptreact: "TSX",
+    json: "JSON",
+    jsonc: "JSONC",
+    markdown: "MD",
+    python: "PY",
+    html: "HTML",
+    css: "CSS",
+    scss: "SCSS",
+    less: "LESS",
+    yaml: "YAML",
+    xml: "XML",
+    shellscript: "SH",
+    plaintext: "Text",
+    c: "C",
+    cpp: "C++",
+    csharp: "C#",
+    java: "Java",
+    go: "Go",
+    rust: "Rust",
+    ruby: "Ruby",
+    php: "PHP",
+    sql: "SQL",
+  })[id] ?? languageName(id);
+
 /** Locally generated, inert SVG artwork. No scripts, external assets or embedded HTML. */
 export function statusArtwork(
   context: HoverContext,
@@ -111,7 +152,7 @@ export function statusArtwork(
     anchor: "start" | "middle" | "end" = "start",
   ) =>
     `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" text-anchor="${anchor}" dominant-baseline="central">${escapeText(value)}</text>`;
-  const line = (y: number) => `<path d="M5 ${y}H375" stroke="${p.line}"/>`;
+  const line = (y: number) => `<path d="M5 ${y}H325" stroke="${p.line}"/>`;
   const infoGlyph = (x: number, y: number, color: string) =>
     `<circle cx="${x}" cy="${y}" r="5" stroke="${color}" fill="none"/><circle cx="${x}" cy="${y - 2.75}" r=".55" fill="${color}"/><path d="M${x} ${y - 0.46}v3.2" stroke="${color}" stroke-width="1.1" stroke-linecap="round"/>`;
   const rect = (
@@ -125,10 +166,10 @@ export function statusArtwork(
   ) =>
     `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" stroke="${stroke}" fill="${fill}"/>`;
   const dropdown = (y: number, value: string) =>
-    rect(168, y, 207, 28) +
-    centeredText(178, y + 14, shortened(value, 28)) +
-    `<path d="M356.5 ${y + 12.25}l3.5 3.5 3.5-3.5" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
-  const svg = (height: number, contents: string, width = 380) =>
+    rect(143, y, 182, 28) +
+    centeredText(153, y + 14, shortened(value, 24)) +
+    `<path d="M306.5 ${y + 12.25}l3.5 3.5 3.5-3.5" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
+  const svg = (height: number, contents: string, width = 330) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g font-family="-apple-system, BlinkMacSystemFont, Segoe WPC, Segoe UI, system-ui, Ubuntu, Droid Sans, sans-serif" font-weight="400">${contents}</g></svg>`;
   const state = context.flags.every(Boolean)
     ? "Enabled"
@@ -139,9 +180,15 @@ export function statusArtwork(
     context.file === "No active file"
       ? context.file
       : `Active file: ${context.file}${context.language ? ` · ${languageName(context.language)}` : ""}`;
+  const fileLabel =
+    context.file === "No active file"
+      ? context.file
+      : `Active file: ${context.file}${context.language ? ` · ${languageCode(context.language)}` : ""}`;
   const workspace = context.workspace
-    ? `Workspace: ${context.workspace}${context.folder ? ` · Folder: ${context.folder}` : ""}`
+    ? `Workspace: ${context.workspace}`
     : "No workspace open";
+  const folder = context.folder ? `Folder: ${context.folder}` : undefined;
+  const contextExtraHeight = folder ? 18 : 0;
   const scope = context.scope;
   const language = languageName(context.languageScope);
   const sourceNotes = ["save", "paste", "type"].map((_, i) => {
@@ -158,7 +205,7 @@ export function statusArtwork(
     height: number,
     contents: string,
     alt: string,
-    width = 380,
+    width = 330,
   ) => ({ svg: svg(height, contents, width), alt, width, height });
   // Keep the info gap stable when the renderer selects a wider fallback font.
   const formattingHeading = `<text x="5" y="14" dominant-baseline="central" font-size="13.5" textLength="135" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>`;
@@ -174,7 +221,7 @@ export function statusArtwork(
         centeredText(
           33,
           y + 27,
-          shortened(sourceNotes[i] ?? "", 51),
+          shortened(sourceNotes[i] ?? "", 44),
           12.5,
           p.muted,
         )
@@ -197,7 +244,7 @@ export function statusArtwork(
     settings: image(
       24,
       rect(0.5, 0.5, 25, 23, p.border, p.button) +
-        `<g transform="translate(7.4 7.1) scale(.7)" fill="none" stroke="${p.fg}" stroke-width="1.5"><path d="M0 2h16M0 7h16M0 12h16M5 0v4M11 5v4M7 10v4"/></g>`,
+        `<g transform="translate(6.6 5.6) scale(.8)" fill="none" stroke="${p.fg}" stroke-width="1.5" stroke-linecap="round"><path d="M0 4h3.5M8.5 4H16M0 12h8M13 12h3"/><circle cx="6" cy="4" r="2.5"/><circle cx="10.5" cy="12" r="2.5"/></g>`,
       "Open VS Code Settings",
       26,
     ),
@@ -211,25 +258,27 @@ export function statusArtwork(
       36,
       centeredText(5, 18, "Kira Formatting Controls", 13.5),
       "Kira Formatting Controls",
-      250,
+      220,
     ),
     context: image(
-      76,
+      76 + contextExtraHeight,
       line(1) +
-        rect(5, 12, 370, 60, p.focus, p.info, 6) +
-        infoGlyph(25, 42, p.focus) +
-        centeredText(45, 33, shortened(file, 48)) +
-        centeredText(45, 51, shortened(workspace, 48), 12.5, p.muted),
-      `${file}. ${workspace}.`,
+        rect(5, 12, 320, 60 + contextExtraHeight, p.focus, p.info, 6) +
+        infoGlyph(25, 42 + contextExtraHeight / 2, p.focus) +
+        centeredText(45, 33, shortened(fileLabel, 41)) +
+        centeredText(45, 51, shortened(workspace, 41), 12.5, p.muted) +
+        (folder
+          ? centeredText(45, 69, shortened(folder, 41), 12.5, p.muted)
+          : ""),
+      `${file}. ${workspace}.${folder ? ` ${folder}.` : ""}`,
     ),
     scopes: image(
-      84,
-      centeredText(5, 20, "Write to") +
+      72,
+      centeredText(5, 20, "Scope") +
         dropdown(6, scope) +
-        centeredText(5, 58, "Apply to language") +
-        dropdown(44, language) +
-        line(83),
-      `Write to: ${scope}. Apply to language: ${language}. Read-only.`,
+        centeredText(5, 58, "Language") +
+        dropdown(44, language),
+      `Scope: ${scope}. Language: ${language}. Read-only.`,
     ),
     heading: image(28, formattingHeading, "Automatic formatting", 153),
     state: image(
@@ -240,35 +289,39 @@ export function statusArtwork(
     ),
     summary: image(
       28,
-      formattingHeading +
-        // Optical alignment with the heading's visible glyphs, not its font box.
-        infoGlyph(153, 15, p.muted) +
-        centeredText(375, 14, state, 12.5, p.muted, "end"),
-      `Automatic formatting: ${state}`,
+      formattingHeading + infoGlyph(153, 15, p.muted),
+      "Automatic formatting",
+      220,
     ),
     formatting: image(
-      128,
+      134,
       flagContents,
       `${flagDescription} Checkbox displays are read-only.`,
     ),
     formatter: image(
-      // Keep the footer equally spaced between this rule and the hover frame.
-      64,
-      line(1) +
-        centeredText(5, 29, "Default formatter") +
-        dropdown(15, context.formatter ?? "Not configured") +
-        line(55),
-      `Default formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
+      // Separate scope and formatter details from automatic formatting.
+      48,
+      centeredText(5, 20, "Formatter") +
+        dropdown(6, context.formatter ?? "Not configured") +
+        line(46),
+      `Formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
     ),
     pause: image(
-      28,
-      rect(0.5, 0.5, 65, 27, p.border, p.button) +
+      24,
+      rect(
+        0.5,
+        0.5,
+        65,
+        23,
+        context.paused && context.canPause ? p.resumeBorder : p.border,
+        context.paused && context.canPause ? p.resume : p.button,
+      ) +
         centeredText(
           33,
-          14,
+          12,
           pauseLabel,
           12.5,
-          context.canPause ? p.fg : p.muted,
+          context.canPause ? (context.paused ? p.resumeText : p.fg) : p.muted,
           "middle",
         ),
       pauseLabel,
@@ -284,15 +337,15 @@ export function statusArtwork(
       309,
     ),
     dashboard: image(
-      28,
-      `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="110.57" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,
+      36,
+      `<path d="M5 1H139" stroke="${p.line}"/><text x="12" y="21" dominant-baseline="central" font-size="12.5" textLength="110.57" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Open dashboard ↗</text>`,
       "Open dashboard ↗",
       139,
     ),
-    footerGap: image(36, "", "", 108),
+    footerGap: image(36, `<path d="M0 1H58" stroke="${p.line}"/>`, "", 58),
     issue: image(
-      28,
-      `<text x="12" y="14" dominant-baseline="central" font-size="12.5" textLength="104.81" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,
+      36,
+      `<path d="M0 1H128" stroke="${p.line}"/><text x="12" y="21" dominant-baseline="central" font-size="12.5" textLength="104.81" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,
       "Report an issue ↗",
       133,
     ),

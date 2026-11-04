@@ -96,6 +96,15 @@ export async function run(): Promise<void> {
       controls.refresh();
     }),
   ];
+  const heartbeat = process.env.FORMATTING_CONTROLS_STRESS_BIOME
+    ? setInterval(
+        () =>
+          console.log(
+            `Biome test in progress: ${action}, cycle ${cycle}, settings dirty=${document.isDirty}`,
+          ),
+        15000,
+      )
+    : undefined;
   // Simulate editing and saving settings.json, rather than using our writer.
   const manualSave = async (values: Array<boolean | undefined>) => {
     const settings = JSON.parse(document.getText());
@@ -113,7 +122,29 @@ export async function run(): Promise<void> {
       JSON.stringify(settings, null, 2),
     );
     assert.ok(await vscode.workspace.applyEdit(edit));
-    assert.ok(await document.save());
+    // Biome can cancel a manual save too. Model the user saving again before
+    // clicking Pause/Resume; never continue with an unsaved fixture edit.
+    for (let attempt = 0; ; attempt++) {
+      if (await document.save()) break;
+      assert.ok(attempt < 4, "Manual fixture save must complete");
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    if (process.env.FORMATTING_CONTROLS_EXHAUSTIVE === "1") {
+      // The exhaustive state matrix starts only after the host acknowledges a
+      // manual save. A native no-op reloads that cache even if a watcher event
+      // was missed. Assert it does not alter any text/version/disk contents.
+      const savedText = document.getText(),
+        savedVersion = document.version;
+      assert.equal(readFileSync(settingsUri.fsPath, "utf8"), savedText);
+      await configuration(selection).update(
+        flags[0],
+        values[0],
+        selection.target,
+      );
+      assert.equal(document.version, savedVersion);
+      assert.equal(document.getText(), savedText);
+      assert.equal(readFileSync(settingsUri.fsPath, "utf8"), savedText);
+    }
     for (let attempt = 0; ; attempt++) {
       if (flags.every((key, index) => own(selection, key) === values[index]))
         break;
@@ -172,6 +203,8 @@ export async function run(): Promise<void> {
         `Resume left settings dirty in cycle ${cycle}`,
       );
       assert.equal(workflows.recovery(), null);
+      if (cycle % 10 === 9)
+        console.log(`Inherited cycles completed: ${cycle + 1}/50`);
       await new Promise((resolve) =>
         setTimeout(resolve, cycle % 3 === 0 ? 150 : 5),
       );
@@ -181,6 +214,7 @@ export async function run(): Promise<void> {
         `Delayed drift in cycle ${cycle}`,
       );
     }
+    console.log("Completed 50 inherited Pause/Resume cycles");
     action = "interrupted resume";
     await controls.pause();
     await write(selection, "editor.formatOnType", undefined);
@@ -291,10 +325,78 @@ export async function run(): Promise<void> {
       [true, undefined, undefined],
     );
     assert.equal(workflows.recovery(), null);
+    if (process.env.FORMATTING_CONTROLS_EXHAUSTIVE === "1") {
+      const combinations = Array.from({ length: 8 }, (_, mask) =>
+        flags.map((_, bit) => Boolean(mask & (1 << bit))),
+      );
+      let cases = 0;
+      for (const baseline of combinations) {
+        for (const intermediate of combinations) {
+          for (const final of combinations) {
+            action = `resumed edits ${baseline} -> ${intermediate} -> ${final}`;
+            await manualSave(baseline);
+            await manualSave(intermediate);
+            await manualSave(final);
+            assert.equal(workflows.recovery(), null, action);
+            await controls.pause();
+            assert.deepEqual(
+              snapshot("exhaustive paused").effective,
+              [false, false, false],
+              action,
+            );
+            assert.equal(workflows.recovery()?.kind, "pause", action);
+            await controls.pause();
+            const normal = snapshot("exhaustive resumed edits restored");
+            assert.deepEqual(normal.owned, final, action);
+            assert.deepEqual(normal.disk, final, action);
+            assert.equal(workflows.recovery(), null, action);
+
+            action = `paused edits ${baseline} -> ${intermediate} -> ${final}`;
+            await manualSave(baseline);
+            await controls.pause();
+            await manualSave(intermediate);
+            await manualSave(final);
+            assert.equal(workflows.recovery()?.kind, "pause", action);
+            await controls.pause();
+            // Final true is a newer preference; final false matches Pause and
+            // restores the pre-pause value, regardless of intermediate edits.
+            const expected = baseline.map(
+              (value, index) => value || final[index],
+            );
+            const resumed = snapshot("exhaustive paused edits restored");
+            assert.deepEqual(resumed.owned, expected, action);
+            assert.deepEqual(resumed.effective, expected, action);
+            assert.deepEqual(resumed.disk, expected, action);
+            assert.equal(document.isDirty, false, action);
+            assert.equal(workflows.recovery(), null, action);
+            await controls.pause();
+            assert.deepEqual(
+              snapshot("exhaustive fresh pause").effective,
+              [false, false, false],
+              action,
+            );
+            await controls.pause();
+            assert.deepEqual(
+              snapshot("exhaustive fresh resume").owned,
+              expected,
+              action,
+            );
+            assert.equal(workflows.recovery(), null, action);
+            cases++;
+            if (cases % 8 === 0)
+              console.log(`Exhaustive progress: ${cases * 2}/1024`);
+          }
+        }
+        console.log(
+          `Exhaustive saved-edit sequences passed: ${cases * 2}/1024`,
+        );
+      }
+    }
     console.log(
       "Single-folder Pause/Resume: 50 inherited cycles, interrupted restore, all 8 explicit combinations × 10 cycles and all 8 saved edits during pause with fresh cycles passed",
     );
   } finally {
+    if (heartbeat) clearInterval(heartbeat);
     writeFileSync(join(report, "trace.json"), JSON.stringify(trace, null, 2));
     for (const listener of listeners) listener.dispose();
     workflows.dispose();

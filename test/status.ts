@@ -19,6 +19,7 @@ export async function reviewStatus(
   ].map((state) =>
     statusArtwork({
       ...state,
+      ...(state.paused ? { folder: "second-project" } : {}),
       file: "app.ts",
       language: "typescript",
       workspace: "project",
@@ -38,7 +39,8 @@ export async function reviewStatus(
       pauseOffsetY: number;
       summaryHeadingOffsetY: number;
       summaryIconOffsetY: number;
-      summaryStateOffsetY: number;
+      summaryTop: number;
+      triggerBottom: number;
       summaryFits: boolean;
       headerFits: boolean;
       pauseFits: boolean;
@@ -64,31 +66,34 @@ export async function reviewStatus(
       return root;
     }
     return fixtures.map(art => {
-      const stateImage = mount(art.state), context = mount(art.context), pause = mount(art.pause), header = mount(art.header), summary = mount(art.summary);
+      const stateImage = mount(art.state), context = mount(art.context), pause = mount(art.pause), header = mount(art.header), summary = mount(art.summary), formatting = mount(art.formatting);
       try {
         const stateText = stateImage.querySelector("text").getBBox();
         const file = Array.from(context.querySelectorAll("text")).find(text => text.textContent.startsWith("Active file:")).getBBox();
-        const workspace = Array.from(context.querySelectorAll("text")).find(text => text.textContent.startsWith("Workspace:")).getBBox();
+        const contextLines = Array.from(context.querySelectorAll("text"));
+        const lastContextLine = (contextLines.find(text => text.textContent.startsWith("Folder:")) ?? contextLines.find(text => text.textContent.startsWith("Workspace:"))).getBBox();
+        const contextIcon = context.querySelector("circle").getBBox();
         const pauseText = pause.querySelector("text").getBBox();
         const title = header.querySelector("text").getBBox();
         const summaryText = summary.querySelectorAll("text");
         const summaryHeading = summaryText[0].getBBox();
-        const summaryState = summaryText[1].getBBox();
         const summaryIcon = summary.querySelector("circle").getBBox();
+        const triggerNote = Array.from(formatting.querySelectorAll("text")).at(-1).getBBox();
         return {
           stateEdgeOffsetX: stateText.x + stateText.width - art.state.width,
-          stateOffsetY: stateText.y + stateText.height/2 - 14,
-          contextOffsetY: (file.y + workspace.y + workspace.height)/2 - 42,
+          stateOffsetY: stateText.y + stateText.height/2 - art.state.height/2,
+          contextOffsetY: (file.y + lastContextLine.y + lastContextLine.height)/2 - (contextIcon.y + contextIcon.height/2),
           pauseOffsetX: pauseText.x + pauseText.width/2 - art.pause.width/2,
           pauseOffsetY: pauseText.y + pauseText.height/2 - art.pause.height/2,
           summaryHeadingOffsetY: summaryHeading.y + summaryHeading.height/2 - 14,
           summaryIconOffsetY: summaryIcon.y + summaryIcon.height/2 - 14,
-          summaryStateOffsetY: summaryState.y + summaryState.height/2 - 14,
+          summaryTop: summaryHeading.y,
+          triggerBottom: triggerNote.y + triggerNote.height,
           summaryFits: summaryHeading.x + summaryHeading.width < summaryIcon.x,
           headerFits: title.x + title.width <= art.header.width,
           pauseFits: pauseText.x >= 1 && pauseText.x + pauseText.width <= art.pause.width - 1,
         };
-      } finally { stateImage.remove(); context.remove(); pause.remove(); header.remove(); summary.remove(); }
+      } finally { stateImage.remove(); context.remove(); pause.remove(); header.remove(); summary.remove(); formatting.remove(); }
     });
   })(${JSON.stringify(fixtures)})`);
   writeFileSync(
@@ -104,7 +109,6 @@ export async function reviewStatus(
       measurement.pauseOffsetY,
       measurement.summaryHeadingOffsetY,
       measurement.summaryIconOffsetY,
-      measurement.summaryStateOffsetY,
     ])
       assert.ok(
         Math.abs(offset) <= 1,
@@ -130,8 +134,8 @@ export async function reviewStatus(
   const loaded = async () => {
     await hover.waitFor({ state: "visible" });
     const images = hover.locator("img");
-    await images.nth(12).waitFor();
-    assert.equal(await images.count(), 13, "All status artwork is rendered");
+    await images.nth(10).waitFor();
+    assert.equal(await images.count(), 12, "All status artwork is rendered");
   };
   const captureCard = async (name: string) => {
     const bounds = await hover.boundingBox();
@@ -160,28 +164,28 @@ export async function reviewStatus(
   const hovered = await hover.boundingBox();
   const anchor = await button.boundingBox();
   assert.ok(hovered && anchor);
-  // Enter through the status item's hover bridge before moving sideways to
-  // an action. Jumping straight across the gap can dismiss a transient hover.
-  await page.mouse.move(
-    Math.max(
-      hovered.x + 8,
-      Math.min(anchor.x + anchor.width / 2, hovered.x + hovered.width - 8),
-    ),
-    hovered.y + hovered.height - 8,
-    { steps: 4 },
-  );
-  // Keep the pointer over the actual action while collecting screenshots.
-  // Resting in the bottom padding can let the native transient hover expire
-  // before Playwright finishes waiting for a stable click target (notably HC).
-  const hoverPauseBounds = await hover
-    .getByRole("link", { name: "Pause", exact: true })
-    .boundingBox();
-  assert.ok(hoverPauseBounds);
-  await page.mouse.move(
-    hoverPauseBounds.x + hoverPauseBounds.width / 2,
-    hoverPauseBounds.y + hoverPauseBounds.height / 2,
-    { steps: 8 },
-  );
+  const enterPause = async () => {
+    const card = await hover.boundingBox();
+    const action = hover.getByRole("link", { name: "Pause", exact: true });
+    const target = await action.getByRole("img").boundingBox();
+    assert.ok(card && target);
+    // Enter through the native bridge, then travel inside the card to its
+    // header. A diagonal jump from the status bar can dismiss the hover.
+    await page.mouse.move(
+      Math.max(
+        card.x + 8,
+        Math.min(anchor.x + anchor.width / 2, card.x + card.width - 8),
+      ),
+      card.y + card.height - 8,
+      { steps: 4 },
+    );
+    await page.mouse.move(
+      target.x + target.width / 2,
+      target.y + target.height / 2,
+      { steps: 8 },
+    );
+  };
+  await enterPause();
   writeFileSync(
     join(directory, "status-row-layout.json"),
     JSON.stringify(
@@ -239,6 +243,12 @@ export async function reviewStatus(
     }
   };
   // The hover-only entry point dismisses the card before opening its picker.
+  // Screenshot capture can outlive the transient hover's native grace period
+  // on CI. Start a fresh hover before testing the real, non-forced click rather
+  // than relying on the screenshot's older DOM and position.
+  await dismiss();
+  await reopen();
+  await enterPause();
   await hover.getByRole("link", { name: "Pause", exact: true }).click();
   await picker.waitFor();
   await hover.waitFor({ state: "hidden" });
@@ -275,16 +285,16 @@ export async function reviewStatus(
     await hover.locator("input,select,button,script,style").count(),
     0,
   );
-  const scopes = hover.getByRole("img", { name: /^Write to:/ });
+  const scopes = hover.getByRole("img", { name: /^Scope:/ });
   const flags = hover.getByRole("img", { name: /^Format on save:/ });
-  const formatter = hover.getByRole("img", { name: /^Default formatter:/ });
+  const formatter = hover.getByRole("img", { name: /^Formatter:/ });
   for (const image of [scopes, flags, formatter])
     assert.equal(
       await image.evaluate((el) => !!el.closest("a")),
       false,
       "Read-only values have no command",
     );
-  await scopes.click({ position: { x: 330, y: 45 } });
+  await scopes.click({ position: { x: 300, y: 45 } });
   await flags.click({ position: { x: 14, y: 18 } });
   await formatter.click({ position: { x: 320, y: 26 } });
   assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
@@ -298,7 +308,7 @@ export async function reviewStatus(
     "File information is hover-only with no command",
   );
   const formattingInfo = hover.getByRole("img", {
-    name: /^Automatic formatting:/,
+    name: /^Automatic formatting$/,
   });
   assert.equal(
     await formattingInfo.getAttribute("title"),
@@ -331,7 +341,7 @@ export async function reviewStatus(
   assert.ok(contextBounds && dashboardBounds && issueBounds);
   assert.equal(
     contextBounds.width,
-    380,
+    330,
     "The card uses the approved narrower content width",
   );
   assert.equal(
@@ -359,8 +369,8 @@ export async function reviewStatus(
     133,
     "Issue hit area fits its outlined button",
   );
-  assert.equal(dashboardBounds.height, 28);
-  assert.equal(issueBounds.height, 28);
+  assert.equal(dashboardBounds.height, 36);
+  assert.equal(issueBounds.height, 36);
   for (const [link, bounds] of [
     [dashboard, dashboardBounds],
     [issue, issueBounds],
@@ -393,7 +403,7 @@ export async function reviewStatus(
   }
   const gutter = {
     x: dashboardBounds.x + dashboardBounds.width + 20,
-    y: dashboardBounds.y + 14,
+    y: dashboardBounds.y + 21,
   };
   assert.equal(
     await hover.evaluate(
@@ -417,71 +427,84 @@ export async function reviewStatus(
   );
   assert.equal(await issue.getAttribute("title"), "Open a new issue on GitHub");
   const pauseLink = hover.getByRole("link", { name: "Pause", exact: true });
-  assert.equal(await pauseLink.getAttribute("title"), null);
+  assert.equal(await pauseLink.getAttribute("title"), statusHelp.pause);
   const pauseImage = pauseLink.getByRole("img", { name: "Pause", exact: true });
-  assert.equal(await pauseImage.getAttribute("title"), null);
+  assert.equal(await pauseImage.getAttribute("title"), statusHelp.pause);
   assert.equal((await pauseImage.boundingBox())?.width, 66);
-  assert.equal((await pauseImage.boundingBox())?.height, 28);
   const pauseBounds = await pauseImage.boundingBox();
-  const formatterBounds = await formatter.boundingBox();
   const settingsBounds = await settings.getByRole("img").boundingBox();
   const headerBounds = await hover
     .getByRole("img", { name: "Kira Formatting Controls", exact: true })
     .boundingBox();
-  assert.ok(
-    pauseBounds && formatterBounds && settingsBounds && headerBounds && hovered,
-  );
+  assert.ok(pauseBounds && settingsBounds && headerBounds && hovered);
   const center = (box: { y: number; height: number }) => box.y + box.height / 2;
   assert.equal(settingsBounds.height, 24, "Settings keeps its current size");
+  assert.equal(
+    pauseBounds.height,
+    settingsBounds.height,
+    "Pause/Resume and Settings share the same height",
+  );
   assert.ok(Math.abs(center(settingsBounds) - center(headerBounds)) <= 1);
+  const summaryBounds = await formattingInfo.boundingBox();
   const flagBounds = await flags.boundingBox();
-  const caption = hover.getByRole("img", {
-    name: statusHelp.pause,
-    exact: true,
-  });
-  const captionBounds = await caption.boundingBox();
-  assert.ok(flagBounds && captionBounds);
-  const pauseTopGap = pauseBounds.y - (flagBounds.y + flagBounds.height);
-  const pauseBottomGap =
-    formatterBounds.y + 1 - (pauseBounds.y + pauseBounds.height);
+  assert.ok(summaryBounds && flagBounds);
+  const formatterBounds = await hover
+    .getByRole("img", { name: /^Formatter:/ })
+    .boundingBox();
+  assert.ok(formatterBounds && alignment[0]);
+  const formattingTopGap =
+    summaryBounds.y + alignment[0].summaryTop - (formatterBounds.y + 46);
+  const formattingBottomGap =
+    dashboardBounds.y + 1 - (flagBounds.y + alignment[0].triggerBottom);
   assert.ok(
-    pauseTopGap >= 10 &&
-      pauseTopGap <= 14 &&
-      pauseBottomGap >= 10 &&
-      pauseBottomGap <= 14 &&
-      Math.abs(pauseTopGap - pauseBottomGap) <= 2,
-    `Pause row padding stays balanced (${pauseTopGap}px above, ${pauseBottomGap}px below)`,
+    Math.abs(formattingTopGap - formattingBottomGap) <= 1,
+    `Automatic formatting has balanced padding (${formattingTopGap}px above, ${formattingBottomGap}px below)`,
   );
-  assert.ok(Math.abs(center(pauseBounds) - center(captionBounds)) <= 1);
-  assert.equal(await caption.evaluate((el) => Boolean(el.closest("a"))), false);
+  assert.ok(
+    Math.abs(center(pauseBounds) - center(headerBounds)) <= 1,
+    "Pause aligns with the title and Settings",
+  );
+  assert.ok(
+    pauseBounds.x >= headerBounds.x + headerBounds.width &&
+      pauseBounds.x + pauseBounds.width + 4 <= settingsBounds.x,
+    "Pause stays between the title and Settings with a clear gap",
+  );
+  const formattingState = hover.getByRole("img", {
+    name: /^Automatic formatting: (Enabled|Disabled|Mixed)$/,
+  });
+  const stateBounds = await formattingState.boundingBox();
+  assert.ok(stateBounds);
+  assert.ok(Math.abs(center(stateBounds) - center(summaryBounds)) <= 1);
+  assert.ok(
+    stateBounds.x >= summaryBounds.x + summaryBounds.width &&
+      stateBounds.y + stateBounds.height <= flagBounds.y,
+    "Status stays beside Automatic formatting and above its triggers",
+  );
   assert.equal(
-    await pauseImage.evaluate(
-      (el) => el.closest("tr") === el.closest("table")?.querySelector("tr"),
-    ),
+    await formattingState.getAttribute("title"),
+    statusHelp.formatting,
+  );
+  assert.equal(
+    await formattingState.evaluate((el) => Boolean(el.closest("a"))),
     false,
   );
-  assert.equal(
-    await hover.evaluate(
-      (element, point) =>
-        Boolean(
-          element.ownerDocument
-            .elementFromPoint(point.x, point.y)
-            ?.closest("a"),
-        ),
-      { x: pauseBounds.x + pauseBounds.width / 2, y: pauseBounds.y - 4 },
-    ),
-    false,
-    "Pause row padding cannot invoke an action",
+  assert.match(
+    (await formattingState.getAttribute("alt")) ?? "",
+    /Automatic formatting: (Enabled|Disabled|Mixed)/,
   );
-  await caption.click();
+  assert.equal(
+    await formattingInfo.evaluate((el) => Boolean(el.closest("a"))),
+    false,
+  );
+  await formattingInfo.click();
   assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
   assert.deepEqual(await hover.boundingBox(), hovered);
-  const footerTopGap = dashboardBounds.y + 14 - (formatterBounds.y + 55);
+  const footerTopGap = dashboardBounds.y + 21 - (dashboardBounds.y + 1);
   const footerBottomGap =
-    hovered.y + hovered.height - 1 - (dashboardBounds.y + 14);
+    hovered.y + hovered.height - 1 - (dashboardBounds.y + 21);
   assert.ok(
     Math.abs(footerTopGap - footerBottomGap) <= 2,
-    `Footer text is centered between its separator and the frame (${footerTopGap}px above, ${footerBottomGap}px below)`,
+    `Footer text stays centered (${footerTopGap}px above, ${footerBottomGap}px below)`,
   );
   const feedback = [];
   for (const link of [settings, dashboard, issue, pauseLink]) {
@@ -573,7 +596,12 @@ export async function reviewStatus(
   // Pause/Resume applies only after the native picker closes the status card.
   const originalFlags = await flags.getAttribute("alt");
   for (const action of ["Pause", "Resume"]) {
-    await hover.getByRole("link", { name: action, exact: true }).click();
+    const actionLink = hover.getByRole("link", { name: action, exact: true });
+    assert.equal(
+      await actionLink.getAttribute("title"),
+      action === "Pause" ? statusHelp.pause : statusHelp.resume,
+    );
+    await actionLink.click();
     await picker.waitFor();
     await hover.waitFor({ state: "hidden" });
     await picker
