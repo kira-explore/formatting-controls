@@ -2,6 +2,8 @@
 
 ## 0.7.0 — Unreleased
 
+- Use the same text color for Pause and Resume while keeping Resume's soft blue background and border.
+
 - Widen the Scope, Language and Formatter dropdown displays to the left to match the approved label spacing. Keep labels, row heights, card width and formatting actions in place.
 
 ## 0.6.0
