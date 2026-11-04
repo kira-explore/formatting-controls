@@ -2,6 +2,8 @@
 
 ## 0.6.0 — Unreleased
 
+- Narrow the status card to 330px of content, match Pause/Resume to the 24px Settings button height, and balance Automatic formatting section padding. Keep text and icon sizes unchanged.
+
 - Place Pause/Resume before the two-slider Settings icon in the padded header. Show borderless, fixed-width Enabled/Disabled/Mixed status beside Automatic formatting.
 
 - Put multi-project folder context on a separate line and show compact active-file language labels such as JS, TS, JSX, TSX, JSON and JSONC.

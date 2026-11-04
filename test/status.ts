@@ -39,6 +39,8 @@ export async function reviewStatus(
       pauseOffsetY: number;
       summaryHeadingOffsetY: number;
       summaryIconOffsetY: number;
+      summaryTop: number;
+      triggerBottom: number;
       summaryFits: boolean;
       headerFits: boolean;
       pauseFits: boolean;
@@ -64,7 +66,7 @@ export async function reviewStatus(
       return root;
     }
     return fixtures.map(art => {
-      const stateImage = mount(art.state), context = mount(art.context), pause = mount(art.pause), header = mount(art.header), summary = mount(art.summary);
+      const stateImage = mount(art.state), context = mount(art.context), pause = mount(art.pause), header = mount(art.header), summary = mount(art.summary), formatting = mount(art.formatting);
       try {
         const stateText = stateImage.querySelector("text").getBBox();
         const file = Array.from(context.querySelectorAll("text")).find(text => text.textContent.startsWith("Active file:")).getBBox();
@@ -76,6 +78,7 @@ export async function reviewStatus(
         const summaryText = summary.querySelectorAll("text");
         const summaryHeading = summaryText[0].getBBox();
         const summaryIcon = summary.querySelector("circle").getBBox();
+        const triggerNote = Array.from(formatting.querySelectorAll("text")).at(-1).getBBox();
         return {
           stateEdgeOffsetX: stateText.x + stateText.width - art.state.width,
           stateOffsetY: stateText.y + stateText.height/2 - art.state.height/2,
@@ -84,11 +87,13 @@ export async function reviewStatus(
           pauseOffsetY: pauseText.y + pauseText.height/2 - art.pause.height/2,
           summaryHeadingOffsetY: summaryHeading.y + summaryHeading.height/2 - 14,
           summaryIconOffsetY: summaryIcon.y + summaryIcon.height/2 - 14,
+          summaryTop: summaryHeading.y,
+          triggerBottom: triggerNote.y + triggerNote.height,
           summaryFits: summaryHeading.x + summaryHeading.width < summaryIcon.x,
           headerFits: title.x + title.width <= art.header.width,
           pauseFits: pauseText.x >= 1 && pauseText.x + pauseText.width <= art.pause.width - 1,
         };
-      } finally { stateImage.remove(); context.remove(); pause.remove(); header.remove(); summary.remove(); }
+      } finally { stateImage.remove(); context.remove(); pause.remove(); header.remove(); summary.remove(); formatting.remove(); }
     });
   })(${JSON.stringify(fixtures)})`);
   writeFileSync(
@@ -283,7 +288,7 @@ export async function reviewStatus(
       false,
       "Read-only values have no command",
     );
-  await scopes.click({ position: { x: 330, y: 45 } });
+  await scopes.click({ position: { x: 300, y: 45 } });
   await flags.click({ position: { x: 14, y: 18 } });
   await formatter.click({ position: { x: 320, y: 26 } });
   assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
@@ -330,7 +335,7 @@ export async function reviewStatus(
   assert.ok(contextBounds && dashboardBounds && issueBounds);
   assert.equal(
     contextBounds.width,
-    380,
+    330,
     "The card uses the approved narrower content width",
   );
   assert.equal(
@@ -420,7 +425,6 @@ export async function reviewStatus(
   const pauseImage = pauseLink.getByRole("img", { name: "Pause", exact: true });
   assert.equal(await pauseImage.getAttribute("title"), statusHelp.pause);
   assert.equal((await pauseImage.boundingBox())?.width, 66);
-  assert.equal((await pauseImage.boundingBox())?.height, 28);
   const pauseBounds = await pauseImage.boundingBox();
   const settingsBounds = await settings.getByRole("img").boundingBox();
   const headerBounds = await hover
@@ -429,10 +433,27 @@ export async function reviewStatus(
   assert.ok(pauseBounds && settingsBounds && headerBounds && hovered);
   const center = (box: { y: number; height: number }) => box.y + box.height / 2;
   assert.equal(settingsBounds.height, 24, "Settings keeps its current size");
+  assert.equal(
+    pauseBounds.height,
+    settingsBounds.height,
+    "Pause/Resume and Settings share the same height",
+  );
   assert.ok(Math.abs(center(settingsBounds) - center(headerBounds)) <= 1);
   const summaryBounds = await formattingInfo.boundingBox();
   const flagBounds = await flags.boundingBox();
   assert.ok(summaryBounds && flagBounds);
+  const formatterBounds = await hover
+    .getByRole("img", { name: /^Formatter:/ })
+    .boundingBox();
+  assert.ok(formatterBounds && alignment[0]);
+  const formattingTopGap =
+    summaryBounds.y + alignment[0].summaryTop - (formatterBounds.y + 46);
+  const formattingBottomGap =
+    dashboardBounds.y + 1 - (flagBounds.y + alignment[0].triggerBottom);
+  assert.ok(
+    Math.abs(formattingTopGap - formattingBottomGap) <= 1,
+    `Automatic formatting has balanced padding (${formattingTopGap}px above, ${formattingBottomGap}px below)`,
+  );
   assert.ok(
     Math.abs(center(pauseBounds) - center(headerBounds)) <= 1,
     "Pause aligns with the title and Settings",

@@ -152,7 +152,7 @@ export function statusArtwork(
     anchor: "start" | "middle" | "end" = "start",
   ) =>
     `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" text-anchor="${anchor}" dominant-baseline="central">${escapeText(value)}</text>`;
-  const line = (y: number) => `<path d="M5 ${y}H375" stroke="${p.line}"/>`;
+  const line = (y: number) => `<path d="M5 ${y}H325" stroke="${p.line}"/>`;
   const infoGlyph = (x: number, y: number, color: string) =>
     `<circle cx="${x}" cy="${y}" r="5" stroke="${color}" fill="none"/><circle cx="${x}" cy="${y - 2.75}" r=".55" fill="${color}"/><path d="M${x} ${y - 0.46}v3.2" stroke="${color}" stroke-width="1.1" stroke-linecap="round"/>`;
   const rect = (
@@ -166,10 +166,10 @@ export function statusArtwork(
   ) =>
     `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" stroke="${stroke}" fill="${fill}"/>`;
   const dropdown = (y: number, value: string) =>
-    rect(168, y, 207, 28) +
-    centeredText(178, y + 14, shortened(value, 28)) +
-    `<path d="M356.5 ${y + 12.25}l3.5 3.5 3.5-3.5" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
-  const svg = (height: number, contents: string, width = 380) =>
+    rect(143, y, 182, 28) +
+    centeredText(153, y + 14, shortened(value, 24)) +
+    `<path d="M306.5 ${y + 12.25}l3.5 3.5 3.5-3.5" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
+  const svg = (height: number, contents: string, width = 330) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g font-family="-apple-system, BlinkMacSystemFont, Segoe WPC, Segoe UI, system-ui, Ubuntu, Droid Sans, sans-serif" font-weight="400">${contents}</g></svg>`;
   const state = context.flags.every(Boolean)
     ? "Enabled"
@@ -205,7 +205,7 @@ export function statusArtwork(
     height: number,
     contents: string,
     alt: string,
-    width = 380,
+    width = 330,
   ) => ({ svg: svg(height, contents, width), alt, width, height });
   // Keep the info gap stable when the renderer selects a wider fallback font.
   const formattingHeading = `<text x="5" y="14" dominant-baseline="central" font-size="13.5" textLength="135" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>`;
@@ -221,7 +221,7 @@ export function statusArtwork(
         centeredText(
           33,
           y + 27,
-          shortened(sourceNotes[i] ?? "", 51),
+          shortened(sourceNotes[i] ?? "", 44),
           12.5,
           p.muted,
         )
@@ -258,17 +258,17 @@ export function statusArtwork(
       36,
       centeredText(5, 18, "Kira Formatting Controls", 13.5),
       "Kira Formatting Controls",
-      250,
+      220,
     ),
     context: image(
       76 + contextExtraHeight,
       line(1) +
-        rect(5, 12, 370, 60 + contextExtraHeight, p.focus, p.info, 6) +
+        rect(5, 12, 320, 60 + contextExtraHeight, p.focus, p.info, 6) +
         infoGlyph(25, 42 + contextExtraHeight / 2, p.focus) +
-        centeredText(45, 33, shortened(fileLabel, 48)) +
-        centeredText(45, 51, shortened(workspace, 48), 12.5, p.muted) +
+        centeredText(45, 33, shortened(fileLabel, 41)) +
+        centeredText(45, 51, shortened(workspace, 41), 12.5, p.muted) +
         (folder
-          ? centeredText(45, 69, shortened(folder, 48), 12.5, p.muted)
+          ? centeredText(45, 69, shortened(folder, 41), 12.5, p.muted)
           : ""),
       `${file}. ${workspace}.${folder ? ` ${folder}.` : ""}`,
     ),
@@ -291,10 +291,10 @@ export function statusArtwork(
       28,
       formattingHeading + infoGlyph(153, 15, p.muted),
       "Automatic formatting",
-      250,
+      220,
     ),
     formatting: image(
-      128,
+      134,
       flagContents,
       `${flagDescription} Checkbox displays are read-only.`,
     ),
@@ -307,18 +307,18 @@ export function statusArtwork(
       `Formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
     ),
     pause: image(
-      28,
+      24,
       rect(
         0.5,
         0.5,
         65,
-        27,
+        23,
         context.paused && context.canPause ? p.resumeBorder : p.border,
         context.paused && context.canPause ? p.resume : p.button,
       ) +
         centeredText(
           33,
-          14,
+          12,
           pauseLabel,
           12.5,
           context.canPause ? (context.paused ? p.resumeText : p.fg) : p.muted,
@@ -342,7 +342,7 @@ export function statusArtwork(
       "Open dashboard ↗",
       139,
     ),
-    footerGap: image(36, `<path d="M0 1H108" stroke="${p.line}"/>`, "", 108),
+    footerGap: image(36, `<path d="M0 1H58" stroke="${p.line}"/>`, "", 58),
     issue: image(
       36,
       `<path d="M0 1H128" stroke="${p.line}"/><text x="12" y="21" dominant-baseline="central" font-size="12.5" textLength="104.81" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,

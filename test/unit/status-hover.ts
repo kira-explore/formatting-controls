@@ -47,7 +47,7 @@ test("reference artwork has live values, accessible descriptions and read-only f
     JSON.parse(decodeURIComponent(match[1] ?? "")),
   );
   assert.deepEqual(actions, [[7, "pause"]]);
-  assert.match(html, /width="380" height="76"/);
+  assert.match(html, /width="330" height="76"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
   assert.match(art.state.alt, /Mixed/);
   assert.doesNotMatch(art.context.alt, /Automatic formatting:/);
@@ -153,7 +153,7 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
   );
   for (const art of variants) {
     assert.equal(art.pause.width, 66);
-    assert.equal(art.pause.height, 28);
+    assert.equal(art.pause.height, art.settings.height);
     assert.doesNotMatch(art.state.svg, /<rect\b/);
     assert.doesNotMatch(art.summary.svg, /<rect\b/);
   }
@@ -189,7 +189,7 @@ test("information and pause explanations are passive while actions retain their 
       button[2],
       ` title="${paused ? statusHelp.resume : statusHelp.pause}"`,
     );
-    assert.match(button[3] ?? "", /width="66" height="28"/);
+    assert.match(button[3] ?? "", /width="66" height="24"/);
     assert.match(
       button[3] ?? "",
       /title="(?:Pause automatic|Restore your previous)/,
