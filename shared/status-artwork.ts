@@ -266,7 +266,8 @@ export function statusArtwork(
         rect(5, 12, 370, 60 + contextExtraHeight, p.focus, p.info, 6) +
         infoGlyph(25, 42 + contextExtraHeight / 2, p.focus) +
         centeredText(45, 33, shortened(fileLabel, 38)) +
-        centeredText(360, 33, state, 12.5, p.muted, "end") +
+        rect(292, 21, 78, 24, p.border, p.info) +
+        centeredText(331, 33, state, 12.5, p.muted, "middle") +
         centeredText(45, 51, shortened(workspace, 48), 12.5, p.muted) +
         (folder
           ? centeredText(45, 69, shortened(folder, 48), 12.5, p.muted)

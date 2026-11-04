@@ -2,6 +2,8 @@
 
 ## 0.6.0 — Unreleased
 
+- Add a subtle fixed-width outline around the active-file formatting status, with centered sentence-case labels.
+
 - Put multi-project folder context on a separate line and show compact active-file language labels such as JS, TS, JSX, TSX, JSON and JSONC.
 
 - Show the effective formatting status in the active-file box and place Pause/Resume beside Automatic formatting. Resume uses a subtle blue highlight; both actions retain their explanatory tooltips.
