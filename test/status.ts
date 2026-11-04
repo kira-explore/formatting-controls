@@ -39,7 +39,6 @@ export async function reviewStatus(
       pauseOffsetY: number;
       summaryHeadingOffsetY: number;
       summaryIconOffsetY: number;
-      contextStateOffsetY: number;
       summaryFits: boolean;
       headerFits: boolean;
       pauseFits: boolean;
@@ -76,17 +75,15 @@ export async function reviewStatus(
         const title = header.querySelector("text").getBBox();
         const summaryText = summary.querySelectorAll("text");
         const summaryHeading = summaryText[0].getBBox();
-        const contextState = Array.from(context.querySelectorAll("text")).find(text => ["Enabled", "Disabled", "Mixed"].includes(text.textContent)).getBBox();
         const summaryIcon = summary.querySelector("circle").getBBox();
         return {
-          stateEdgeOffsetX: stateText.x + stateText.width - art.state.width,
-          stateOffsetY: stateText.y + stateText.height/2 - 14,
+          stateEdgeOffsetX: stateText.x + stateText.width - (art.state.width - 10),
+          stateOffsetY: stateText.y + stateText.height/2 - art.state.height/2,
           contextOffsetY: (file.y + lastContextLine.y + lastContextLine.height)/2 - (contextIcon.y + contextIcon.height/2),
           pauseOffsetX: pauseText.x + pauseText.width/2 - art.pause.width/2,
           pauseOffsetY: pauseText.y + pauseText.height/2 - art.pause.height/2,
           summaryHeadingOffsetY: summaryHeading.y + summaryHeading.height/2 - 14,
           summaryIconOffsetY: summaryIcon.y + summaryIcon.height/2 - 14,
-          contextStateOffsetY: contextState.y + contextState.height/2 - 33,
           summaryFits: summaryHeading.x + summaryHeading.width < summaryIcon.x,
           headerFits: title.x + title.width <= art.header.width,
           pauseFits: pauseText.x >= 1 && pauseText.x + pauseText.width <= art.pause.width - 1,
@@ -107,7 +104,6 @@ export async function reviewStatus(
       measurement.pauseOffsetY,
       measurement.summaryHeadingOffsetY,
       measurement.summaryIconOffsetY,
-      measurement.contextStateOffsetY,
     ])
       assert.ok(
         Math.abs(offset) <= 1,
@@ -134,7 +130,7 @@ export async function reviewStatus(
     await hover.waitFor({ state: "visible" });
     const images = hover.locator("img");
     await images.nth(10).waitFor();
-    assert.equal(await images.count(), 11, "All status artwork is rendered");
+    assert.equal(await images.count(), 12, "All status artwork is rendered");
   };
   const captureCard = async (name: string) => {
     const bounds = await hover.boundingBox();
@@ -445,9 +441,27 @@ export async function reviewStatus(
     pauseBounds.y + pauseBounds.height <= flagBounds.y,
     "Pause is above the formatting triggers",
   );
-  const fileState = await fileInfo.getAttribute("alt");
+  const headerState = hover.getByRole("img", {
+    name: /^Automatic formatting: (Enabled|Disabled|Mixed)$/,
+  });
+  const stateBounds = await headerState.boundingBox();
+  assert.ok(stateBounds);
+  assert.ok(Math.abs(center(stateBounds) - center(headerBounds)) <= 1);
+  assert.ok(
+    stateBounds.x >= headerBounds.x + headerBounds.width &&
+      stateBounds.x + stateBounds.width <= settingsBounds.x,
+    "Status stays between the title and Settings",
+  );
+  assert.equal(
+    await headerState.getAttribute("title"),
+    "Automatic formatting for the active file.",
+  );
+  assert.equal(
+    await headerState.evaluate((el) => Boolean(el.closest("a"))),
+    false,
+  );
   assert.match(
-    fileState ?? "",
+    (await headerState.getAttribute("alt")) ?? "",
     /Automatic formatting: (Enabled|Disabled|Mixed)/,
   );
   assert.equal(

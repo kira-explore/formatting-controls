@@ -50,7 +50,8 @@ test("reference artwork has live values, accessible descriptions and read-only f
   assert.match(html, /width="380" height="76"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
   assert.match(art.state.alt, /Mixed/);
-  assert.match(art.context.alt, /Automatic formatting: Mixed/);
+  assert.doesNotMatch(art.context.alt, /Automatic formatting:/);
+  assert.match(html, /alt="Automatic formatting: Mixed"/);
   assert.match(html, /data:image\/svg\+xml;base64,/);
 });
 
@@ -199,7 +200,7 @@ test("information and pause explanations are passive while actions retain their 
     );
     assert.match(
       rows[0] ?? "",
-      /alt="Kira Formatting Controls".*alt="Open VS Code Settings"/,
+      /alt="Kira Formatting Controls".*alt="Automatic formatting: Mixed".*alt="Open VS Code Settings"/,
     );
     assert.doesNotMatch(rows[0] ?? "", /alt="(?:Pause|Resume)"/);
     const pauseIndex = rows.findIndex((row) =>

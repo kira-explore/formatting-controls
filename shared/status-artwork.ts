@@ -244,7 +244,7 @@ export function statusArtwork(
     settings: image(
       24,
       rect(0.5, 0.5, 25, 23, p.border, p.button) +
-        `<g transform="translate(7.4 7.1) scale(.7)" fill="none" stroke="${p.fg}" stroke-width="1.5"><path d="M0 2h16M0 7h16M0 12h16M5 0v4M11 5v4M7 10v4"/></g>`,
+        `<g transform="translate(6.6 5.6) scale(.8)" fill="none" stroke="${p.fg}" stroke-width="1.5" stroke-linecap="round"><path d="M0 4h3.5M8.5 4H16M0 12h8M13 12h3"/><circle cx="6" cy="4" r="2.5"/><circle cx="10.5" cy="12" r="2.5"/></g>`,
       "Open VS Code Settings",
       26,
     ),
@@ -265,14 +265,12 @@ export function statusArtwork(
       line(1) +
         rect(5, 12, 370, 60 + contextExtraHeight, p.focus, p.info, 6) +
         infoGlyph(25, 42 + contextExtraHeight / 2, p.focus) +
-        centeredText(45, 33, shortened(fileLabel, 38)) +
-        rect(292, 21, 78, 24, p.border, p.info) +
-        centeredText(331, 33, state, 12.5, p.muted, "middle") +
+        centeredText(45, 33, shortened(fileLabel, 48)) +
         centeredText(45, 51, shortened(workspace, 48), 12.5, p.muted) +
         (folder
           ? centeredText(45, 69, shortened(folder, 48), 12.5, p.muted)
           : ""),
-      `${file}. ${workspace}.${folder ? ` ${folder}.` : ""} Automatic formatting: ${state}.`,
+      `${file}. ${workspace}.${folder ? ` ${folder}.` : ""}`,
     ),
     scopes: image(
       72,
@@ -284,8 +282,8 @@ export function statusArtwork(
     ),
     heading: image(28, formattingHeading, "Automatic formatting", 153),
     state: image(
-      28,
-      centeredText(78, 14, state, 12.5, p.muted, "end"),
+      36,
+      centeredText(68, 18, state, 12.5, p.muted, "end"),
       `Automatic formatting: ${state}`,
       78,
     ),
