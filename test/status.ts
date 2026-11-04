@@ -164,28 +164,28 @@ export async function reviewStatus(
   const hovered = await hover.boundingBox();
   const anchor = await button.boundingBox();
   assert.ok(hovered && anchor);
-  // Enter through the status item's hover bridge before moving sideways to
-  // an action. Jumping straight across the gap can dismiss a transient hover.
-  await page.mouse.move(
-    Math.max(
-      hovered.x + 8,
-      Math.min(anchor.x + anchor.width / 2, hovered.x + hovered.width - 8),
-    ),
-    hovered.y + hovered.height - 8,
-    { steps: 4 },
-  );
-  // Keep the pointer over the actual action while collecting screenshots.
-  // Resting in the bottom padding can let the native transient hover expire
-  // before Playwright finishes waiting for a stable click target (notably HC).
-  const hoverPauseBounds = await hover
-    .getByRole("link", { name: "Pause", exact: true })
-    .boundingBox();
-  assert.ok(hoverPauseBounds);
-  await page.mouse.move(
-    hoverPauseBounds.x + hoverPauseBounds.width / 2,
-    hoverPauseBounds.y + hoverPauseBounds.height / 2,
-    { steps: 8 },
-  );
+  const enterPause = async () => {
+    const card = await hover.boundingBox();
+    const action = hover.getByRole("link", { name: "Pause", exact: true });
+    const target = await action.getByRole("img").boundingBox();
+    assert.ok(card && target);
+    // Enter through the native bridge, then travel inside the card to its
+    // header. A diagonal jump from the status bar can dismiss the hover.
+    await page.mouse.move(
+      Math.max(
+        card.x + 8,
+        Math.min(anchor.x + anchor.width / 2, card.x + card.width - 8),
+      ),
+      card.y + card.height - 8,
+      { steps: 4 },
+    );
+    await page.mouse.move(
+      target.x + target.width / 2,
+      target.y + target.height / 2,
+      { steps: 8 },
+    );
+  };
+  await enterPause();
   writeFileSync(
     join(directory, "status-row-layout.json"),
     JSON.stringify(
@@ -243,6 +243,12 @@ export async function reviewStatus(
     }
   };
   // The hover-only entry point dismisses the card before opening its picker.
+  // Screenshot capture can outlive the transient hover's native grace period
+  // on CI. Start a fresh hover before testing the real, non-forced click rather
+  // than relying on the screenshot's older DOM and position.
+  await dismiss();
+  await reopen();
+  await enterPause();
   await hover.getByRole("link", { name: "Pause", exact: true }).click();
   await picker.waitFor();
   await hover.waitFor({ state: "hidden" });
