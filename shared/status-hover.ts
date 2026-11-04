@@ -38,11 +38,11 @@ export function statusHover(
     ? `<a href="${link("pause")}" title="${escapeText(art.pauseCaption.alt)}">${image(art.pause, art.pauseCaption.alt)}</a>`
     : image(art.pause, art.pauseCaption.alt);
   return `<table width="${art.context.width}"><colgroup><col width="${art.header.width}"><col width="${art.context.width - art.header.width}"></colgroup><tbody>${[
-    `<tr><td>${image(art.header)}</td><td align="right">${image(art.state, "Automatic formatting for the active file.")}<a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}" title="Open VS Code Settings">${image(art.settings)}</a></td></tr>`,
+    `<tr><td>${image(art.header)}</td><td align="right">${pause}&#160;&#160;<a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}" title="Open VS Code Settings">${image(art.settings)}</a></td></tr>`,
     fullRow(titled(image(art.context), statusHelp.file)),
     fullRow(image(art.scopes)),
     fullRow(image(art.formatter)),
-    `<tr><td>${titled(image(art.summary), statusHelp.formatting)}</td><td align="right">${pause}</td></tr>`,
+    `<tr><td>${titled(image(art.summary), statusHelp.formatting)}</td><td align="right">${titled(image(art.state), statusHelp.formatting)}</td></tr>`,
     fullRow(image(art.formatting)),
     fullRow(
       `<a href="command:formattingControls.dashboard" title="Open Kira Formatting Controls dashboard">${image(art.dashboard, undefined, "top")}</a>${image(art.footerGap, undefined, "top")}<a href="${issueUrl}" title="Open a new issue on GitHub">${image(art.issue, undefined, "top")}</a>`,

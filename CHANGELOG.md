@@ -2,11 +2,11 @@
 
 ## 0.6.0 — Unreleased
 
-- Place borderless, fixed-width Enabled/Disabled/Mixed status before Settings in the header and use a two-slider Settings icon.
+- Place Pause/Resume before the two-slider Settings icon in the padded header. Show borderless, fixed-width Enabled/Disabled/Mixed status beside Automatic formatting.
 
 - Put multi-project folder context on a separate line and show compact active-file language labels such as JS, TS, JSX, TSX, JSON and JSONC.
 
-- Place Pause/Resume beside Automatic formatting. Resume uses a subtle blue highlight; both actions retain their explanatory tooltips.
+- Keep a neutral Pause button and softly highlighted blue Resume button with fixed dimensions and explanatory tooltips.
 
 - Move the formatter directly below language and above Automatic formatting in the status card, keeping compact spacing. Use Scope, Language and Formatter labels.
 

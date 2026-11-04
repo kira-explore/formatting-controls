@@ -200,16 +200,24 @@ test("information and pause explanations are passive while actions retain their 
     );
     assert.match(
       rows[0] ?? "",
-      /alt="Kira Formatting Controls".*alt="Automatic formatting: Mixed".*alt="Open VS Code Settings"/,
+      /alt="Kira Formatting Controls".*alt="(?:Pause|Resume)".*alt="Open VS Code Settings"/,
     );
-    assert.doesNotMatch(rows[0] ?? "", /alt="(?:Pause|Resume)"/);
+    assert.doesNotMatch(rows[0] ?? "", /alt="Automatic formatting:/);
     const pauseIndex = rows.findIndex((row) =>
       row.includes(`alt="${paused ? "Resume" : "Pause"}"`),
     );
     assert.ok(
       pauseIndex < rows.findIndex((row) => row.includes("Format on type:")),
     );
-    assert.ok(rows.findIndex((row) => row.includes("Formatter:")) < pauseIndex);
+    assert.equal(pauseIndex, 0);
+    const statusIndex = rows.findIndex((row) =>
+      row.includes('alt="Automatic formatting: Mixed"'),
+    );
+    assert.ok(
+      rows.findIndex((row) => row.includes("Formatter:")) < statusIndex,
+    );
+    assert.match(rows[statusIndex] ?? "", /alt="Automatic formatting"/);
+    assert.doesNotMatch(rows[statusIndex] ?? "", /<a\b/);
     for (const row of rows.filter((row) => /alt="Active file:/.test(row)))
       assert.doesNotMatch(row, /<a\b/);
     assert.match(

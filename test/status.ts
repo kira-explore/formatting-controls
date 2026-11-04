@@ -77,7 +77,7 @@ export async function reviewStatus(
         const summaryHeading = summaryText[0].getBBox();
         const summaryIcon = summary.querySelector("circle").getBBox();
         return {
-          stateEdgeOffsetX: stateText.x + stateText.width - (art.state.width - 10),
+          stateEdgeOffsetX: stateText.x + stateText.width - art.state.width,
           stateOffsetY: stateText.y + stateText.height/2 - art.state.height/2,
           contextOffsetY: (file.y + lastContextLine.y + lastContextLine.height)/2 - (contextIcon.y + contextIcon.height/2),
           pauseOffsetX: pauseText.x + pauseText.width/2 - art.pause.width/2,
@@ -434,34 +434,35 @@ export async function reviewStatus(
   const flagBounds = await flags.boundingBox();
   assert.ok(summaryBounds && flagBounds);
   assert.ok(
-    Math.abs(center(pauseBounds) - center(summaryBounds)) <= 1,
-    "Pause aligns with the Automatic formatting heading",
+    Math.abs(center(pauseBounds) - center(headerBounds)) <= 1,
+    "Pause aligns with the title and Settings",
   );
   assert.ok(
-    pauseBounds.y + pauseBounds.height <= flagBounds.y,
-    "Pause is above the formatting triggers",
+    pauseBounds.x >= headerBounds.x + headerBounds.width &&
+      pauseBounds.x + pauseBounds.width + 4 <= settingsBounds.x,
+    "Pause stays between the title and Settings with a clear gap",
   );
-  const headerState = hover.getByRole("img", {
+  const formattingState = hover.getByRole("img", {
     name: /^Automatic formatting: (Enabled|Disabled|Mixed)$/,
   });
-  const stateBounds = await headerState.boundingBox();
+  const stateBounds = await formattingState.boundingBox();
   assert.ok(stateBounds);
-  assert.ok(Math.abs(center(stateBounds) - center(headerBounds)) <= 1);
+  assert.ok(Math.abs(center(stateBounds) - center(summaryBounds)) <= 1);
   assert.ok(
-    stateBounds.x >= headerBounds.x + headerBounds.width &&
-      stateBounds.x + stateBounds.width <= settingsBounds.x,
-    "Status stays between the title and Settings",
+    stateBounds.x >= summaryBounds.x + summaryBounds.width &&
+      stateBounds.y + stateBounds.height <= flagBounds.y,
+    "Status stays beside Automatic formatting and above its triggers",
   );
   assert.equal(
-    await headerState.getAttribute("title"),
-    "Automatic formatting for the active file.",
+    await formattingState.getAttribute("title"),
+    statusHelp.formatting,
   );
   assert.equal(
-    await headerState.evaluate((el) => Boolean(el.closest("a"))),
+    await formattingState.evaluate((el) => Boolean(el.closest("a"))),
     false,
   );
   assert.match(
-    (await headerState.getAttribute("alt")) ?? "",
+    (await formattingState.getAttribute("alt")) ?? "",
     /Automatic formatting: (Enabled|Disabled|Mixed)/,
   );
   assert.equal(

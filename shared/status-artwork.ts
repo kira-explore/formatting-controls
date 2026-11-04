@@ -282,8 +282,8 @@ export function statusArtwork(
     ),
     heading: image(28, formattingHeading, "Automatic formatting", 153),
     state: image(
-      36,
-      centeredText(68, 18, state, 12.5, p.muted, "end"),
+      28,
+      centeredText(78, 14, state, 12.5, p.muted, "end"),
       `Automatic formatting: ${state}`,
       78,
     ),
