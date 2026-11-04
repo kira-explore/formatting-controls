@@ -2,6 +2,8 @@
 
 ## 0.6.0 — Unreleased
 
+- Put multi-project folder context on a separate line and show compact active-file language labels such as JS, TS, JSX, TSX, JSON and JSONC.
+
 - Show the effective formatting status in the active-file box and place Pause/Resume beside Automatic formatting. Resume uses a subtle blue highlight; both actions retain their explanatory tooltips.
 
 - Move the formatter directly below language and above Automatic formatting in the status card, keeping compact spacing. Use Scope, Language and Formatter labels.

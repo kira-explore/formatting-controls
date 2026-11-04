@@ -19,6 +19,7 @@ export async function reviewStatus(
   ].map((state) =>
     statusArtwork({
       ...state,
+      ...(state.paused ? { folder: "second-project" } : {}),
       file: "app.ts",
       language: "typescript",
       workspace: "project",
@@ -68,7 +69,9 @@ export async function reviewStatus(
       try {
         const stateText = stateImage.querySelector("text").getBBox();
         const file = Array.from(context.querySelectorAll("text")).find(text => text.textContent.startsWith("Active file:")).getBBox();
-        const workspace = Array.from(context.querySelectorAll("text")).find(text => text.textContent.startsWith("Workspace:")).getBBox();
+        const contextLines = Array.from(context.querySelectorAll("text"));
+        const lastContextLine = (contextLines.find(text => text.textContent.startsWith("Folder:")) ?? contextLines.find(text => text.textContent.startsWith("Workspace:"))).getBBox();
+        const contextIcon = context.querySelector("circle").getBBox();
         const pauseText = pause.querySelector("text").getBBox();
         const title = header.querySelector("text").getBBox();
         const summaryText = summary.querySelectorAll("text");
@@ -78,7 +81,7 @@ export async function reviewStatus(
         return {
           stateEdgeOffsetX: stateText.x + stateText.width - art.state.width,
           stateOffsetY: stateText.y + stateText.height/2 - 14,
-          contextOffsetY: (file.y + workspace.y + workspace.height)/2 - 42,
+          contextOffsetY: (file.y + lastContextLine.y + lastContextLine.height)/2 - (contextIcon.y + contextIcon.height/2),
           pauseOffsetX: pauseText.x + pauseText.width/2 - art.pause.width/2,
           pauseOffsetY: pauseText.y + pauseText.height/2 - art.pause.height/2,
           summaryHeadingOffsetY: summaryHeading.y + summaryHeading.height/2 - 14,

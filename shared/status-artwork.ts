@@ -108,6 +108,35 @@ const languageName = (id: string): string =>
     python: "Python",
   })[id] ?? id;
 
+const languageCode = (id: string): string =>
+  ({
+    javascript: "JS",
+    typescript: "TS",
+    javascriptreact: "JSX",
+    typescriptreact: "TSX",
+    json: "JSON",
+    jsonc: "JSONC",
+    markdown: "MD",
+    python: "PY",
+    html: "HTML",
+    css: "CSS",
+    scss: "SCSS",
+    less: "LESS",
+    yaml: "YAML",
+    xml: "XML",
+    shellscript: "SH",
+    plaintext: "Text",
+    c: "C",
+    cpp: "C++",
+    csharp: "C#",
+    java: "Java",
+    go: "Go",
+    rust: "Rust",
+    ruby: "Ruby",
+    php: "PHP",
+    sql: "SQL",
+  })[id] ?? languageName(id);
+
 /** Locally generated, inert SVG artwork. No scripts, external assets or embedded HTML. */
 export function statusArtwork(
   context: HoverContext,
@@ -151,9 +180,15 @@ export function statusArtwork(
     context.file === "No active file"
       ? context.file
       : `Active file: ${context.file}${context.language ? ` · ${languageName(context.language)}` : ""}`;
+  const fileLabel =
+    context.file === "No active file"
+      ? context.file
+      : `Active file: ${context.file}${context.language ? ` · ${languageCode(context.language)}` : ""}`;
   const workspace = context.workspace
-    ? `Workspace: ${context.workspace}${context.folder ? ` · Folder: ${context.folder}` : ""}`
+    ? `Workspace: ${context.workspace}`
     : "No workspace open";
+  const folder = context.folder ? `Folder: ${context.folder}` : undefined;
+  const contextExtraHeight = folder ? 18 : 0;
   const scope = context.scope;
   const language = languageName(context.languageScope);
   const sourceNotes = ["save", "paste", "type"].map((_, i) => {
@@ -226,14 +261,17 @@ export function statusArtwork(
       250,
     ),
     context: image(
-      76,
+      76 + contextExtraHeight,
       line(1) +
-        rect(5, 12, 370, 60, p.focus, p.info, 6) +
-        infoGlyph(25, 42, p.focus) +
-        centeredText(45, 33, shortened(file, 38)) +
+        rect(5, 12, 370, 60 + contextExtraHeight, p.focus, p.info, 6) +
+        infoGlyph(25, 42 + contextExtraHeight / 2, p.focus) +
+        centeredText(45, 33, shortened(fileLabel, 38)) +
         centeredText(360, 33, state, 12.5, p.muted, "end") +
-        centeredText(45, 51, shortened(workspace, 48), 12.5, p.muted),
-      `${file}. ${workspace}. Automatic formatting: ${state}.`,
+        centeredText(45, 51, shortened(workspace, 48), 12.5, p.muted) +
+        (folder
+          ? centeredText(45, 69, shortened(folder, 48), 12.5, p.muted)
+          : ""),
+      `${file}. ${workspace}.${folder ? ` ${folder}.` : ""} Automatic formatting: ${state}.`,
     ),
     scopes: image(
       72,

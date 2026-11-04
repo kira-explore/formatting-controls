@@ -254,3 +254,34 @@ test("theme palettes change the artwork and read-only User pause has no action",
     ),
   );
 });
+
+test("file context uses distinct short language labels and a separate folder line", () => {
+  for (const [language, label] of [
+    ["javascript", "JS"],
+    ["typescript", "TS"],
+    ["javascriptreact", "JSX"],
+    ["typescriptreact", "TSX"],
+    ["json", "JSON"],
+    ["jsonc", "JSONC"],
+    ["python", "PY"],
+    ["custom", "custom"],
+  ] as const) {
+    const art = statusArtwork({
+      ...context,
+      language,
+      folder: "second-project",
+    });
+    assert.equal(art.context.height, 94);
+    assert.match(art.context.svg, /y="51"[^>]*>Workspace: project<\/text>/);
+    assert.match(art.context.svg, /y="69"[^>]*>Folder: second-project<\/text>/);
+    assert.ok(art.context.svg.includes(` · ${label}</text>`));
+    assert.match(
+      art.context.alt,
+      /Workspace: project\. Folder: second-project\./,
+    );
+  }
+  const single = statusArtwork(context);
+  assert.equal(single.context.height, 76);
+  assert.doesNotMatch(single.context.svg, /Folder:/);
+  assert.match(single.context.alt, /TypeScript/);
+});
