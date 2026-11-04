@@ -2,6 +2,8 @@
 
 ## 0.6.0 — Unreleased
 
+- Show the effective formatting status in the active-file box and place Pause/Resume beside Automatic formatting. Resume uses a subtle blue highlight; both actions retain their explanatory tooltips.
+
 - Move the formatter directly below language and above Automatic formatting in the status card, keeping compact spacing. Use Scope, Language and Formatter labels.
 
 - Retry a cancelled settings save up to three times, only while the document still contains the extension's single owned edit. Pre-existing and intervening edits remain protected.

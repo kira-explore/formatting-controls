@@ -50,7 +50,7 @@ test("reference artwork has live values, accessible descriptions and read-only f
   assert.match(html, /width="380" height="76"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
   assert.match(art.state.alt, /Mixed/);
-  assert.match(art.summary.alt, /Mixed/);
+  assert.match(art.context.alt, /Automatic formatting: Mixed/);
   assert.match(html, /data:image\/svg\+xml;base64,/);
 });
 
@@ -131,6 +131,7 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
     { flags: [true, true, true], paused: false },
     { flags: [false, false, false], paused: false },
     { flags: [true, false, true], paused: false },
+    { flags: [true, true, true], paused: true },
     { flags: [false, false, false], paused: true },
     { flags: [true, false, true], paused: true },
   ].map((variant) => statusArtwork({ ...context, ...variant }));
@@ -155,8 +156,13 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
     assert.doesNotMatch(art.state.svg, /<rect\b/);
     assert.doesNotMatch(art.summary.svg, /<rect\b/);
   }
-  assert.match(variants[3]?.state.alt ?? "", /Disabled/);
-  assert.match(variants[4]?.state.alt ?? "", /Mixed/);
+  assert.match(variants[4]?.state.alt ?? "", /Disabled/);
+  assert.match(variants[5]?.state.alt ?? "", /Mixed/);
+  assert.notEqual(
+    variants[0]?.pause.svg,
+    variants[3]?.pause.svg,
+    "Resume has distinct artwork without changing its dimensions",
+  );
   assert.doesNotMatch(statusHover(context), /alt="Pausing"|alt="Resuming"/);
   assert.match(
     statusArtwork(context).pauseCaption.alt,
@@ -178,11 +184,14 @@ test("information and pause explanations are passive while actions retain their 
       (match) => JSON.parse(decodeURIComponent(match[1] ?? ""))[1] === "pause",
     );
     assert.ok(button);
-    assert.equal(button[2], "");
+    assert.equal(
+      button[2],
+      ` title="${paused ? statusHelp.resume : statusHelp.pause}"`,
+    );
     assert.match(button[3] ?? "", /width="66" height="28"/);
-    assert.doesNotMatch(
+    assert.match(
       button[3] ?? "",
-      /until you resume|previous formatting/,
+      /title="(?:Pause automatic|Restore your previous)/,
     );
     assert.doesNotMatch(html, /formattingControls\.statusInfo/);
     const rows = [...html.matchAll(/<tr>(.*?)<\/tr>/g)].map(
@@ -197,15 +206,10 @@ test("information and pause explanations are passive while actions retain their 
       row.includes(`alt="${paused ? "Resume" : "Pause"}"`),
     );
     assert.ok(
-      pauseIndex > rows.findIndex((row) => row.includes("Format on type:")),
+      pauseIndex < rows.findIndex((row) => row.includes("Format on type:")),
     );
-    assert.ok(
-      rows.findIndex((row) => row.includes("Formatter:")) <
-        rows.findIndex((row) => row.includes("Automatic formatting:")),
-    );
-    for (const row of rows.filter((row) =>
-      /alt="(?:Active file:|Automatic formatting:)/.test(row),
-    ))
+    assert.ok(rows.findIndex((row) => row.includes("Formatter:")) < pauseIndex);
+    for (const row of rows.filter((row) => /alt="Active file:/.test(row)))
       assert.doesNotMatch(row, /<a\b/);
     assert.match(
       html,

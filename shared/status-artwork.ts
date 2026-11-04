@@ -30,6 +30,9 @@ const palettes = {
     input: "#181a1b",
     border: "#333536",
     button: "#2a2d2e",
+    resume: "#203d4b",
+    resumeText: "#9dd9f6",
+    resumeBorder: "#38637a",
     checkbox: "#252526",
     checkboxBorder: "#707070",
   },
@@ -43,6 +46,9 @@ const palettes = {
     input: "#ffffff",
     border: "#929292",
     button: "#e6e6e6",
+    resume: "#e3f1f8",
+    resumeText: "#075378",
+    resumeBorder: "#8cbcd4",
     checkbox: "#ffffff",
     checkboxBorder: "#929292",
   },
@@ -56,6 +62,9 @@ const palettes = {
     input: "#000000",
     border: "#ffffff",
     button: "#000000",
+    resume: "#000000",
+    resumeText: "#5cdeff",
+    resumeBorder: "#5cdeff",
     checkbox: "#000000",
     checkboxBorder: "#ffffff",
   },
@@ -69,6 +78,9 @@ const palettes = {
     input: "#ffffff",
     border: "#000000",
     button: "#ffffff",
+    resume: "#ffffff",
+    resumeText: "#004fa3",
+    resumeBorder: "#004fa3",
     checkbox: "#ffffff",
     checkboxBorder: "#000000",
   },
@@ -218,9 +230,10 @@ export function statusArtwork(
       line(1) +
         rect(5, 12, 370, 60, p.focus, p.info, 6) +
         infoGlyph(25, 42, p.focus) +
-        centeredText(45, 33, shortened(file, 48)) +
+        centeredText(45, 33, shortened(file, 38)) +
+        centeredText(360, 33, state, 12.5, p.muted, "end") +
         centeredText(45, 51, shortened(workspace, 48), 12.5, p.muted),
-      `${file}. ${workspace}.`,
+      `${file}. ${workspace}. Automatic formatting: ${state}.`,
     ),
     scopes: image(
       72,
@@ -239,11 +252,9 @@ export function statusArtwork(
     ),
     summary: image(
       28,
-      formattingHeading +
-        // Optical alignment with the heading's visible glyphs, not its font box.
-        infoGlyph(153, 15, p.muted) +
-        centeredText(375, 14, state, 12.5, p.muted, "end"),
-      `Automatic formatting: ${state}`,
+      formattingHeading + infoGlyph(153, 15, p.muted),
+      "Automatic formatting",
+      250,
     ),
     formatting: image(
       128,
@@ -260,13 +271,20 @@ export function statusArtwork(
     ),
     pause: image(
       28,
-      rect(0.5, 0.5, 65, 27, p.border, p.button) +
+      rect(
+        0.5,
+        0.5,
+        65,
+        27,
+        context.paused && context.canPause ? p.resumeBorder : p.border,
+        context.paused && context.canPause ? p.resume : p.button,
+      ) +
         centeredText(
           33,
           14,
           pauseLabel,
           12.5,
-          context.canPause ? p.fg : p.muted,
+          context.canPause ? (context.paused ? p.resumeText : p.fg) : p.muted,
           "middle",
         ),
       pauseLabel,
