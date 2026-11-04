@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.6.0 — Unreleased
+## 0.7.0 — Unreleased
+
+- Widen the Scope, Language and Formatter dropdown displays to the left to match the approved label spacing. Keep labels, row heights, card width and formatting actions in place.
+
+## 0.6.0
 
 - Narrow the status card to 330px of content, match Pause/Resume to the 24px Settings button height, and balance Automatic formatting section padding. Keep text and icon sizes unchanged.
 
