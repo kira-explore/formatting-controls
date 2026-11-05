@@ -4,6 +4,8 @@
 
 - Align host/test bundles and Node type declarations with Node 24 LTS, and resolve its latest patch in every CI/release job. Modernize standalone host functions to arrow syntax and reduce repeated configuration reads during dashboard/status refreshes.
 
+- Use native promise timers, Promise.withResolvers and non-mutating last-item access in host code. Simplify startup tasks with async/await and the shared error boundary while retaining event cleanup, save ownership checks and serialized setting operations.
+
 - Use the same text color for Pause and Resume while keeping Resume's soft blue background and border.
 
 - Widen the Scope, Language and Formatter dropdown displays to the left to match the approved label spacing. Keep labels, row heights, card width and formatting actions in place.

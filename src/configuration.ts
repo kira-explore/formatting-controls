@@ -1,3 +1,4 @@
+import { setTimeout as delay } from "node:timers/promises";
 import { isDeepStrictEqual } from "node:util";
 import * as vscode from "vscode";
 import { type ActionValue, type SettingKey, updateAction } from "./model";
@@ -51,23 +52,23 @@ export const assertSettingsSaved = (s: Selection): void => {
 /** Let an existing native save settle; never save or discard editor changes. */
 export const waitForSettingsSave = async (s: Selection): Promise<void> => {
   if (!dirtySettingsDocument(s)) return;
-  await new Promise<void>((resolve) => {
-    const finish = () => {
-      clearTimeout(timeout);
-      for (const listener of listeners) listener.dispose();
-      resolve();
-    };
-    const check = () => {
-      if (!dirtySettingsDocument(s)) finish();
-    };
-    const listeners = [
-      vscode.workspace.onDidSaveTextDocument(check),
-      vscode.workspace.onDidChangeTextDocument(check),
-      vscode.workspace.onDidCloseTextDocument(check),
-    ];
-    const timeout = setTimeout(finish, 1000);
-    check();
-  });
+  const { promise, resolve } = Promise.withResolvers<void>();
+  const finish = () => {
+    clearTimeout(timeout);
+    for (const listener of listeners) listener.dispose();
+    resolve();
+  };
+  const check = () => {
+    if (!dirtySettingsDocument(s)) finish();
+  };
+  const listeners = [
+    vscode.workspace.onDidSaveTextDocument(check),
+    vscode.workspace.onDidChangeTextDocument(check),
+    vscode.workspace.onDidCloseTextDocument(check),
+  ];
+  const timeout = setTimeout(finish, 1000);
+  check();
+  await promise;
   assertSettingsSaved(s);
 };
 export const configuration = (s: Selection): vscode.WorkspaceConfiguration => {
@@ -150,10 +151,7 @@ export const write = async (
         if (attempt >= 3 || document.version !== version + 1)
           throw new UnsavedSettingsError(document.uri);
         await document.save();
-        if (document.isDirty)
-          await new Promise((resolve) =>
-            setTimeout(resolve, 20 * (attempt + 1)),
-          );
+        if (document.isDirty) await delay(20 * (attempt + 1));
       }
       // The first native request may have reloaded configuration before its
       // cancelled save was completed above. Repeating the same native update
@@ -168,19 +166,19 @@ export const write = async (
     opened.dispose();
   }
   if (!isDeepStrictEqual(own(s, key), value)) {
-    await new Promise<void>((resolve) => {
-      const finish = () => {
-        clearTimeout(timeout);
-        listener.dispose();
-        resolve();
-      };
-      const check = () => {
-        if (isDeepStrictEqual(own(s, key), value)) finish();
-      };
-      const listener = vscode.workspace.onDidChangeConfiguration(check);
-      const timeout = setTimeout(finish, 1000);
-      check();
-    });
+    const { promise, resolve } = Promise.withResolvers<void>();
+    const finish = () => {
+      clearTimeout(timeout);
+      listener.dispose();
+      resolve();
+    };
+    const check = () => {
+      if (isDeepStrictEqual(own(s, key), value)) finish();
+    };
+    const listener = vscode.workspace.onDidChangeConfiguration(check);
+    const timeout = setTimeout(finish, 1000);
+    check();
+    await promise;
     if (!isDeepStrictEqual(own(s, key), value))
       throw new Error(
         `VS Code did not confirm the saved value of ${key}. Review the current settings before retrying.`,

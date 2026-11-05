@@ -1,3 +1,4 @@
+import { setTimeout as delay } from "node:timers/promises";
 import * as vscode from "vscode";
 import { adapters } from "../shared/providers";
 import { settingSource } from "../shared/setting-source";
@@ -138,7 +139,7 @@ export class StatusControls {
         !!this.workflows &&
         (paused || selection.target !== vscode.ConfigurationTarget.Global),
       file: document
-        ? (document.uri.path.split("/").pop() ?? document.fileName)
+        ? (document.uri.path.split("/").at(-1) ?? document.fileName)
         : "No active file",
       ...(document ? { language: document.languageId } : {}),
       ...(vscode.workspace.name ? { workspace: vscode.workspace.name } : {}),
@@ -245,7 +246,7 @@ export class StatusControls {
       this.item.tooltip = undefined;
       this.item.hide();
       this.item.show();
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await delay(0);
       if (!(await this.pausePrompt(paused, destination))) return;
       this.assertCurrent(revision);
       if (JSON.stringify(this.workflows.journal()) !== journal)
