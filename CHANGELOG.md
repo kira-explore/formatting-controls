@@ -2,6 +2,8 @@
 
 ## 0.7.0 — Unreleased
 
+- Use a file-code icon in the hover card's file section and center Enabled, Disabled or Mixed vertically on its right, including when a workspace folder occupies a third line. Show the status only once; keep Pause/Resume in the header.
+
 - Align host/test bundles and Node type declarations with Node 24 LTS, and resolve its latest patch in every CI/release job. Modernize standalone host functions to arrow syntax and reduce repeated configuration reads during dashboard/status refreshes.
 
 - Use native promise timers, Promise.withResolvers and non-mutating last-item access in host code. Simplify startup tasks with async/await and the shared error boundary while retaining event cleanup, save ownership checks and serialized setting operations.

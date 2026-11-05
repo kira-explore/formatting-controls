@@ -229,7 +229,7 @@ export const runStatusTests = async (uri: vscode.Uri): Promise<void> => {
       );
       assert.match(
         (item.tooltip as vscode.MarkdownString).value,
-        /alt="Automatic formatting: Enabled"/,
+        /alt="Active file:[^"]*Automatic formatting: Enabled\."/,
       );
       assert.match(
         (item.tooltip as vscode.MarkdownString).value,

@@ -49,9 +49,8 @@ test("reference artwork has live values, accessible descriptions and read-only f
   assert.deepEqual(actions, [[7, "pause"]]);
   assert.match(html, /width="330" height="76"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
-  assert.match(art.state.alt, /Mixed/);
-  assert.doesNotMatch(art.context.alt, /Automatic formatting:/);
-  assert.match(html, /alt="Automatic formatting: Mixed"/);
+  assert.match(art.context.alt, /Automatic formatting: Mixed/);
+  assert.match(art.context.svg, /data-icon="file-code"/);
   assert.match(html, /data:image\/svg\+xml;base64,/);
 });
 
@@ -80,11 +79,11 @@ test("formatting stays visible with context, formatter and footer actions", () =
     /^Resume/,
   );
   assert.match(
-    statusArtwork({ ...context, flags: [true, true, true] }).state.alt,
+    statusArtwork({ ...context, flags: [true, true, true] }).context.alt,
     /formatting: Enabled/,
   );
   assert.match(
-    statusArtwork({ ...context, flags: [false, false, false] }).state.alt,
+    statusArtwork({ ...context, flags: [false, false, false] }).context.alt,
     /formatting: Disabled/,
   );
 });
@@ -137,7 +136,7 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
     { flags: [true, false, true], paused: true },
   ].map((variant) => statusArtwork({ ...context, ...variant }));
   assert.equal(
-    new Set(variants.map((art) => `${art.state.width}x${art.state.height}`))
+    new Set(variants.map((art) => `${art.context.width}x${art.context.height}`))
       .size,
     1,
   );
@@ -154,11 +153,10 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
   for (const art of variants) {
     assert.equal(art.pause.width, 66);
     assert.equal(art.pause.height, art.settings.height);
-    assert.doesNotMatch(art.state.svg, /<rect\b/);
     assert.doesNotMatch(art.summary.svg, /<rect\b/);
   }
-  assert.match(variants[4]?.state.alt ?? "", /Disabled/);
-  assert.match(variants[5]?.state.alt ?? "", /Mixed/);
+  assert.match(variants[4]?.context.alt ?? "", /Disabled/);
+  assert.match(variants[5]?.context.alt ?? "", /Mixed/);
   assert.notEqual(
     variants[0]?.pause.svg,
     variants[3]?.pause.svg,
@@ -211,12 +209,14 @@ test("information and pause explanations are passive while actions retain their 
     );
     assert.equal(pauseIndex, 0);
     const statusIndex = rows.findIndex((row) =>
-      row.includes('alt="Automatic formatting: Mixed"'),
+      row.includes("Automatic formatting: Mixed."),
     );
-    assert.ok(
-      rows.findIndex((row) => row.includes("Formatter:")) < statusIndex,
+    assert.equal(statusIndex, 1);
+    assert.match(rows[statusIndex] ?? "", /alt="Active file:/);
+    assert.doesNotMatch(
+      rows.find((row) => row.includes('alt="Automatic formatting"')) ?? "",
+      /Automatic formatting: Mixed/,
     );
-    assert.match(rows[statusIndex] ?? "", /alt="Automatic formatting"/);
     assert.doesNotMatch(rows[statusIndex] ?? "", /<a\b/);
     for (const row of rows.filter((row) => /alt="Active file:/.test(row)))
       assert.doesNotMatch(row, /<a\b/);

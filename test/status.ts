@@ -35,6 +35,7 @@ export const reviewStatus = async (
       stateEdgeOffsetX: number;
       stateOffsetY: number;
       contextOffsetY: number;
+      contextStateGap: number;
       pauseOffsetX: number;
       pauseOffsetY: number;
       summaryHeadingOffsetY: number;
@@ -56,7 +57,7 @@ export const reviewStatus = async (
           continue;
         }
         if (match[0].startsWith("</")) { stack.pop(); continue; }
-        if (!["svg","g","text","tspan","rect","circle","path"].includes(match[1])) throw new Error("Unexpected SVG node");
+        if (!["svg","g","text","tspan","rect","circle","path","defs","clipPath"].includes(match[1])) throw new Error("Unexpected SVG node");
         const element = document.createElementNS(namespace, match[1]);
         for (const attr of match[2].matchAll(/([\\w-]+)="([^"]*)"/g)) element.setAttribute(attr[1], attr[2]);
         if (stack.length) stack[stack.length-1].append(element); else root = element;
@@ -66,13 +67,14 @@ export const reviewStatus = async (
       return root;
     }
     return fixtures.map(art => {
-      const stateImage = mount(art.state), context = mount(art.context), pause = mount(art.pause), header = mount(art.header), summary = mount(art.summary), formatting = mount(art.formatting);
+      const context = mount(art.context), pause = mount(art.pause), header = mount(art.header), summary = mount(art.summary), formatting = mount(art.formatting);
       try {
-        const stateText = stateImage.querySelector("text").getBBox();
+        const stateText = Array.from(context.querySelectorAll("text")).at(-1).getBBox();
         const file = Array.from(context.querySelectorAll("text")).find(text => text.textContent.startsWith("Active file:")).getBBox();
         const contextLines = Array.from(context.querySelectorAll("text"));
         const lastContextLine = (contextLines.find(text => text.textContent.startsWith("Folder:")) ?? contextLines.find(text => text.textContent.startsWith("Workspace:"))).getBBox();
-        const contextIcon = context.querySelector("circle").getBBox();
+        const contextIcon = context.querySelector('[data-icon="file-code"]').getBBox();
+        const contextClip = context.querySelector("clipPath rect");
         const pauseText = pause.querySelector("text").getBBox();
         const title = header.querySelector("text").getBBox();
         const summaryText = summary.querySelectorAll("text");
@@ -80,9 +82,10 @@ export const reviewStatus = async (
         const summaryIcon = summary.querySelector("circle").getBBox();
         const triggerNote = Array.from(formatting.querySelectorAll("text")).at(-1).getBBox();
         return {
-          stateEdgeOffsetX: stateText.x + stateText.width - art.state.width,
-          stateOffsetY: stateText.y + stateText.height/2 - art.state.height/2,
+          stateEdgeOffsetX: stateText.x + stateText.width - (art.context.width - 20),
+          stateOffsetY: stateText.y + stateText.height/2 - (contextIcon.y + contextIcon.height/2),
           contextOffsetY: (file.y + lastContextLine.y + lastContextLine.height)/2 - (contextIcon.y + contextIcon.height/2),
+          contextStateGap: stateText.x - (+contextClip.getAttribute("x") + +contextClip.getAttribute("width")),
           pauseOffsetX: pauseText.x + pauseText.width/2 - art.pause.width/2,
           pauseOffsetY: pauseText.y + pauseText.height/2 - art.pause.height/2,
           summaryHeadingOffsetY: summaryHeading.y + summaryHeading.height/2 - 14,
@@ -93,7 +96,7 @@ export const reviewStatus = async (
           headerFits: title.x + title.width <= art.header.width,
           pauseFits: pauseText.x >= 1 && pauseText.x + pauseText.width <= art.pause.width - 1,
         };
-      } finally { stateImage.remove(); context.remove(); pause.remove(); header.remove(); summary.remove(); formatting.remove(); }
+      } finally { context.remove(); pause.remove(); header.remove(); summary.remove(); formatting.remove(); }
     });
   })(${JSON.stringify(fixtures)})`);
   writeFileSync(
@@ -116,6 +119,10 @@ export const reviewStatus = async (
       );
     assert.ok(measurement.headerFits, "Full extension name fits");
     assert.ok(
+      measurement.contextStateGap >= 12,
+      "File context clears the status label",
+    );
+    assert.ok(
       measurement.pauseFits,
       "Pause and Resume labels fit the same button",
     );
@@ -135,7 +142,7 @@ export const reviewStatus = async (
     await hover.waitFor({ state: "visible" });
     const images = hover.locator("img");
     await images.nth(10).waitFor();
-    assert.equal(await images.count(), 12, "All status artwork is rendered");
+    assert.equal(await images.count(), 11, "All status artwork is rendered");
   };
   const captureCard = async (name: string) => {
     const bounds = await hover.boundingBox();
@@ -469,28 +476,21 @@ export const reviewStatus = async (
       pauseBounds.x + pauseBounds.width + 4 <= settingsBounds.x,
     "Pause stays between the title and Settings with a clear gap",
   );
-  const formattingState = hover.getByRole("img", {
-    name: /^Automatic formatting: (Enabled|Disabled|Mixed)$/,
-  });
-  const stateBounds = await formattingState.boundingBox();
-  assert.ok(stateBounds);
-  assert.ok(Math.abs(center(stateBounds) - center(summaryBounds)) <= 1);
-  assert.ok(
-    stateBounds.x >= summaryBounds.x + summaryBounds.width &&
-      stateBounds.y + stateBounds.height <= flagBounds.y,
-    "Status stays beside Automatic formatting and above its triggers",
-  );
-  assert.equal(
-    await formattingState.getAttribute("title"),
-    statusHelp.formatting,
-  );
-  assert.equal(
-    await formattingState.evaluate((el) => Boolean(el.closest("a"))),
-    false,
-  );
+  const scopeBounds = await scopes.boundingBox();
+  assert.ok(contextBounds && scopeBounds);
+  assert.ok(contextBounds.y + contextBounds.height <= scopeBounds.y);
   assert.match(
-    (await formattingState.getAttribute("alt")) ?? "",
+    (await fileInfo.getAttribute("alt")) ?? "",
     /Automatic formatting: (Enabled|Disabled|Mixed)/,
+  );
+  assert.equal(
+    await hover
+      .getByRole("img", {
+        name: /^Automatic formatting: (Enabled|Disabled|Mixed)$/,
+      })
+      .count(),
+    0,
+    "Status is included once in the file section",
   );
   assert.equal(
     await formattingInfo.evaluate((el) => Boolean(el.closest("a"))),

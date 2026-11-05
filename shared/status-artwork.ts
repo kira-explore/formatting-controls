@@ -151,6 +151,8 @@ export const statusArtwork = (
   const line = (y: number) => `<path d="M5 ${y}H325" stroke="${p.line}"/>`;
   const infoGlyph = (x: number, y: number, color: string) =>
     `<circle cx="${x}" cy="${y}" r="5" stroke="${color}" fill="none"/><circle cx="${x}" cy="${y - 2.75}" r=".55" fill="${color}"/><path d="M${x} ${y - 0.46}v3.2" stroke="${color}" stroke-width="1.1" stroke-linecap="round"/>`;
+  const fileGlyph = (x: number, y: number) =>
+    `<g data-icon="file-code" fill="none" stroke="${p.accent}" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M${x - 3.5} ${y - 7}H${x + 1}l4 4v8.5a1.5 1.5 0 0 1-1.5 1.5h-7a1.5 1.5 0 0 1-1.5-1.5v-11a1.5 1.5 0 0 1 1.5-1.5Z"/><path d="M${x + 1} ${y - 7}v4h4M${x - 1.5} ${y - 1}l-2 2 2 2M${x + 1.5} ${y - 1}l2 2-2 2"/></g>`;
   const rect = (
     x: number,
     y: number,
@@ -185,6 +187,7 @@ export const statusArtwork = (
     : "No workspace open";
   const folder = context.folder ? `Folder: ${context.folder}` : undefined;
   const contextExtraHeight = folder ? 18 : 0;
+  const contextCenter = 42 + contextExtraHeight / 2;
   const scope = context.scope;
   const language = languageName(context.languageScope);
   const sourceNotes = ["save", "paste", "type"].map((_, i) => {
@@ -260,13 +263,16 @@ export const statusArtwork = (
       76 + contextExtraHeight,
       line(1) +
         rect(5, 12, 320, 60 + contextExtraHeight, p.focus, p.info, 6) +
-        infoGlyph(25, 42 + contextExtraHeight / 2, p.focus) +
-        centeredText(45, 33, shortened(fileLabel, 41)) +
-        centeredText(45, 51, shortened(workspace, 41), 12.5, p.muted) +
+        fileGlyph(25, contextCenter) +
+        `<defs><clipPath id="context-labels"><rect x="45" y="21" width="190" height="${42 + contextExtraHeight}"/></clipPath></defs><g clip-path="url(#context-labels)">` +
+        centeredText(45, 33, shortened(fileLabel, 30)) +
+        centeredText(45, 51, shortened(workspace, 30), 12.5, p.muted) +
         (folder
-          ? centeredText(45, 69, shortened(folder, 41), 12.5, p.muted)
-          : ""),
-      `${file}. ${workspace}.${folder ? ` ${folder}.` : ""}`,
+          ? centeredText(45, 69, shortened(folder, 30), 12.5, p.muted)
+          : "") +
+        `</g>` +
+        centeredText(310, contextCenter, state, 12.5, p.muted, "end"),
+      `${file}. ${workspace}.${folder ? ` ${folder}.` : ""} Automatic formatting: ${state}.`,
     ),
     scopes: image(
       72,
@@ -277,12 +283,6 @@ export const statusArtwork = (
       `Scope: ${scope}. Language: ${language}. Read-only.`,
     ),
     heading: image(28, formattingHeading, "Automatic formatting", 153),
-    state: image(
-      28,
-      centeredText(78, 14, state, 12.5, p.muted, "end"),
-      `Automatic formatting: ${state}`,
-      78,
-    ),
     summary: image(
       28,
       formattingHeading + infoGlyph(153, 15, p.muted),
