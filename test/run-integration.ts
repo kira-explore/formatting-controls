@@ -12,7 +12,13 @@ import { reviewDashboard } from "./dashboard";
   );
   fs.mkdirSync(path.join(temp, "first"));
   fs.mkdirSync(path.join(temp, "second"));
-  const workspace = path.join(temp, "test.code-workspace");
+  const longContext = process.argv.includes("--long-context");
+  const workspace = path.join(
+    temp,
+    longContext
+      ? "formatting-controls-and-editor-productivity-integration-workspace.code-workspace"
+      : "test.code-workspace",
+  );
   fs.writeFileSync(
     workspace,
     JSON.stringify({ folders: [{ path: "first" }, { path: "second" }] }),
@@ -61,7 +67,7 @@ import { reviewDashboard } from "./dashboard";
     done = path.join(temp, "ui-done");
   const report = path.resolve(
     "test-results",
-    `${process.platform}-${process.env.VSCODE_VERSION ?? "stable"}-${(process.env.FORMATTING_CONTROLS_UI_THEME ?? "Dark Modern").replaceAll(" ", "-")}${statusUi ? "-status" : stress ? "-pause-stress" : ""}${stress && process.env.FORMATTING_CONTROLS_STRESS_EXTENSION ? "-biome" : ""}`,
+    `${process.platform}-${process.env.VSCODE_VERSION ?? "stable"}-${(process.env.FORMATTING_CONTROLS_UI_THEME ?? "Dark Modern").replaceAll(" ", "-")}${statusUi ? "-status" : stress ? "-pause-stress" : ""}${longContext ? "-long-context" : ""}${stress && process.env.FORMATTING_CONTROLS_STRESS_EXTENSION ? "-biome" : ""}`,
   );
   let hostFinished = false;
   try {

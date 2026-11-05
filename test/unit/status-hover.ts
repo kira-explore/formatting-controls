@@ -294,3 +294,38 @@ test("file context uses distinct short language labels and a separate folder lin
   assert.doesNotMatch(single.context.svg, /Folder:/);
   assert.match(single.context.alt, /TypeScript/);
 });
+
+test("long context names expand the card, then wrap without dropping their text", () => {
+  assert.equal(statusArtwork(context).context.width, 330);
+  const expanded = statusArtwork({
+    ...context,
+    workspace: "formatting-controls",
+  });
+  assert.ok(expanded.context.width > 330 && expanded.context.width <= 420);
+  for (const [field, name] of [
+    ["workspace", "design-system-and-editor-productivity-tools-".repeat(3)],
+    ["folder", "W".repeat(90)],
+    ["file", `${"longfilename".repeat(12)}.ts`],
+    ["workspace", "开发工作区".repeat(20)],
+  ] as const) {
+    const art = statusArtwork({ ...context, [field]: name });
+    assert.equal(art.context.width, 420);
+    assert.ok(art.context.height > 94);
+    const visible = [...art.context.svg.matchAll(/<text\b[^>]*>(.*?)<\/text>/g)]
+      .map((match) => match[1])
+      .join("");
+    assert.ok(
+      visible.includes(name),
+      `${field} remains complete across wrapped lines`,
+    );
+    assert.equal(art.scopes.width, art.context.width);
+    assert.equal(art.formatter.width, art.context.width);
+    assert.equal(art.formatting.width, art.context.width);
+    assert.equal(art.dashboard.width, 139);
+    assert.equal(art.issue.width, 133);
+    assert.equal(
+      art.dashboard.width + art.footerGap.width + art.issue.width,
+      art.context.width,
+    );
+  }
+});

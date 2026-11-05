@@ -16,9 +16,40 @@ export const reviewStatus = async (
     { flags: [false, false, false], paused: false },
     { flags: [true, false, true], paused: false },
     { flags: [false, false, false], paused: true },
+    {
+      flags: [true, false, true],
+      paused: false,
+      workspace: "formatting-controls",
+    },
+    {
+      flags: [true, true, true],
+      paused: false,
+      workspace: "design-system-and-editor-productivity-tools",
+    },
+    {
+      flags: [false, false, false],
+      paused: true,
+      file: `${"W".repeat(70)}.ts`,
+      folder: "folder-with-an-exceptionally-long-unbroken-name",
+    },
+    {
+      flags: [true, false, true],
+      paused: false,
+      workspace: "开发工作区".repeat(12),
+    },
+    {
+      flags: [true, false, true],
+      paused: false,
+      workspace: "Широкое-название-рабочего-пространства".repeat(3),
+    },
+    {
+      flags: [true, true, true],
+      paused: false,
+      file: "No active file",
+      workspace: "🌿".repeat(30),
+    },
   ].map((state) =>
     statusArtwork({
-      ...state,
       ...(state.paused ? { folder: "second-project" } : {}),
       file: "app.ts",
       language: "typescript",
@@ -28,6 +59,7 @@ export const reviewStatus = async (
       owned: [],
       revision: 1,
       canPause: true,
+      ...state,
     }),
   );
   const alignment = await page.evaluate<
@@ -36,6 +68,7 @@ export const reviewStatus = async (
       stateOffsetY: number;
       contextOffsetY: number;
       contextStateGap: number;
+      contextFits: boolean;
       pauseOffsetX: number;
       pauseOffsetY: number;
       summaryHeadingOffsetY: number;
@@ -70,9 +103,9 @@ export const reviewStatus = async (
       const context = mount(art.context), pause = mount(art.pause), header = mount(art.header), summary = mount(art.summary), formatting = mount(art.formatting);
       try {
         const stateText = Array.from(context.querySelectorAll("text")).at(-1).getBBox();
-        const file = Array.from(context.querySelectorAll("text")).find(text => text.textContent.startsWith("Active file:")).getBBox();
-        const contextLines = Array.from(context.querySelectorAll("text"));
-        const lastContextLine = (contextLines.find(text => text.textContent.startsWith("Folder:")) ?? contextLines.find(text => text.textContent.startsWith("Workspace:"))).getBBox();
+        const contextLines = Array.from(context.querySelectorAll('g[clip-path] text'));
+        const file = contextLines[0].getBBox();
+        const lastContextLine = contextLines.at(-1).getBBox();
         const contextIcon = context.querySelector('[data-icon="file-code"]').getBBox();
         const contextClip = context.querySelector("clipPath rect");
         const pauseText = pause.querySelector("text").getBBox();
@@ -86,6 +119,10 @@ export const reviewStatus = async (
           stateOffsetY: stateText.y + stateText.height/2 - (contextIcon.y + contextIcon.height/2),
           contextOffsetY: (file.y + lastContextLine.y + lastContextLine.height)/2 - (contextIcon.y + contextIcon.height/2),
           contextStateGap: stateText.x - (+contextClip.getAttribute("x") + +contextClip.getAttribute("width")),
+          contextFits: contextLines.every(text => {
+            const box = text.getBBox();
+            return box.x >= +contextClip.getAttribute("x") && box.x + box.width <= +contextClip.getAttribute("x") + +contextClip.getAttribute("width");
+          }),
           pauseOffsetX: pauseText.x + pauseText.width/2 - art.pause.width/2,
           pauseOffsetY: pauseText.y + pauseText.height/2 - art.pause.height/2,
           summaryHeadingOffsetY: summaryHeading.y + summaryHeading.height/2 - 14,
@@ -121,6 +158,10 @@ export const reviewStatus = async (
     assert.ok(
       measurement.contextStateGap >= 12,
       "File context clears the status label",
+    );
+    assert.ok(
+      measurement.contextFits,
+      "Wrapped names remain readable without clipping",
     );
     assert.ok(
       measurement.pauseFits,
@@ -346,10 +387,11 @@ export const reviewStatus = async (
   const dashboardBounds = await dashboard.getByRole("img").boundingBox();
   const issueBounds = await issue.getByRole("img").boundingBox();
   assert.ok(contextBounds && dashboardBounds && issueBounds);
+  assert.ok(contextBounds.width >= 330 && contextBounds.width <= 420);
   assert.equal(
     contextBounds.width,
-    330,
-    "The card uses the approved narrower content width",
+    Number(await fileInfo.getAttribute("width")),
+    "The card widens without scaling text or icons",
   );
   assert.equal(
     dashboardBounds.x,
