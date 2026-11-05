@@ -50,7 +50,7 @@ test("reference artwork has live values, accessible descriptions and read-only f
   assert.match(html, /width="330" height="76"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
   assert.match(art.context.alt, /Automatic formatting: Mixed/);
-  assert.match(art.context.svg, /data-icon="file-code"/);
+  assert.match(art.context.svg, /data-icon="file-text"/);
   assert.match(html, /data:image\/svg\+xml;base64,/);
 });
 
@@ -167,12 +167,10 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
     statusArtwork(context).pauseCaption.alt,
     /Pause automatic formatting until you resume\./,
   );
-  assert.ok(
-    statusHover(context).includes(statusHelp.file.replaceAll("\n", "&#10;")),
-  );
+  assert.equal(statusArtwork(context).context.tooltip, undefined);
 });
 
-test("information and pause explanations are passive while actions retain their destinations", () => {
+test("only Settings and Pause/Resume explain actions while footer links have no tooltip", () => {
   for (const paused of [false, true]) {
     const html = statusHover({ ...context, paused });
     const button = [
@@ -220,16 +218,7 @@ test("information and pause explanations are passive while actions retain their 
     assert.doesNotMatch(rows[statusIndex] ?? "", /<a\b/);
     for (const row of rows.filter((row) => /alt="Active file:/.test(row)))
       assert.doesNotMatch(row, /<a\b/);
-    assert.match(
-      html,
-      /title="This summary is based on the active file\.&#10;Settings may differ by language or workspace folder\."/,
-    );
-    assert.match(
-      html,
-      /title="Automatic formatting settings for save, paste and type\.&#10;1\. Enabled:/,
-    );
-    assert.match(html, /title="Open Kira Formatting Controls dashboard"/);
-    assert.match(html, /title="Open a new issue on GitHub"/);
+    for (const row of rows.slice(1)) assert.doesNotMatch(row, /title=/);
     const art = statusArtwork({ ...context, paused });
     assert.equal(
       art.pauseCaption.alt,
@@ -277,6 +266,7 @@ test("file context uses distinct short language labels and a separate folder lin
   ] as const) {
     const art = statusArtwork({
       ...context,
+      file: "a",
       language,
       folder: "second-project",
     });
@@ -295,37 +285,30 @@ test("file context uses distinct short language labels and a separate folder lin
   assert.match(single.context.alt, /TypeScript/);
 });
 
-test("long context names expand the card, then wrap without dropping their text", () => {
-  assert.equal(statusArtwork(context).context.width, 330);
-  const expanded = statusArtwork({
-    ...context,
-    workspace: "formatting-controls",
-  });
-  assert.ok(expanded.context.width > 330 && expanded.context.width <= 420);
+test("long context names keep the fixed width and expose full names only when truncated", () => {
+  assert.equal(statusArtwork(context).context.tooltip, undefined);
   for (const [field, name] of [
     ["workspace", "design-system-and-editor-productivity-tools-".repeat(3)],
     ["folder", "W".repeat(90)],
     ["file", `${"longfilename".repeat(12)}.ts`],
     ["workspace", "开发工作区".repeat(20)],
   ] as const) {
-    const art = statusArtwork({ ...context, [field]: name });
-    assert.equal(art.context.width, 420);
-    assert.ok(art.context.height > 94);
-    const visible = [...art.context.svg.matchAll(/<text\b[^>]*>(.*?)<\/text>/g)]
-      .map((match) => match[1])
-      .join("");
-    assert.ok(
-      visible.includes(name),
-      `${field} remains complete across wrapped lines`,
-    );
-    assert.equal(art.scopes.width, art.context.width);
-    assert.equal(art.formatter.width, art.context.width);
-    assert.equal(art.formatting.width, art.context.width);
-    assert.equal(art.dashboard.width, 139);
-    assert.equal(art.issue.width, 133);
+    const input = { ...context, [field]: name };
+    const art = statusArtwork(input);
+    assert.equal(art.context.width, 330);
+    assert.equal(art.context.height, field === "folder" ? 94 : 76);
+    assert.match(art.context.svg, /…<\/text>/);
+    assert.ok(art.context.tooltip?.includes(name));
+    assert.ok(art.context.alt.includes(name));
+    assert.equal(art.scopes.width, 330);
+    assert.equal(art.formatter.width, 330);
+    assert.equal(art.formatting.width, 330);
     assert.equal(
       art.dashboard.width + art.footerGap.width + art.issue.width,
-      art.context.width,
+      330,
     );
+    const html = statusHover(input);
+    assert.match(html, /title="(?:Workspace:|Folder:|Active file:)/);
+    assert.doesNotMatch(art.summary.svg, /<circle/);
   }
 });

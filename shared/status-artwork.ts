@@ -155,31 +155,19 @@ const labelWidth = (value: string): number =>
     return width + em * 12.5;
   }, 0);
 
-const wrappedLabel = (value: string, width: number): string[] => {
-  const remaining = Array.from(
-    value.slice(0, 500).toWellFormed(),
-    (character) =>
-      character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127
-        ? " "
-        : character,
-  );
-  const lines: string[] = [];
-  while (remaining.length) {
-    let end = 0;
-    let measured = 0;
-    let boundary = 0;
-    for (const character of remaining) {
-      const next = measured + labelWidth(character);
-      if (next > width && end) break;
-      measured = next;
-      end++;
-      if (/[\s/_-]/u.test(character)) boundary = end;
-    }
-    if (end < remaining.length && boundary >= end / 2) end = boundary;
-    lines.push(remaining.splice(0, end).join("").trimEnd());
-    while (remaining[0]?.trim() === "") remaining.shift();
+const clippedLabel = (value: string, width: number): string => {
+  const label = Array.from(value.slice(0, 500).toWellFormed(), (character) =>
+    character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127
+      ? " "
+      : character,
+  ).join("");
+  if (labelWidth(label) <= width) return label;
+  let result = "";
+  for (const character of label) {
+    if (labelWidth(`${result}${character}…`) > width) break;
+    result += character;
   }
-  return lines.length ? lines : [""];
+  return `${result}…`;
 };
 
 /** Locally generated, inert SVG artwork. No scripts, external assets or embedded HTML. */
@@ -206,23 +194,14 @@ export const statusArtwork = (
     : "No workspace open";
   const folder = context.folder ? `Folder: ${context.folder}` : undefined;
   const labels = [fileLabel, workspace, ...(folder ? [folder] : [])];
-  // Keep the status column fixed for all three states and Pause/Resume.
-  const width = Math.min(
-    420,
-    Math.max(
-      330,
-      Math.ceil(
-        Math.max(...labels.map((label) => labelWidth(label.slice(0, 500)))) +
-          148,
-      ),
-    ),
-  );
+  const width = 330;
   const contextTextWidth = width - 140;
-  const wrappedGroups = labels.map((label) =>
-    wrappedLabel(label, contextTextWidth - 8),
+  const contextLines = labels.map((label) =>
+    clippedLabel(label, contextTextWidth - 8),
   );
-  const contextLines = wrappedGroups.flat();
-  const fileLineCount = wrappedGroups[0]?.length ?? 1;
+  const truncatedLabels = labels.flatMap((label, index) =>
+    label !== contextLines[index] ? [index === 0 ? file : label] : [],
+  );
   const contextExtraHeight = (contextLines.length - 2) * 18;
   const contextCenter = 42 + contextExtraHeight / 2;
   const footerGapWidth = width - 272;
@@ -237,10 +216,8 @@ export const statusArtwork = (
     `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" text-anchor="${anchor}" dominant-baseline="central">${escapeText(value)}</text>`;
   const line = (y: number) =>
     `<path d="M5 ${y}H${width - 5}" stroke="${p.line}"/>`;
-  const infoGlyph = (x: number, y: number, color: string) =>
-    `<circle cx="${x}" cy="${y}" r="5" stroke="${color}" fill="none"/><circle cx="${x}" cy="${y - 2.75}" r=".55" fill="${color}"/><path d="M${x} ${y - 0.46}v3.2" stroke="${color}" stroke-width="1.1" stroke-linecap="round"/>`;
   const fileGlyph = (x: number, y: number) =>
-    `<g data-icon="file-code" fill="none" stroke="${p.accent}" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M${x - 3.5} ${y - 7}H${x + 1}l4 4v8.5a1.5 1.5 0 0 1-1.5 1.5h-7a1.5 1.5 0 0 1-1.5-1.5v-11a1.5 1.5 0 0 1 1.5-1.5Z"/><path d="M${x + 1} ${y - 7}v4h4M${x - 1.5} ${y - 1}l-2 2 2 2M${x + 1.5} ${y - 1}l2 2-2 2"/></g>`;
+    `<g data-icon="file-text"><g transform="translate(${x} ${y}) scale(1.05)" fill="none" stroke="${p.accent}" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M-3.5-7H1l4 4v8.5A1.5 1.5 0 0 1 3.5 7h-7A1.5 1.5 0 0 1-5 5.5v-11A1.5 1.5 0 0 1-3.5-7Z"/><path d="M1-7v4h4M-2-1H0M-2 2H2M-2 5H2"/></g></g>`;
   const rect = (
     x: number,
     y: number,
@@ -278,13 +255,15 @@ export const statusArtwork = (
     contents: string,
     alt: string,
     imageWidth = width,
+    tooltip?: string,
   ) => ({
+    tooltip,
     svg: svg(height, contents, imageWidth),
     alt,
     width: imageWidth,
     height,
   });
-  // Keep the info gap stable when the renderer selects a wider fallback font.
+  // Preserve the approved heading width across fallback fonts.
   const formattingHeading = `<text x="5" y="14" dominant-baseline="central" font-size="13.5" textLength="135" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>`;
   const flagContents = ["save", "paste", "type"]
     .map((label, i) => {
@@ -325,12 +304,6 @@ export const statusArtwork = (
       "Open VS Code Settings",
       26,
     ),
-    info: image(
-      20,
-      infoGlyph(8, 10, p.muted),
-      "About automatic formatting",
-      16,
-    ),
     header: image(
       36,
       centeredText(5, 18, "Kira Formatting Controls", 13.5),
@@ -350,13 +323,15 @@ export const statusArtwork = (
               33 + index * 18,
               label,
               12.5,
-              index < fileLineCount ? p.fg : p.muted,
+              index === 0 ? p.fg : p.muted,
             ),
           )
           .join("") +
         `</g>` +
         centeredText(width - 20, contextCenter, state, 12.5, p.muted, "end"),
       `${file}. ${workspace}.${folder ? ` ${folder}.` : ""} Automatic formatting: ${state}.`,
+      width,
+      truncatedLabels.length ? truncatedLabels.join("\n") : undefined,
     ),
     scopes: image(
       72,
@@ -367,12 +342,7 @@ export const statusArtwork = (
       `Scope: ${scope}. Language: ${language}. Read-only.`,
     ),
     heading: image(28, formattingHeading, "Automatic formatting", 153),
-    summary: image(
-      28,
-      formattingHeading + infoGlyph(153, 15, p.muted),
-      "Automatic formatting",
-      220,
-    ),
+    summary: image(28, formattingHeading, "Automatic formatting", 220),
     formatting: image(
       134,
       flagContents,

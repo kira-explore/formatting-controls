@@ -2,9 +2,9 @@
 
 ## 0.7.0 — Unreleased
 
-- Size the hover card to its file, workspace and folder names, from 330px to 420px. Wrap longer names at the maximum width while keeping fonts, icons, action buttons and centered status unchanged in size.
+- Keep the hover/click card at its original 330px content width. Ellipsize long file, workspace and folder names and reveal their full labels on hover. Remove explanatory file/formatting and footer tooltips, retaining Settings and Pause/Resume help.
 
-- Use a file-code icon in the hover card's file section and center Enabled, Disabled or Mixed vertically on its right, including when a workspace folder occupies a third line. Show the status only once; keep Pause/Resume in the header.
+- Use a text-document icon enlarged by 5% in the hover card's file section and center Enabled, Disabled or Mixed vertically on its right, including when a workspace folder occupies a third line. Show the status only once; keep Pause/Resume in the header.
 
 - Align host/test bundles and Node type declarations with Node 24 LTS, and resolve its latest patch in every CI/release job. Modernize standalone host functions to arrow syntax and reduce repeated configuration reads during dashboard/status refreshes.
 

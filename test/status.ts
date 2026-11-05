@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import axe from "axe-core";
 import type { Page } from "playwright-core";
 import { statusArtwork } from "../shared/status-artwork";
@@ -72,10 +73,8 @@ export const reviewStatus = async (
       pauseOffsetX: number;
       pauseOffsetY: number;
       summaryHeadingOffsetY: number;
-      summaryIconOffsetY: number;
       summaryTop: number;
       triggerBottom: number;
-      summaryFits: boolean;
       headerFits: boolean;
       pauseFits: boolean;
     }>
@@ -106,13 +105,12 @@ export const reviewStatus = async (
         const contextLines = Array.from(context.querySelectorAll('g[clip-path] text'));
         const file = contextLines[0].getBBox();
         const lastContextLine = contextLines.at(-1).getBBox();
-        const contextIcon = context.querySelector('[data-icon="file-code"]').getBBox();
+        const contextIcon = context.querySelector('[data-icon="file-text"]').getBBox();
         const contextClip = context.querySelector("clipPath rect");
         const pauseText = pause.querySelector("text").getBBox();
         const title = header.querySelector("text").getBBox();
         const summaryText = summary.querySelectorAll("text");
         const summaryHeading = summaryText[0].getBBox();
-        const summaryIcon = summary.querySelector("circle").getBBox();
         const triggerNote = Array.from(formatting.querySelectorAll("text")).at(-1).getBBox();
         return {
           stateEdgeOffsetX: stateText.x + stateText.width - (art.context.width - 20),
@@ -126,10 +124,8 @@ export const reviewStatus = async (
           pauseOffsetX: pauseText.x + pauseText.width/2 - art.pause.width/2,
           pauseOffsetY: pauseText.y + pauseText.height/2 - art.pause.height/2,
           summaryHeadingOffsetY: summaryHeading.y + summaryHeading.height/2 - 14,
-          summaryIconOffsetY: summaryIcon.y + summaryIcon.height/2 - 14,
           summaryTop: summaryHeading.y,
           triggerBottom: triggerNote.y + triggerNote.height,
-          summaryFits: summaryHeading.x + summaryHeading.width < summaryIcon.x,
           headerFits: title.x + title.width <= art.header.width,
           pauseFits: pauseText.x >= 1 && pauseText.x + pauseText.width <= art.pause.width - 1,
         };
@@ -148,7 +144,6 @@ export const reviewStatus = async (
       measurement.pauseOffsetX,
       measurement.pauseOffsetY,
       measurement.summaryHeadingOffsetY,
-      measurement.summaryIconOffsetY,
     ])
       assert.ok(
         Math.abs(offset) <= 1,
@@ -161,15 +156,11 @@ export const reviewStatus = async (
     );
     assert.ok(
       measurement.contextFits,
-      "Wrapped names remain readable without clipping",
+      "Ellipsized names fit their column without clipping",
     );
     assert.ok(
       measurement.pauseFits,
       "Pause and Resume labels fit the same button",
-    );
-    assert.ok(
-      measurement.summaryFits,
-      "The larger heading clears the info icon",
     );
   }
 
@@ -349,23 +340,25 @@ export const reviewStatus = async (
   assert.deepEqual(await hover.boundingBox(), hovered);
 
   const fileInfo = hover.getByRole("img", { name: /^Active file:/ });
-  assert.equal(await fileInfo.getAttribute("title"), statusHelp.file);
+  const fullFileLabel = await fileInfo.getAttribute("alt");
+  const fileTitle = await fileInfo.getAttribute("title");
+  if (fileTitle) {
+    for (const label of fileTitle.split("\n"))
+      assert.ok(fullFileLabel?.includes(label));
+  }
   assert.equal(
     await fileInfo.evaluate((el) => !!el.closest("a")),
     false,
-    "File information is hover-only with no command",
+    "File context has no command",
   );
   const formattingInfo = hover.getByRole("img", {
     name: /^Automatic formatting$/,
   });
-  assert.equal(
-    await formattingInfo.getAttribute("title"),
-    statusHelp.formatting,
-  );
+  assert.equal(await formattingInfo.getAttribute("title"), null);
   assert.equal(
     await formattingInfo.evaluate((el) => !!el.closest("a")),
     false,
-    "Formatting information is hover-only with no command",
+    "Formatting heading has no command",
   );
   const settings = hover.getByRole("link", {
     name: "Open VS Code Settings",
@@ -383,11 +376,15 @@ export const reviewStatus = async (
   );
   const dashboard = hover.getByRole("link", { name: /^Open dashboard/ });
   const issue = hover.getByRole("link", { name: /^Report an issue/ });
+  for (const action of [dashboard, issue]) {
+    assert.equal(await action.getAttribute("title"), null);
+    assert.equal(await action.getByRole("img").getAttribute("title"), null);
+  }
   const contextBounds = await fileInfo.boundingBox();
   const dashboardBounds = await dashboard.getByRole("img").boundingBox();
   const issueBounds = await issue.getByRole("img").boundingBox();
   assert.ok(contextBounds && dashboardBounds && issueBounds);
-  assert.ok(contextBounds.width >= 330 && contextBounds.width <= 420);
+  assert.equal(contextBounds.width, 330);
   assert.equal(
     contextBounds.width,
     Number(await fileInfo.getAttribute("width")),
@@ -470,11 +467,6 @@ export const reviewStatus = async (
     "Clicking the footer gutter does not open the dashboard",
   );
   assert.equal(await issue.getAttribute("data-href"), issueUrl);
-  assert.equal(
-    await dashboard.getAttribute("title"),
-    "Open Kira Formatting Controls dashboard",
-  );
-  assert.equal(await issue.getAttribute("title"), "Open a new issue on GitHub");
   const pauseLink = hover.getByRole("link", { name: "Pause", exact: true });
   assert.equal(await pauseLink.getAttribute("title"), statusHelp.pause);
   const pauseImage = pauseLink.getByRole("img", { name: "Pause", exact: true });
@@ -707,8 +699,18 @@ export const reviewStatus = async (
   };
   await dismiss();
   await openFile(testFiles.settingsFile);
-  await page.keyboard.press(`${modifier}+End`);
-  await page.keyboard.type(" ");
+  // Create the dirty buffer through the test host's public editor API;
+  // this is independent of native keyboard focus and EditContext support.
+  const editRequest = join(directory, "status-edit-settings");
+  writeFileSync(editRequest, "edit");
+  const editDeadline = Date.now() + 10000;
+  while (existsSync(editRequest)) {
+    assert.ok(
+      Date.now() < editDeadline,
+      "Test host creates the unsaved settings edit",
+    );
+    await delay(50);
+  }
   await page
     .locator(".tab.active.dirty")
     .filter({ hasText: "settings.json" })
@@ -802,6 +804,6 @@ export const reviewStatus = async (
     .first()
     .waitFor();
   console.log(
-    "Status card verified: smaller text/icons, stable hover/click bounds, native Pause/Resume picker and Command Palette entry, cancellation, fixed status alignment, read-only fields, hover-only info, keyboard access and accessible descriptions.",
+    "Status card verified: smaller text/icons, stable hover/click bounds, native Pause/Resume picker and Command Palette entry, cancellation, fixed status alignment, read-only fields, no explanatory tooltips, keyboard access and accessible descriptions.",
   );
 };

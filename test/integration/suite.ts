@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, rmSync, writeFileSync } from "node:fs";
 import { setTimeout as delay } from "node:timers/promises";
 import * as vscode from "vscode";
 import type { Response } from "../../shared/protocol";
@@ -380,9 +380,30 @@ export const run = async (): Promise<void> => {
       }
       await vscode.commands.executeCommand("workbench.action.closeSidebar");
       await vscode.commands.executeCommand("workbench.action.closePanel");
+      const editRequest = `${process.env.FORMATTING_CONTROLS_REPORT_DIR}/status-edit-settings`;
+      rmSync(editRequest, { force: true });
       writeFileSync(process.env.FORMATTING_CONTROLS_UI_READY, "ready");
       const deadline = Date.now() + 180000;
       while (!existsSync(process.env.FORMATTING_CONTROLS_UI_DONE)) {
+        if (
+          process.env.FORMATTING_CONTROLS_STATUS_UI &&
+          existsSync(editRequest)
+        ) {
+          const settingsUri = projectSettingsFile(first);
+          assert.ok(settingsUri);
+          const editor = await vscode.window.showTextDocument(
+            await vscode.workspace.openTextDocument(settingsUri),
+          );
+          assert.ok(
+            await editor.edit((edit) =>
+              edit.insert(
+                new vscode.Position(0, 0),
+                "// unsaved settings test\n",
+              ),
+            ),
+          );
+          rmSync(editRequest);
+        }
         if (Date.now() > deadline)
           throw new Error("Dashboard verification timed out");
         await delay(100);
