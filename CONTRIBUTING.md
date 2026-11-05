@@ -1,6 +1,6 @@
 # Contributing
 
-Use Node 24 or newer (Node 24 LTS recommended) and the Bun version in `package.json#packageManager`:
+Use the latest patch of Node 24 LTS and the Bun version in `package.json#packageManager`. CI resolves the latest Node 24 patch; Node type declarations and host/test build targets also use 24:
 
 ```sh
 bun install --frozen-lockfile

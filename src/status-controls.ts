@@ -111,12 +111,13 @@ export class StatusControls {
     } catch {
       /* The dashboard reports invalid recovery storage. */
     }
-    const sources = flags.map((key) => {
-      const source = settingSource(
+    const owned = flags.map((key) => own(selection, key));
+    const sources = flags.map((key, index) =>
+      settingSource(
         {
-          configured: own(selection, key) !== undefined,
-          owned: own(selection, key),
-          effective: effective.get(key),
+          configured: owned[index] !== undefined,
+          owned: owned[index],
+          effective: values[index],
           sources: effective.inspect(key) as unknown as Record<string, unknown>,
         },
         {
@@ -129,9 +130,8 @@ export class StatusControls {
           ...(selection.language ? { language: selection.language } : {}),
         },
         document?.languageId,
-      );
-      return source;
-    });
+      ),
+    );
     const context = {
       paused,
       canPause:
@@ -148,10 +148,9 @@ export class StatusControls {
       flags: values,
       sources: sources.map((source) => source.label),
       overrides: sources.map((source) => source.override),
-      owned: flags.map((key) => {
-        const value = own(selection, key);
-        return typeof value === "boolean" ? value : undefined;
-      }),
+      owned: owned.map((value) =>
+        typeof value === "boolean" ? value : undefined,
+      ),
       ...(formatter
         ? {
             formatter:

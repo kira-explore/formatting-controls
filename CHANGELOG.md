@@ -2,6 +2,8 @@
 
 ## 0.7.0 — Unreleased
 
+- Align host/test bundles and Node type declarations with Node 24 LTS, and resolve its latest patch in every CI/release job. Modernize standalone host functions to arrow syntax and reduce repeated configuration reads during dashboard/status refreshes.
+
 - Use the same text color for Pause and Resume while keeping Resume's soft blue background and border.
 
 - Widen the Scope, Language and Formatter dropdown displays to the left to match the approved label spacing. Keep labels, row heights, card width and formatting actions in place.

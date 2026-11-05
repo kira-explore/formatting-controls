@@ -42,7 +42,7 @@ Configuration, editor, folder, theme, installed-extension and profile events ref
 
 ## Tooling and checks
 
-Node >=24 and the Bun version in `package.json#packageManager` are development tools. Authored code uses TypeScript, ES imports and ESNext language/library settings. Biome handles formatting, linting and imports. React/Vite assets load only when the dashboard opens. The host bundle targets Node 22 syntax for VS Code compatibility; a generated `dist/package.json` marks host/test `.js` bundles as CommonJS while authored sources remain ESM.
+Use the latest patch of Node 24 LTS and the Bun version in `package.json#packageManager` for development. CI resolves the latest Node 24 patch in every job, Node type declarations follow the 24.x line, and host/test bundles target Node 24 syntax. VS Code supplies the extension-host runtime; the minimum supported VS Code 1.140.0 was checked with bundled Node 24.21.0. Authored code uses TypeScript, ES imports and ESNext language/library settings. Standalone functions use arrow syntax; class methods remain on their prototypes. Biome handles formatting, linting and imports. React/Vite assets load only when the dashboard opens. A generated `dist/package.json` marks host/test `.js` bundles as CommonJS while authored sources remain ESM.
 
 Pure tests run in Node. Isolated real-editor suites exercise configuration, the dashboard, the status card, simultaneous windows and Remote SSH. Packaging checks final archive identity, contents and budgets. [Validation](validation.md) lists commands and coverage; [release preparation](releasing.md) describes publication gates.
 
