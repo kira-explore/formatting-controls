@@ -1,6 +1,16 @@
 # Changelog
 
-## 0.6.0 — Unreleased
+## 0.7.0 — Unreleased
+
+- Use the same text color for Pause and Resume while keeping Resume's soft blue background and border.
+
+- Widen the Scope, Language and Formatter dropdown displays to the left to match the approved label spacing. Keep labels, row heights, card width and formatting actions in place.
+
+- Refresh all eight dashboard screenshots and the narrow high-contrast preview from the current build. Read the dashboard footer version from package metadata instead of a hard-coded value.
+
+- Update status-card navigation and Pause/Resume recovery documentation to match the current behavior.
+
+## 0.6.0
 
 - Narrow the status card to 330px of content, match Pause/Resume to the 24px Settings button height, and balance Automatic formatting section padding. Keep text and icon sizes unchanged.
 

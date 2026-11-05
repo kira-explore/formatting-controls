@@ -12,7 +12,7 @@ Hover or click the status bar to open the same **Kira Formatting Controls** card
 
 ## What you can do
 
-- **Keep a clear summary at the status bar.** Read formatting, scope, source notes and formatter details. Pause/Resume sits beneath the three formatting triggers with a visible explanation and preserves save actions. Information rows explain the summary on hover without being clickable.
+- **Keep a clear summary at the status bar.** Read formatting, scope, source notes and formatter details. Pause/Resume appears beside Settings in the header and preserves save actions. Information rows explain the summary on hover without being clickable.
 - **Pause through native commands.** Pause/Resume opens a native picker before changing settings. The hover card closes first, avoiding live-update flicker. The same action is available from the Command Palette; Escape cancels it.
 - **See the effective state.** The status bar shows ON, OFF, or MIXED for Format on Save, Paste, and Type in the active editor.
 - **Choose where changes belong.** Write to User, Workspace, or a specific workspace folder. Select a VS Code language ID for language overrides.
@@ -21,7 +21,7 @@ Hover or click the status bar to open the same **Kira Formatting Controls** card
 - **Inspect overrides.** Compare values at your chosen scope with effective values and inspect the configuration sources exposed by VS Code.
 - **Explain the setup.** Diagnostics distinguishes verified setting facts from possible provider conflicts. Language Rules shows explicit overrides.
 - **Reuse your preferences.** Save named profiles, import/export JSON, and preview changes before applying them. Restore only values that remain unchanged.
-- **Pause at a project scope.** Temporarily disable formatting and configured save actions, with a durable recovery record and an explicit Resume action.
+- **Pause at a project scope.** Pause only formatting through the status card, or include configured save actions through Profiles. Both use a durable recovery record and an explicit Resume action.
 - **Reset deliberately.** Preview the selected setting before removing its value at that scope. A changed preview is rejected.
 
 The Marketplace display name is **Kira Formatting Controls**; the stable extension ID remains `rajudhami.formatting-controls`.
@@ -30,12 +30,12 @@ No telemetry, remote analytics, or source-code transmission. Settings stay in VS
 
 ## Dark theme previews
 
-Screenshots are captured from the running extension in VS Code’s **Dark Modern** theme. Overview is shown above; expand the sections below to see the other seven dashboard tabs.
+Screenshots are captured from version **0.7.0** running in VS Code’s **Dark Modern** theme. Overview is shown above; expand the sections below to see the other seven dashboard tabs.
 
 <details>
-<summary>Formatting controls and scope overrides</summary>
+<summary>Formatting controls and effective values</summary>
 
-![Formatting controls and an effective-value override in Dark Modern](docs/assets/dashboard-dark-formatting.png)
+![Formatting controls and effective values in Dark Modern](docs/assets/dashboard-dark-formatting.png)
 
 </details>
 
@@ -61,9 +61,9 @@ Screenshots are captured from the running extension in VS Code’s **Dark Modern
 </details>
 
 <details>
-<summary>Language rules and override sources</summary>
+<summary>Language rules</summary>
 
-![Language rules and override sources in Dark Modern](docs/assets/dashboard-dark-language-rules.png)
+![Language Rules page explaining how to create language overrides in Dark Modern](docs/assets/dashboard-dark-language-rules.png)
 
 </details>
 
@@ -107,7 +107,7 @@ Open the folder in VS Code and press **F5** to launch the Extension Development 
 bun run package
 ```
 
-In VS Code, run **Extensions: Install from VSIX…** and select `formatting-controls-0.6.0.vsix`. A successful GitHub Actions run also provides the VSIX artifact. No Marketplace credentials are required.
+In VS Code, run **Extensions: Install from VSIX…** and select `formatting-controls-0.7.0.vsix`. A successful GitHub Actions run also provides the VSIX artifact. No Marketplace credentials are required.
 
 ## Find your flow
 
@@ -125,7 +125,7 @@ Hover the status-bar item to open the anchored **Kira Formatting Controls** card
 
 The welcome page appears once on first activation. It introduces the workflow and links to settings, documentation, and GitHub; it does not apply a preset automatically.
 
-The card's right-aligned **Enabled / Disabled / Mixed** status text summarizes the three formatting triggers. Its information regions explain the file context and summary. The top-right icon opens Settings; the footer opens the dashboard or a new GitHub issue. [Status-card details and API limits](docs/status-controls.md).
+The card's right-aligned **Enabled / Disabled / Mixed** status beside Automatic formatting summarizes the three formatting triggers. **Scope**, **Language** and **Formatter** appear together above that section. Its information regions explain the file context and summary. Pause/Resume and Settings appear in the header; the footer opens the dashboard or a new GitHub issue. [Status-card details and API limits](docs/status-controls.md).
 
 ![Native formatting summary above the status bar in Dark Modern](docs/assets/status-card-dark.png)
 

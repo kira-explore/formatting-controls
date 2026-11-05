@@ -31,7 +31,6 @@ const palettes = {
     border: "#333536",
     button: "#2a2d2e",
     resume: "#203d4b",
-    resumeText: "#9dd9f6",
     resumeBorder: "#38637a",
     checkbox: "#252526",
     checkboxBorder: "#707070",
@@ -47,7 +46,6 @@ const palettes = {
     border: "#929292",
     button: "#e6e6e6",
     resume: "#e3f1f8",
-    resumeText: "#075378",
     resumeBorder: "#8cbcd4",
     checkbox: "#ffffff",
     checkboxBorder: "#929292",
@@ -63,7 +61,6 @@ const palettes = {
     border: "#ffffff",
     button: "#000000",
     resume: "#000000",
-    resumeText: "#5cdeff",
     resumeBorder: "#5cdeff",
     checkbox: "#000000",
     checkboxBorder: "#ffffff",
@@ -79,7 +76,6 @@ const palettes = {
     border: "#000000",
     button: "#ffffff",
     resume: "#ffffff",
-    resumeText: "#004fa3",
     resumeBorder: "#004fa3",
     checkbox: "#ffffff",
     checkboxBorder: "#000000",
@@ -166,8 +162,8 @@ export function statusArtwork(
   ) =>
     `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" stroke="${stroke}" fill="${fill}"/>`;
   const dropdown = (y: number, value: string) =>
-    rect(143, y, 182, 28) +
-    centeredText(153, y + 14, shortened(value, 24)) +
+    rect(100, y, 225, 28) +
+    centeredText(110, y + 14, shortened(value, 31)) +
     `<path d="M306.5 ${y + 12.25}l3.5 3.5 3.5-3.5" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
   const svg = (height: number, contents: string, width = 330) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g font-family="-apple-system, BlinkMacSystemFont, Segoe WPC, Segoe UI, system-ui, Ubuntu, Droid Sans, sans-serif" font-weight="400">${contents}</g></svg>`;
@@ -321,7 +317,7 @@ export function statusArtwork(
           12,
           pauseLabel,
           12.5,
-          context.canPause ? (context.paused ? p.resumeText : p.fg) : p.muted,
+          context.canPause ? p.fg : p.muted,
           "middle",
         ),
       pauseLabel,

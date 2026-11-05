@@ -805,7 +805,9 @@ function App() {
             </section>
           )}
           <footer>
-            <span>Formatting Controls · 0.5.0</span>
+            <span>
+              Formatting Controls · {import.meta.env.VITE_EXTENSION_VERSION}
+            </span>
             <button
               type="button"
               disabled={disabled}
