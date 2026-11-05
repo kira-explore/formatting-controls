@@ -16,7 +16,7 @@ export class UnsavedSettingsError extends Error {
 }
 
 /** Resolve project settings through VS Code URIs, including remote workspaces. */
-export function projectSettingsFile(s: Selection): vscode.Uri | undefined {
+export const projectSettingsFile = (s: Selection): vscode.Uri | undefined => {
   if (s.target === vscode.ConfigurationTarget.Global) return undefined;
   if (
     s.target === vscode.ConfigurationTarget.Workspace &&
@@ -30,9 +30,11 @@ export function projectSettingsFile(s: Selection): vscode.Uri | undefined {
   return folder
     ? vscode.Uri.joinPath(folder.uri, ".vscode", "settings.json")
     : undefined;
-}
+};
 
-function dirtySettingsDocument(s: Selection): vscode.TextDocument | undefined {
+const dirtySettingsDocument = (
+  s: Selection,
+): vscode.TextDocument | undefined => {
   const uri = projectSettingsFile(s);
   return uri
     ? vscode.workspace.textDocuments.find(
@@ -40,14 +42,14 @@ function dirtySettingsDocument(s: Selection): vscode.TextDocument | undefined {
           document.isDirty && document.uri.toString() === uri.toString(),
       )
     : undefined;
-}
-export function assertSettingsSaved(s: Selection): void {
+};
+export const assertSettingsSaved = (s: Selection): void => {
   const document = dirtySettingsDocument(s);
   if (document) throw new UnsavedSettingsError(document.uri);
-}
+};
 
 /** Let an existing native save settle; never save or discard editor changes. */
-export async function waitForSettingsSave(s: Selection): Promise<void> {
+export const waitForSettingsSave = async (s: Selection): Promise<void> => {
   if (!dirtySettingsDocument(s)) return;
   await new Promise<void>((resolve) => {
     const finish = () => {
@@ -67,16 +69,16 @@ export async function waitForSettingsSave(s: Selection): Promise<void> {
     check();
   });
   assertSettingsSaved(s);
-}
-export function configuration(s: Selection): vscode.WorkspaceConfiguration {
+};
+export const configuration = (s: Selection): vscode.WorkspaceConfiguration => {
   return vscode.workspace.getConfiguration(
     undefined,
     s.language
       ? { ...(s.uri ? { uri: s.uri } : {}), languageId: s.language }
       : s.uri,
   );
-}
-export function own(s: Selection, key: SettingKey): unknown {
+};
+export const own = (s: Selection, key: SettingKey): unknown => {
   const i = configuration(s).inspect(key);
   if (!i) return undefined;
   if (s.language)
@@ -90,14 +92,14 @@ export function own(s: Selection, key: SettingKey): unknown {
     : s.target === vscode.ConfigurationTarget.Workspace
       ? i.workspaceValue
       : i.workspaceFolderValue;
-}
-export async function write(
+};
+export const write = async (
   s: Selection,
   key: SettingKey,
   value: unknown,
   update = () =>
     configuration(s).update(key, value, s.target, Boolean(s.language)),
-): Promise<void> {
+): Promise<void> => {
   if (
     s.target !== vscode.ConfigurationTarget.Global &&
     !vscode.workspace.workspaceFile &&
@@ -184,30 +186,30 @@ export async function write(
         `VS Code did not confirm the saved value of ${key}. Review the current settings before retrying.`,
       );
   }
-}
-export async function setAction(
+};
+export const setAction = async (
   s: Selection,
   id: string,
   value: ActionValue,
-): Promise<void> {
+): Promise<void> => {
   // Read only the selected scope: never copy inherited settings into a narrower scope.
   await write(
     s,
     "editor.codeActionsOnSave",
     updateAction(own(s, "editor.codeActionsOnSave"), id, value),
   );
-}
+};
 
 /** Refuse a reset if its confirmed preview no longer matches the selected scope. */
-export async function resetIfUnchanged(
+export const resetIfUnchanged = async (
   s: Selection,
   key: SettingKey,
   expected: unknown,
-): Promise<void> {
+): Promise<void> => {
   if (!isDeepStrictEqual(own(s, key), expected)) {
     throw new Error(
       "This setting changed while the reset preview was open. Reopen Reset to review its current value.",
     );
   }
   await write(s, key, undefined);
-}
+};

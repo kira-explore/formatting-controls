@@ -1,11 +1,11 @@
 import * as vscode from "vscode";
 import type { Provider } from "../shared/protocol";
 import { adapters } from "../shared/providers";
-export function providersFor(
+export const providersFor = (
   config: vscode.WorkspaceConfiguration,
   language: string,
   selected: unknown,
-): Provider[] {
+): Provider[] => {
   const providers: Provider[] = adapters.map((adapter) => {
     const knownLanguage = adapter.languages.includes(language);
     let formattingKey = adapter.formatSetting;
@@ -59,4 +59,4 @@ export function providersFor(
       note: "Configured extension without an adapter. Presence does not verify its capabilities.",
     });
   return providers;
-}
+};

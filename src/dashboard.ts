@@ -169,21 +169,25 @@ export class Dashboard implements vscode.Disposable {
           }
         : {}),
     });
-    const settings = settingKeys.map((key) => ({
-      key,
-      effective: effective.get(key) ?? null,
-      owned: own(selection, key) ?? null,
-      configured: own(selection, key) !== undefined,
-      sources: effective.inspect(key) as unknown as Record<string, unknown>,
-    }));
+    const settings = settingKeys.map((key) => {
+      const owned = own(selection, key);
+      return {
+        key,
+        effective: effective.get(key) ?? null,
+        owned: owned ?? null,
+        configured: owned !== undefined,
+        sources: effective.inspect(key) as unknown as Record<string, unknown>,
+      };
+    });
     const detected = providersFor(
       effective,
       this.scope.language ?? this.active?.languageId ?? "",
       effective.get("editor.defaultFormatter"),
     );
+    const selectedConfiguration = configuration(selection);
     const ids = new Set(
       settingKeys.flatMap(
-        (key) => configuration(selection).inspect(key)?.languageIds ?? [],
+        (key) => selectedConfiguration.inspect(key)?.languageIds ?? [],
       ),
     );
     const rules: LanguageRule[] = [...ids]

@@ -8,14 +8,14 @@ export const keys = settingKeys;
 export type SettingKey = (typeof keys)[number];
 export type ActionValue = "explicit" | "always" | "never";
 export type Actions = Record<string, ActionValue | boolean>;
-export function status(values: readonly boolean[]): "ON" | "OFF" | "MIXED" {
+export const status = (values: readonly boolean[]): "ON" | "OFF" | "MIXED" => {
   return values.every(Boolean) ? "ON" : values.some(Boolean) ? "MIXED" : "OFF";
-}
-export function updateAction(
+};
+export const updateAction = (
   current: unknown,
   key: string,
   value: ActionValue,
-): Actions {
+): Actions => {
   if (!/^source(?:\.[a-zA-Z0-9_-]+)+$/.test(key))
     throw new Error("Use a source action identifier.");
   if (
@@ -26,7 +26,7 @@ export function updateAction(
       "Legacy code-action arrays must be migrated in Settings first.",
     );
   return { ...(current as Actions | undefined), [key]: value };
-}
-export function enabled(value: unknown): boolean {
+};
+export const enabled = (value: unknown): boolean => {
   return value === true || value === "always" || value === "explicit";
-}
+};

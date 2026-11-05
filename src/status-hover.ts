@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { type HoverContext, statusHover } from "../shared/status-hover";
-export function statusTooltip(context: HoverContext): vscode.MarkdownString {
+export const statusTooltip = (context: HoverContext): vscode.MarkdownString => {
   const kind = vscode.window.activeColorTheme.kind;
   const theme =
     kind === vscode.ColorThemeKind.Light
@@ -20,4 +20,4 @@ export function statusTooltip(context: HoverContext): vscode.MarkdownString {
     ],
   };
   return tooltip;
-}
+};

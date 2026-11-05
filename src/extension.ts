@@ -15,7 +15,7 @@ import { FileProfiles } from "./profile-store";
 import { StatusControls } from "./status-controls";
 import { Workflows } from "./workflows";
 
-export function activate(context: vscode.ExtensionContext): void {
+export const activate = (context: vscode.ExtensionContext): void => {
   const profiles = new FileProfiles(
     context.globalStorageUri,
     context.globalState,
@@ -339,4 +339,4 @@ export function activate(context: vscode.ExtensionContext): void {
         vscode.window.showErrorMessage(`Formatting Controls: ${String(error)}`),
       );
   }
-}
+};

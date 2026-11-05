@@ -40,4 +40,4 @@ CI runs the real SSH test on Linux stable, including the close/reconnect pass. M
 
 This validates Remote SSH with a Linux host. WSL, a connection through the Dev Containers extension, Codespaces, Windows SSH servers, network-mounted profile storage, interrupted network writes and forced process crashes have not been tested. These results do not establish universal remote compatibility. Screen-reader testing remains outstanding.
 
-See Microsoft's [remote extension guidance](https://code.visualstudio.com/api/advanced-topics/remote-extensions) for execution locations, storage APIs and development setup. Node type declarations are now `^26.6.5` as requested; they are compile-time definitions. Node 24 remains the build/runtime compatibility baseline and CI test runtime.
+See Microsoft's [remote extension guidance](https://code.visualstudio.com/api/advanced-topics/remote-extensions) for execution locations, storage APIs and development setup. Node type declarations follow the 24.x line to match the build target and CI runtime. VS Code supplies the extension-host runtime.
