@@ -6,10 +6,10 @@ import type { Page } from "playwright-core";
 import { statusArtwork } from "../shared/status-artwork";
 import { issueUrl, statusHelp } from "../shared/status-help";
 
-export async function reviewStatus(
+export const reviewStatus = async (
   page: Page,
   directory: string,
-): Promise<void> {
+): Promise<void> => {
   mkdirSync(directory, { recursive: true });
   const fixtures = [
     { flags: [true, true, true], paused: false },
@@ -762,4 +762,4 @@ export async function reviewStatus(
   console.log(
     "Status card verified: smaller text/icons, stable hover/click bounds, native Pause/Resume picker and Command Palette entry, cancellation, fixed status alignment, read-only fields, hover-only info, keyboard access and accessible descriptions.",
   );
-}
+};

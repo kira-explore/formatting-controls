@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { setTimeout as delay } from "node:timers/promises";
 import * as vscode from "vscode";
 import {
   assertSettingsSaved,
@@ -22,7 +23,7 @@ class ControlledStore extends MemoryStore {
     await super.update(key, value);
   }
 }
-export async function runStatusTests(uri: vscode.Uri): Promise<void> {
+export const runStatusTests = async (uri: vscode.Uri): Promise<void> => {
   let document: vscode.TextDocument | undefined =
     await vscode.workspace.openTextDocument(uri);
   const item = vscode.window.createStatusBarItem();
@@ -325,7 +326,7 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
             () => null,
             (error: unknown) => error,
           );
-          await new Promise((resolve) => setTimeout(resolve, 50));
+          await delay(50);
           assert.deepEqual(
             workflows.journal(),
             recoveryBeforeSave,
@@ -532,4 +533,4 @@ export async function runStatusTests(uri: vscode.Uri): Promise<void> {
       for (const change of changes) change.dispose();
     }
   }
-}
+};

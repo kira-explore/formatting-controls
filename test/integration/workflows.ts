@@ -16,10 +16,10 @@ export class MemoryStore implements Store {
     else this.values.set(key, structuredClone(value));
   }
 }
-export async function runWorkflowTests(
+export const runWorkflowTests = async (
   extensionUri: vscode.Uri,
   uri: vscode.Uri,
-): Promise<void> {
+): Promise<void> => {
   const folder = vscode.workspace.getWorkspaceFolder(uri);
   assert.ok(folder);
   const selection = {
@@ -344,4 +344,4 @@ export async function runWorkflowTests(
     workflows.dispose();
     await vscode.workspace.fs.delete(exported).then(undefined, () => undefined);
   }
-}
+};

@@ -6,6 +6,8 @@
 
 - Use native promise timers, Promise.withResolvers and non-mutating last-item access in host code. Simplify startup tasks with async/await and the shared error boundary while retaining event cleanup, save ownership checks and serialized setting operations.
 
+- Extend modern syntax to shared modules, dashboard components, packaging helpers and test fixtures. Reuse dashboard setting lookups and sorted languages between renders; use immutable array operations for language ordering and recovery traversal, and native promise timers in Node-based test runners.
+
 - Use the same text color for Pause and Resume while keeping Resume's soft blue background and border.
 
 - Widen the Scope, Language and Formatter dropdown displays to the left to match the approved label spacing. Keep labels, row heights, card width and formatting actions in place.

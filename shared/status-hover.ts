@@ -18,10 +18,10 @@ export interface HoverContext {
   canPause?: boolean;
   revision: number;
 }
-export function statusHover(
+export const statusHover = (
   context: HoverContext,
   theme: CardTheme = "dark",
-): string {
+): string => {
   const art = statusArtwork(context, theme);
   const image = (part: typeof art.context, title?: string, align = "middle") =>
     `<img align="${align}" width="${part.width}" height="${part.height}" alt="${escapeText(part.alt)}"${title ? ` title="${escapeText(title)}"` : ""} src="data:image/svg+xml;base64,${Buffer.from(part.svg).toString("base64")}">`;
@@ -48,4 +48,4 @@ export function statusHover(
       `<a href="command:formattingControls.dashboard" title="Open Kira Formatting Controls dashboard">${image(art.dashboard, undefined, "top")}</a>${image(art.footerGap, undefined, "top")}<a href="${issueUrl}" title="Open a new issue on GitHub">${image(art.issue, undefined, "top")}</a>`,
     ),
   ].join("")}</tbody></table>`;
-}
+};

@@ -8,7 +8,7 @@ const identity = {
   publisher: "rajudhami",
   version: "0.4.0",
 };
-function artifact() {
+const artifact = () => {
   const icon = Buffer.alloc(24);
   Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]).copy(icon);
   icon.writeUInt32BE(256, 16);
@@ -35,7 +35,7 @@ function artifact() {
     ["extension/dist/webview/dashboard.css", Buffer.from("css")],
     ["extension/assets/icon.png", icon],
   ]);
-}
+};
 test("final VSIX rejects unexpected files and traversal paths", () => {
   for (const name of [
     "extension/.env",

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import axe from "axe-core";
 import { chromium } from "playwright-core";
 import { reviewStatus } from "./status";
@@ -16,11 +17,10 @@ interface Reply {
   result?: { result?: { value?: unknown }; exceptionDetails?: unknown };
   error?: unknown;
 }
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-export async function reviewDashboard(
+export const reviewDashboard = async (
   directory: string,
   statusUi = false,
-): Promise<void> {
+): Promise<void> => {
   const browser = await chromium.connectOverCDP("http://127.0.0.1:9333");
   try {
     const page = browser.contexts()[0]?.pages()[0];
@@ -260,4 +260,4 @@ export async function reviewDashboard(
   } finally {
     await browser.close();
   }
-}
+};

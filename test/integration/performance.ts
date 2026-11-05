@@ -5,7 +5,7 @@ import { join } from "node:path";
 import * as vscode from "vscode";
 import type { Dashboard } from "../../src/dashboard";
 
-export async function profileDashboard(dashboard: Dashboard): Promise<void> {
+export const profileDashboard = async (dashboard: Dashboard): Promise<void> => {
   const directory = process.env.FORMATTING_CONTROLS_REPORT_DIR;
   if (!directory) return;
   mkdirSync(directory, { recursive: true });
@@ -52,4 +52,4 @@ export async function profileDashboard(dashboard: Dashboard): Promise<void> {
   } finally {
     session.disconnect();
   }
-}
+};

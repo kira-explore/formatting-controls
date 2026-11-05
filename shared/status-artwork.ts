@@ -134,10 +134,10 @@ const languageCode = (id: string): string =>
   })[id] ?? languageName(id);
 
 /** Locally generated, inert SVG artwork. No scripts, external assets or embedded HTML. */
-export function statusArtwork(
+export const statusArtwork = (
   context: HoverContext,
   theme: CardTheme = "dark",
-) {
+) => {
   const p = palettes[theme];
   const centeredText = (
     x: number,
@@ -346,4 +346,4 @@ export function statusArtwork(
       133,
     ),
   };
-}
+};

@@ -6,11 +6,11 @@ const scopeNames = {
   folder: "Workspace folder",
 };
 /** VS Code applies regular scopes first, then language scopes, then policy. */
-export function settingSource(
+export const settingSource = (
   setting: Pick<Setting, "configured" | "owned" | "effective" | "sources">,
   scope: Scope,
   language?: string,
-): { label: string; override?: string } {
+): { label: string; override?: string } => {
   let source = "VS Code default";
   for (const [field, name] of [
     ["defaultValue", "VS Code default"],
@@ -43,4 +43,4 @@ export function settingSource(
         }
       : {}),
   };
-}
+};

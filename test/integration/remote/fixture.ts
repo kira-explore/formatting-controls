@@ -4,7 +4,7 @@ import * as vscode from "vscode";
 import { activate as activateProduct } from "../../../src/extension";
 import { run } from "./suite";
 // This development-only wrapper exposes context to the remote regression suite.
-export function activate(context: vscode.ExtensionContext) {
+export const activate = (context: vscode.ExtensionContext) => {
   activateProduct(context);
   setTimeout(() => {
     void (async () => {
@@ -40,4 +40,4 @@ export function activate(context: vscode.ExtensionContext) {
     })();
   }, 0);
   return context;
-}
+};

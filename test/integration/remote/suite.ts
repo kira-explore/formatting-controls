@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import * as vscode from "vscode";
 import {
   configuration,
@@ -13,7 +14,7 @@ import { Dashboard } from "../../../src/dashboard";
 import { FileProfiles } from "../../../src/profile-store";
 import { Workflows } from "../../../src/workflows";
 
-export async function run(): Promise<void> {
+export const run = async (): Promise<void> => {
   assert.equal(
     vscode.env.remoteName,
     "ssh-remote",
@@ -73,7 +74,7 @@ export async function run(): Promise<void> {
           Date.now() - configurationStarted < 15000,
           "Persisted folder configuration must load after reconnect",
         );
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        await delay(50);
       }
       assert.equal(
         own(selection, "editor.formatOnSave"),
@@ -253,7 +254,7 @@ export async function run(): Promise<void> {
       while (!existsSync(join(root, "review-done"))) {
         if (Date.now() > deadline)
           throw new Error("Remote UI review timed out");
-        await new Promise((r) => setTimeout(r, 500));
+        await delay(500);
       }
       const review = JSON.parse(
         readFileSync(join(root, "review-done"), "utf8"),
@@ -282,4 +283,4 @@ export async function run(): Promise<void> {
     workflows.dispose();
     profiles.dispose();
   }
-}
+};

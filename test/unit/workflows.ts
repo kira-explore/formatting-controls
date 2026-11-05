@@ -17,7 +17,7 @@ const changes: Change[] = [
   { key: "editor.formatOnSave", before: slot(true), after: slot(false) },
   { key: "editor.formatOnPaste", before: absent, after: slot(false) },
 ];
-function fixture() {
+const fixture = () => {
   let journal: Journal | undefined;
   const values = new Map(changes.map((c) => [c.key, c.before]));
   const events: string[] = [];
@@ -51,7 +51,7 @@ function fixture() {
       return journal;
     },
   };
-}
+};
 test("profile JSON is bounded and rejects unknown settings, invalid values and language Auto Save", () => {
   const good = {
     version: 1,

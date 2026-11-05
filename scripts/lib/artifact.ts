@@ -36,10 +36,10 @@ const rootFiles = new Set([
   "extension/dist/webview/dashboard.css",
   "extension/assets/icon.png",
 ]);
-export function validateArtifact(
+export const validateArtifact = (
   files: ReadonlyMap<string, Buffer>,
   expected: ReleaseIdentity,
-): void {
+): void => {
   for (const name of required)
     assert.ok(files.get(name)?.length, `Package is missing ${name}`);
   for (const name of files.keys()) {
@@ -109,8 +109,8 @@ export function validateArtifact(
     icon.readUInt32BE(16) >= 128 && icon.readUInt32BE(20) >= 128,
     "Icon must be at least 128px",
   );
-}
-export function readArtifact(path: string): Promise<Map<string, Buffer>> {
+};
+export const readArtifact = (path: string): Promise<Map<string, Buffer>> => {
   return new Promise((resolve, reject) => {
     open(path, { lazyEntries: true, strictFileNames: true }, (error, zip) => {
       if (error || !zip) {
@@ -178,4 +178,4 @@ export function readArtifact(path: string): Promise<Map<string, Buffer>> {
       zip.readEntry();
     });
   });
-}
+};

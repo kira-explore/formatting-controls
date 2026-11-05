@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useState } from "react";
+import { StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { Key, Scope } from "../../shared/protocol";
 import { actionNames, descriptions, display, labels, pages } from "./catalog";
@@ -6,16 +6,22 @@ import { useEditor } from "./useEditor";
 import { WorkflowPages } from "./WorkflowPages";
 import "./styles.css";
 
-function App() {
+const App = () => {
   const { state, page, setPage, pending, error, setError, notice, send } =
     useEditor();
   const [search, setSearch] = useState("");
   const [customAction, setCustomAction] = useState("");
   const [customFormatter, setCustomFormatter] = useState("");
   const [delay, setDelay] = useState("");
-  const effectiveDelay = state?.settings.find(
-    (s) => s.key === "files.autoSaveDelay",
-  )?.effective;
+  const settingsByKey = useMemo(
+    () => new Map(state?.settings.map((setting) => [setting.key, setting])),
+    [state?.settings],
+  );
+  const languages = useMemo(
+    () => state?.languages.toSorted() ?? [],
+    [state?.languages],
+  );
+  const effectiveDelay = settingsByKey.get("files.autoSaveDelay")?.effective;
   useEffect(() => setDelay(String(effectiveDelay ?? 1000)), [effectiveDelay]);
   const ready = !!state;
   useEffect(() => {
@@ -32,14 +38,14 @@ function App() {
         {error && <p role="alert">{error}</p>}
       </main>
     );
-  const setting = (key: Key) => state.settings.find((s) => s.key === key);
+  const setting = (key: Key) => settingsByKey.get(key);
   const mutate = (key: Key, value: boolean | string | number) =>
     send({ type: "set", key, value, revision: state.revision });
   const open = (
     destination: "settings" | "github" | "docs" | "quickControls",
   ) => send({ type: "open", destination });
-  const matches = (text: string) =>
-    text.toLowerCase().includes(search.toLowerCase());
+  const query = search.toLowerCase();
+  const matches = (text: string) => text.toLowerCase().includes(query);
   const actions = setting("editor.codeActionsOnSave")?.effective;
   const actionObject =
     actions && typeof actions === "object" && !Array.isArray(actions)
@@ -317,7 +323,7 @@ function App() {
                 }}
               >
                 <option value="">All languages</option>
-                {[...state.languages].sort().map((l) => (
+                {languages.map((l) => (
                   <option key={l}>{l}</option>
                 ))}
               </select>
@@ -327,7 +333,7 @@ function App() {
               <span title={state.resource}>
                 {state.resource === "No active file"
                   ? state.resource
-                  : state.resource.split("/").pop()}
+                  : state.resource.split("/").at(-1)}
               </span>
             </div>
           </section>
@@ -820,7 +826,7 @@ function App() {
       </div>
     </div>
   );
-}
+};
 const root = document.getElementById("root");
 if (root)
   createRoot(root).render(

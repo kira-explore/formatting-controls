@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { runTests } from "@vscode/test-electron";
 import { reviewDashboard } from "./dashboard";
 
@@ -128,7 +129,7 @@ import { reviewDashboard } from "./dashboard";
                 throw new Error(
                   "Extension host did not become ready for dashboard tests",
                 );
-              await new Promise((resolve) => setTimeout(resolve, 100));
+              await delay(100);
             }
             await reviewDashboard(report, statusUi);
           } finally {
