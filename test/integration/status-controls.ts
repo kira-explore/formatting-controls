@@ -224,7 +224,7 @@ export const runStatusTests = async (uri: vscode.Uri): Promise<void> => {
       );
       assert.equal(
         item.text,
-        "Formatting: ON",
+        "Formatting: Enabled",
         "Language overrides still determine the active editor's effective state",
       );
       assert.match(

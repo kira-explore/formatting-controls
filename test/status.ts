@@ -65,10 +65,8 @@ export const reviewStatus = async (
   );
   const alignment = await page.evaluate<
     Array<{
-      stateEdgeOffsetX: number;
-      stateOffsetY: number;
       contextOffsetY: number;
-      contextStateGap: number;
+      contextIconGap: number;
       contextFits: boolean;
       pauseOffsetX: number;
       pauseOffsetY: number;
@@ -101,11 +99,10 @@ export const reviewStatus = async (
     return fixtures.map(art => {
       const context = mount(art.context), pause = mount(art.pause), header = mount(art.header), summary = mount(art.summary), formatting = mount(art.formatting);
       try {
-        const stateText = Array.from(context.querySelectorAll("text")).at(-1).getBBox();
         const contextLines = Array.from(context.querySelectorAll('g[clip-path] text'));
         const file = contextLines[0].getBBox();
         const lastContextLine = contextLines.at(-1).getBBox();
-        const contextIcon = context.querySelector('[data-icon="file-text"]').getBBox();
+        const contextIcon = context.querySelector('[data-status]').getBBox();
         const contextClip = context.querySelector("clipPath rect");
         const pauseText = pause.querySelector("text").getBBox();
         const title = header.querySelector("text").getBBox();
@@ -113,10 +110,8 @@ export const reviewStatus = async (
         const summaryHeading = summaryText[0].getBBox();
         const triggerNote = Array.from(formatting.querySelectorAll("text")).at(-1).getBBox();
         return {
-          stateEdgeOffsetX: stateText.x + stateText.width - (art.context.width - 20),
-          stateOffsetY: stateText.y + stateText.height/2 - (contextIcon.y + contextIcon.height/2),
           contextOffsetY: (file.y + lastContextLine.y + lastContextLine.height)/2 - (contextIcon.y + contextIcon.height/2),
-          contextStateGap: stateText.x - (+contextClip.getAttribute("x") + +contextClip.getAttribute("width")),
+          contextIconGap: file.x - (contextIcon.x + contextIcon.width),
           contextFits: contextLines.every(text => {
             const box = text.getBBox();
             return box.x >= +contextClip.getAttribute("x") && box.x + box.width <= +contextClip.getAttribute("x") + +contextClip.getAttribute("width");
@@ -138,8 +133,6 @@ export const reviewStatus = async (
   );
   for (const measurement of alignment) {
     for (const offset of [
-      measurement.stateEdgeOffsetX,
-      measurement.stateOffsetY,
       measurement.contextOffsetY,
       measurement.pauseOffsetX,
       measurement.pauseOffsetY,
@@ -151,8 +144,8 @@ export const reviewStatus = async (
       );
     assert.ok(measurement.headerFits, "Full extension name fits");
     assert.ok(
-      measurement.contextStateGap >= 12,
-      "File context clears the status label",
+      measurement.contextIconGap >= 10,
+      "File context clears its status icon",
     );
     assert.ok(
       measurement.contextFits,
@@ -165,7 +158,7 @@ export const reviewStatus = async (
   }
 
   const button = page.getByRole("button", {
-    name: /^Formatting: (ON|OFF|MIXED)$/,
+    name: /^Formatting: (Enabled|Disabled|Mixed)$/,
   });
   const hover = page.locator(".monaco-hover").filter({
     has: page.getByRole("img", { name: /^Kira Formatting Controls/ }),

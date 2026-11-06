@@ -11,6 +11,8 @@ export type Actions = Record<string, ActionValue | boolean>;
 export const status = (values: readonly boolean[]): "ON" | "OFF" | "MIXED" => {
   return values.every(Boolean) ? "ON" : values.some(Boolean) ? "MIXED" : "OFF";
 };
+export const statusLabel = (values: readonly boolean[]): string =>
+  ({ ON: "Enabled", OFF: "Disabled", MIXED: "Mixed" })[status(values)];
 export const updateAction = (
   current: unknown,
   key: string,

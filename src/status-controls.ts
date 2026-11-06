@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 import { adapters } from "../shared/providers";
 import { settingSource } from "../shared/setting-source";
 import { own, type Selection, write } from "./configuration";
-import { flags, status } from "./model";
+import { flags, statusLabel } from "./model";
 import { providersFor } from "./providers";
 import { statusTooltip } from "./status-hover";
 import type { Workflows } from "./workflows";
@@ -183,7 +183,7 @@ export class StatusControls {
     if (fingerprint === this.fingerprint) return;
     this.fingerprint = fingerprint;
     this.revision++;
-    this.item.text = `Formatting: ${status(values)}`;
+    this.item.text = `Formatting: ${statusLabel(values)}`;
     if (!this.pausePicker)
       this.item.tooltip = statusTooltip({
         ...context,

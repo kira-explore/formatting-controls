@@ -50,7 +50,7 @@ test("reference artwork has live values, accessible descriptions and read-only f
   assert.match(html, /width="330" height="76"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
   assert.match(art.context.alt, /Automatic formatting: Mixed/);
-  assert.match(art.context.svg, /data-icon="file-text"/);
+  assert.match(art.context.svg, /data-icon="contrast"/);
   assert.match(html, /data:image\/svg\+xml;base64,/);
 });
 
@@ -310,5 +310,34 @@ test("long context names keep the fixed width and expose full names only when tr
     const html = statusHover(input);
     assert.match(html, /title="(?:Workspace:|Folder:|Active file:)/);
     assert.doesNotMatch(art.summary.svg, /<circle/);
+  }
+});
+
+test("status icons free the context column and distinguish all flag combinations", () => {
+  for (let mask = 0; mask < 8; mask++) {
+    const flags = [0, 1, 2].map((bit) => Boolean(mask & (1 << bit)));
+    const expected = mask === 7 ? "Enabled" : mask === 0 ? "Disabled" : "Mixed";
+    const icon =
+      mask === 7 ? "circle-check" : mask === 0 ? "circle-minus" : "contrast";
+    for (const paused of [false, true]) {
+      const art = statusArtwork({
+        ...context,
+        flags,
+        paused,
+        workspace: "formatting-controls",
+      });
+      assert.match(
+        art.context.svg,
+        new RegExp(`data-icon="${icon}" data-status="${expected}"`),
+      );
+      assert.ok(art.context.alt.includes(`Automatic formatting: ${expected}.`));
+      assert.doesNotMatch(
+        art.context.svg,
+        />(?:Enabled|Disabled|Mixed)<\/text>/,
+      );
+      assert.match(art.context.svg, />Workspace: formatting-controls<\/text>/);
+      assert.equal(art.context.width, 330);
+      assert.equal(art.context.tooltip, undefined);
+    }
   }
 });

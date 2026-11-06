@@ -195,7 +195,7 @@ export const statusArtwork = (
   const folder = context.folder ? `Folder: ${context.folder}` : undefined;
   const labels = [fileLabel, workspace, ...(folder ? [folder] : [])];
   const width = 330;
-  const contextTextWidth = width - 140;
+  const contextTextWidth = width - 65;
   const contextLines = labels.map((label) =>
     clippedLabel(label, contextTextWidth - 8),
   );
@@ -216,8 +216,21 @@ export const statusArtwork = (
     `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" text-anchor="${anchor}" dominant-baseline="central">${escapeText(value)}</text>`;
   const line = (y: number) =>
     `<path d="M5 ${y}H${width - 5}" stroke="${p.line}"/>`;
-  const fileGlyph = (x: number, y: number) =>
-    `<g data-icon="file-text"><g transform="translate(${x} ${y}) scale(1.05)" fill="none" stroke="${p.accent}" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"><path d="M-3.5-7H1l4 4v8.5A1.5 1.5 0 0 1 3.5 7h-7A1.5 1.5 0 0 1-5 5.5v-11A1.5 1.5 0 0 1-3.5-7Z"/><path d="M1-7v4h4M-2-1H0M-2 2H2M-2 5H2"/></g></g>`;
+  const statusGlyph = (x: number, y: number) => {
+    const icon =
+      state === "Enabled"
+        ? "circle-check"
+        : state === "Disabled"
+          ? "circle-minus"
+          : "contrast";
+    const mark =
+      state === "Enabled"
+        ? `<path d="M${x - 4} ${y}l3 3 5-6"/>`
+        : state === "Disabled"
+          ? `<path d="M${x - 3.5} ${y}h7"/>`
+          : `<path d="M${x} ${y - 8}a8 8 0 0 1 0 16Z" fill="${p.accent}" stroke="none"/>`;
+    return `<g data-icon="${icon}" data-status="${state}" fill="none" stroke="${p.accent}" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="${x}" cy="${y}" r="8"/>${mark}</g>`;
+  };
   const rect = (
     x: number,
     y: number,
@@ -314,7 +327,7 @@ export const statusArtwork = (
       76 + contextExtraHeight,
       line(1) +
         rect(5, 12, width - 10, 60 + contextExtraHeight, p.focus, p.info, 6) +
-        fileGlyph(25, contextCenter) +
+        statusGlyph(25, contextCenter) +
         `<defs><clipPath id="context-labels"><rect x="44" y="21" width="${contextTextWidth + 1}" height="${42 + contextExtraHeight}"/></clipPath></defs><g clip-path="url(#context-labels)">` +
         contextLines
           .map((label, index) =>
@@ -327,8 +340,7 @@ export const statusArtwork = (
             ),
           )
           .join("") +
-        `</g>` +
-        centeredText(width - 20, contextCenter, state, 12.5, p.muted, "end"),
+        `</g>`,
       `${file}. ${workspace}.${folder ? ` ${folder}.` : ""} Automatic formatting: ${state}.`,
       width,
       truncatedLabels.length ? truncatedLabels.join("\n") : undefined,

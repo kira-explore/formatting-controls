@@ -1,11 +1,14 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { enabled, status, updateAction } from "../../src/model";
+import { enabled, status, statusLabel, updateAction } from "../../src/model";
 
 test("status reports all three effective states", () => {
   assert.equal(status([true, true, true]), "ON");
   assert.equal(status([false, false, false]), "OFF");
   assert.equal(status([true, false, false]), "MIXED");
+  assert.equal(statusLabel([true, true, true]), "Enabled");
+  assert.equal(statusLabel([false, false, false]), "Disabled");
+  assert.equal(statusLabel([true, false, false]), "Mixed");
 });
 test("single action update preserves unrelated and legacy boolean values without mutation", () => {
   const original = {
