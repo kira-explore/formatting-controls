@@ -129,6 +129,8 @@ The blue status icon and label beside **Automatic formatting** summarize the thr
 
 ![Native formatting summary above the status bar in Dark Modern](docs/assets/status-card-dark.png)
 
+Hover the information icons beside **Scope**, **Language** and **Formatter** to see where changes apply and which settings supply the formatter. These icons have no click action. Confirmed formatter problems or a failed Pause/Resume action add a compact warning; **Review in dashboard** opens the existing Diagnostics page at the relevant finding. Saving a blocked settings file or successfully retrying clears the corresponding failure warning. Leaving the default formatter unconfigured does not cause a warning.
+
 ### Dashboard
 
 | Page                | What it shows                                                                      |

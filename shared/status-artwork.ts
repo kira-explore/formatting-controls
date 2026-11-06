@@ -34,6 +34,8 @@ const palettes = {
     resumeBorder: "#38637a",
     checkbox: "#252526",
     checkboxBorder: "#707070",
+    warning: "#dbb66f",
+    warningBackground: "#2b271e",
   },
   light: {
     fg: "#242424",
@@ -49,6 +51,8 @@ const palettes = {
     resumeBorder: "#8cbcd4",
     checkbox: "#ffffff",
     checkboxBorder: "#929292",
+    warning: "#8a5a00",
+    warningBackground: "#fff8e7",
   },
   contrast: {
     fg: "#ffffff",
@@ -64,6 +68,8 @@ const palettes = {
     resumeBorder: "#5cdeff",
     checkbox: "#000000",
     checkboxBorder: "#ffffff",
+    warning: "#ffffff",
+    warningBackground: "#000000",
   },
   "contrast-light": {
     fg: "#000000",
@@ -79,6 +85,8 @@ const palettes = {
     resumeBorder: "#004fa3",
     checkbox: "#ffffff",
     checkboxBorder: "#000000",
+    warning: "#000000",
+    warningBackground: "#ffffff",
   },
 } as const;
 
@@ -92,7 +100,7 @@ const shortened = (value: string, limit: number): string => {
   }
   return result;
 };
-const languageName = (id: string): string =>
+export const languageName = (id: string): string =>
   ({
     typescript: "TypeScript",
     javascript: "JavaScript",
@@ -227,14 +235,14 @@ export const statusArtwork = (
     r = 4,
   ) =>
     `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" stroke="${stroke}" fill="${fill}"/>`;
-  const dropdown = (y: number, value: string) =>
-    rect(100, y, width - 105, 28) +
+  const dropdown = (y: number, value: string, x = 100) =>
+    rect(x, y, width - 105, 28) +
     centeredText(
-      110,
+      x + 10,
       y + 14,
       shortened(value, 31 + Math.floor((width - 330) / 7)),
     ) +
-    `<path d="M${width - 23.5} ${y + 12.25}l3.5 3.5 3.5-3.5" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
+    `<path d="M${x + 206.5} ${y + 12.25}l3.5 3.5 3.5-3.5" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
   const svg = (height: number, contents: string, imageWidth: number) =>
     `<svg xmlns="http://www.w3.org/2000/svg" width="${imageWidth}" height="${height}" viewBox="0 0 ${imageWidth} ${height}"><g font-family="-apple-system, BlinkMacSystemFont, Segoe WPC, Segoe UI, system-ui, Ubuntu, Droid Sans, sans-serif" font-weight="400">${contents}</g></svg>`;
   const scope = context.scope;
@@ -298,7 +306,98 @@ export const statusArtwork = (
     : context.canPause
       ? statusHelp.pause
       : "Choose a project scope in the dashboard";
+  const fieldLabel = (label: string, height = 36) =>
+    image(
+      height,
+      centeredText(5, 20, label) +
+        (height === 48 ? `<path d="M5 46H66" stroke="${p.line}"/>` : ""),
+      label,
+      66,
+    );
+  const fieldInfo = (label: string, tooltip: string, height = 36) =>
+    image(
+      height,
+      `<g data-icon="info" fill="none" stroke="${p.muted}" stroke-width="1"><circle cx="10" cy="20" r="5.5"/><path d="M10 19v4"/><circle cx="10" cy="17" r=".5"/></g>` +
+        (height === 48 ? `<path d="M0 46H20" stroke="${p.line}"/>` : ""),
+      `${label} information`,
+      20,
+      tooltip,
+    );
+  const warningTitle =
+    context.diagnostic?.id === "pause-failed"
+      ? "Pause / Resume could not complete"
+      : context.diagnostic?.id === "provider-off"
+        ? "Provider formatting is disabled"
+        : "Configured formatter unavailable";
   return {
+    scopeLabel: fieldLabel("Scope"),
+    scopeInfo: fieldInfo(
+      "Scope",
+      context.scopeInfo ??
+        (scope === "User"
+          ? "Changes apply across your projects."
+          : scope === "Workspace"
+            ? "Changes apply to this workspace."
+            : `Changes apply only to the ${scope.replace(/^Folder: /, "")} folder.`),
+    ),
+    fieldGap: image(36, "", "", 14),
+    scopeValue: image(
+      36,
+      dropdown(6, scope, 0),
+      `Scope: ${scope}. Read-only.`,
+      230,
+    ),
+    languageLabel: fieldLabel("Language"),
+    languageInfo: fieldInfo(
+      "Language",
+      context.languageInfo ??
+        (context.languageScope === "All languages"
+          ? "Applies to all languages."
+          : `${language}-specific settings.`),
+    ),
+    languageValue: image(
+      36,
+      dropdown(6, language, 0),
+      `Language: ${language}. Read-only.`,
+      230,
+    ),
+    formatterLabel: fieldLabel("Formatter", 48),
+    formatterInfo: fieldInfo(
+      "Formatter",
+      context.formatterInfo ?? "No formatter source available.",
+      48,
+    ),
+    formatterGap: image(48, `<path d="M0 46H14" stroke="${p.line}"/>`, "", 14),
+    formatterValue: image(
+      48,
+      dropdown(6, context.formatter ?? "Not configured", 0) +
+        `<path d="M0 46H225" stroke="${p.line}"/>`,
+      `Formatter: ${context.formatter ?? "Not configured"}. Read-only.`,
+      230,
+    ),
+    warning: image(
+      52,
+      line(1) +
+        rect(5, 5, 320, 46, p.warningBackground, p.warningBackground) +
+        `<g fill="none" stroke="${p.warning}" stroke-width="1.2"><path d="M15 12l7 12H8Z"/><path d="M15 16v3m0 2v1"/></g>` +
+        centeredText(26, 18, warningTitle, 12.5) +
+        centeredText(
+          26,
+          38,
+          "Review the problem in Diagnostics.",
+          12.5,
+          p.muted,
+        ),
+      context.diagnostic
+        ? `${context.diagnostic.title}. ${context.diagnostic.detail}`
+        : "",
+    ),
+    review: image(
+      26,
+      centeredText(26, 12, "Review in dashboard →", 12.5, p.accent),
+      "Review in dashboard · Diagnostics",
+      170,
+    ),
     settings: image(
       24,
       rect(0.5, 0.5, 25, 23, p.border, p.button) +

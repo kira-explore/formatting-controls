@@ -73,7 +73,8 @@ export interface Snapshot {
   revision: number;
   navigation: number;
   scope: Scope;
-  page: "overview" | "welcome";
+  page: "overview" | "welcome" | "diagnostics";
+  focusFinding?: string;
   activeLanguage: string;
   resource: string;
   folders: { name: string; uri: string }[];

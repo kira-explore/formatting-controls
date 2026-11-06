@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useMemo, useState } from "react";
+import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { Key, Scope } from "../../shared/protocol";
 import { BrandMark } from "./BrandMark";
@@ -25,11 +25,19 @@ const App = () => {
   const effectiveDelay = settingsByKey.get("files.autoSaveDelay")?.effective;
   useEffect(() => setDelay(String(effectiveDelay ?? 1000)), [effectiveDelay]);
   const ready = !!state;
+  const focusedNavigation = useRef(-1);
   useEffect(() => {
     if (!ready) return;
     document.getElementById(`page-${page}`)?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
-  }, [page, ready]);
+    if (page === "diagnostics" && state?.focusFinding) {
+      if (focusedNavigation.current === state.navigation) return;
+      focusedNavigation.current = state.navigation;
+      const finding = document.getElementById(`finding-${state.focusFinding}`);
+      finding?.focus({ preventScroll: true });
+      finding?.scrollIntoView({ block: "center" });
+    }
+  }, [page, ready, state?.focusFinding, state?.navigation]);
   if (!state)
     return (
       <main className="loading">
@@ -391,6 +399,7 @@ const App = () => {
               state={state}
               disabled={disabled}
               send={send}
+              navigate={setPage}
               selectLanguage={(language) => {
                 send({ type: "read" }, { ...state.scope, language });
                 setPage("formatting");

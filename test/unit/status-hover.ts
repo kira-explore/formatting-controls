@@ -89,6 +89,44 @@ test("formatting stays visible with context, formatter and footer actions", () =
   );
 });
 
+test("field info icons have separate hover-only targets and warnings alone add a Diagnostics action", () => {
+  const art = statusArtwork({
+    ...context,
+    formatterInfo: "Saved in User settings.\nOverridden by Workspace.",
+  });
+  assert.equal(
+    art.scopeLabel.width +
+      art.scopeInfo.width +
+      art.fieldGap.width +
+      art.scopeValue.width,
+    330,
+  );
+  assert.equal(art.scopeLabel.height + art.languageLabel.height, 72);
+  const html = statusHover({
+    ...context,
+    formatterInfo: art.formatterInfo.tooltip ?? "",
+  });
+  assert.match(
+    html,
+    /title="Saved in User settings\.&#10;Overridden by Workspace\."/,
+  );
+  assert.doesNotMatch(html, /Review in dashboard/);
+  const warning = statusHover({
+    ...context,
+    diagnostic: {
+      id: "pause-failed",
+      confidence: "verified",
+      title: "Pause failed",
+      detail: '<script>alert("test")</script>',
+    },
+  });
+  assert.match(warning, /Review in dashboard/);
+  assert.ok(
+    warning.includes(encodeURIComponent(JSON.stringify([7, "diagnostics"]))),
+  );
+  assert.doesNotMatch(warning, /<script/);
+});
+
 test("untrusted labels remain inert text inside SVG and HTML image descriptions", () => {
   const malicious = {
     ...context,
@@ -189,7 +227,11 @@ test("actions have no tooltip while keeping their labels and click targets", () 
     assert.ok(button);
     assert.equal(button[2], "");
     assert.match(button[3] ?? "", /width="66" height="24"/);
-    assert.doesNotMatch(html, /title=/);
+    assert.equal(
+      [...html.matchAll(/ title=/g)].length,
+      3,
+      "Only field information icons have explanatory tooltips",
+    );
     assert.doesNotMatch(html, /formattingControls\.statusInfo/);
     const rows = [...html.matchAll(/<tr>(.*?)<\/tr>/g)].map(
       (match) => match[1] ?? "",
@@ -206,11 +248,11 @@ test("actions have no tooltip while keeping their labels and click targets", () 
     assert.ok(
       pauseIndex < rows.findIndex((row) => row.includes("Format on type:")),
     );
-    assert.equal(pauseIndex, 4);
+    assert.equal(pauseIndex, 5);
     const statusIndex = rows.findIndex((row) =>
       row.includes("Automatic formatting: Mixed."),
     );
-    assert.equal(statusIndex, 4);
+    assert.equal(statusIndex, 5);
     assert.doesNotMatch(rows[1] ?? "", /Automatic formatting: Mixed/);
     assert.equal(pauseIndex, statusIndex);
     assert.match(
@@ -220,7 +262,7 @@ test("actions have no tooltip while keeping their labels and click targets", () 
     );
     for (const row of rows.filter((row) => /alt="Active file:/.test(row)))
       assert.doesNotMatch(row, /<a\b/);
-    for (const row of rows.slice(1)) assert.doesNotMatch(row, /title=/);
+    for (const row of rows.slice(5)) assert.doesNotMatch(row, /title=/);
     const art = statusArtwork({ ...context, paused });
     assert.equal(
       art.pauseCaption.alt,

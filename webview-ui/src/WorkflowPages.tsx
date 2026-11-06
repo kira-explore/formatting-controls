@@ -7,6 +7,7 @@ interface Props {
   disabled: boolean;
   send: (operation: Operation) => void;
   selectLanguage: (language: string) => void;
+  navigate: (page: string) => void;
 }
 export const WorkflowPages = ({
   page,
@@ -14,6 +15,7 @@ export const WorkflowPages = ({
   disabled,
   send,
   selectLanguage,
+  navigate,
 }: Props) => {
   const [name, setName] = useState("");
   const profile = (
@@ -54,8 +56,22 @@ export const WorkflowPages = ({
           </div>
         </div>
         <section className="settings-list">
+          {state.focusFinding &&
+            !state.findings.some(
+              (finding) => finding.id === state.focusFinding,
+            ) && (
+              <p role="status">
+                The previously reported problem is no longer detected.
+              </p>
+            )}
           {state.findings.map((f) => (
-            <article className="finding" key={f.id}>
+            <article
+              className={`finding${state.focusFinding === f.id ? " finding-focused" : ""}`}
+              key={f.id}
+              id={`finding-${f.id}`}
+              tabIndex={-1}
+              aria-label={f.title}
+            >
               <div className="provider-heading">
                 <h3>{f.title}</h3>
                 <span
@@ -65,6 +81,16 @@ export const WorkflowPages = ({
                 </span>
               </div>
               <p>{f.detail}</p>
+              {["formatter-unavailable", "provider-off"].includes(f.id) && (
+                <button type="button" onClick={() => navigate("formatters")}>
+                  Review formatter
+                </button>
+              )}
+              {f.id === "pause-failed" && state.recovery?.kind === "pause" && (
+                <button type="button" onClick={() => navigate("profiles")}>
+                  Review pause recovery
+                </button>
+              )}
             </article>
           ))}
           {!state.findings.length && (

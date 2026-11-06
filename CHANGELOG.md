@@ -4,6 +4,8 @@
 
 - Replace the extension icon with a transparent white-and-blue formatting-controls mark: indented lines and a slider. Use the same mark in the dashboard sidebar and loading view, adapting its foreground to the editor theme.
 - Show Enabled, Disabled or Mixed beside the status icon in the hover/click card. Move the text-only Pause/Resume button to the right of Automatic formatting, keeping its size, native picker flow and the card's fixed width unchanged.
+- Add hover-only information icons for Scope, Language and Formatter, including the effective formatter source and overrides. Keep source notes below the formatting checkboxes.
+- Show a conditional status-card warning for an unavailable configured formatter, explicit provider formatting disablement or a failed Pause/Resume action. Open the existing Diagnostics page at that finding with the same file and scope. Do not warn solely because no default formatter is configured or an adapter does not list a language.
 
 ## 0.7.0
 

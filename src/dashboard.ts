@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
-import { diagnose } from "../shared/diagnostics";
+import { diagnose, type Finding } from "../shared/diagnostics";
 import {
   correlationId,
   type LanguageRule,
@@ -31,12 +31,14 @@ export class Dashboard implements vscode.Disposable {
   private navigation = 0;
   private scope: Scope = { target: "user" };
   private active = vscode.window.activeTextEditor?.document;
-  private page: "overview" | "welcome" = "overview";
+  private page: Snapshot["page"] = "overview";
+  private focusFinding: string | undefined;
   private queue = Promise.resolve();
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly onResponse?: (message: Response) => unknown,
     private readonly workflows?: Workflows,
+    private readonly extraFindings: (scope: Scope) => Finding[] = () => [],
   ) {}
   private reconcileScope(): void {
     try {
@@ -50,11 +52,27 @@ export class Dashboard implements vscode.Disposable {
     if (this.onResponse) await this.onResponse(message);
     await this.panel?.webview.postMessage(message);
   }
-  async open(welcome = false): Promise<void> {
+  async open(
+    welcome = false,
+    diagnostics?: {
+      finding: string;
+      scope: Scope;
+      document?: vscode.TextDocument;
+    },
+  ): Promise<void> {
+    if (diagnostics) {
+      this.scope = diagnostics.scope;
+      this.active = diagnostics.document ?? this.active;
+      this.revision++;
+    }
     this.reconcileScope();
-    this.page = welcome ? "welcome" : "overview";
+    this.page = diagnostics ? "diagnostics" : welcome ? "welcome" : "overview";
+    this.focusFinding = diagnostics?.finding;
     this.navigation++;
-    this.active = vscode.window.activeTextEditor?.document ?? this.active;
+    this.active =
+      diagnostics?.document ??
+      vscode.window.activeTextEditor?.document ??
+      this.active;
     if (this.panel) {
       this.panel.reveal();
       await this.publish();
@@ -244,6 +262,7 @@ export class Dashboard implements vscode.Disposable {
       navigation: this.navigation,
       scope: this.scope,
       page: this.page,
+      ...(this.focusFinding ? { focusFinding: this.focusFinding } : {}),
       activeLanguage:
         this.scope.language ?? this.active?.languageId ?? "All languages",
       resource: selection.uri?.toString() ?? "No active file",
@@ -254,7 +273,10 @@ export class Dashboard implements vscode.Disposable {
       languages,
       settings,
       providers: detected,
-      findings: diagnose(settings, detected),
+      findings: [
+        ...this.extraFindings(this.scope),
+        ...diagnose(settings, detected),
+      ],
       rules,
       profiles,
       recovery,

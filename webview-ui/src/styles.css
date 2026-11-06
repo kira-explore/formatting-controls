@@ -933,3 +933,7 @@ fieldset.save-stack {
   width: 100%;
   min-width: 0;
 }
+.finding-focused {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 4px;
+}

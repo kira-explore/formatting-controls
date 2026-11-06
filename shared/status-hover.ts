@@ -1,4 +1,5 @@
 import { Buffer } from "node:buffer";
+import type { Finding } from "./diagnostics";
 import { type CardTheme, escapeText, statusArtwork } from "./status-artwork";
 import { issueUrl } from "./status-help";
 
@@ -12,6 +13,10 @@ export interface HoverContext {
   sources?: readonly string[];
   overrides?: readonly (string | undefined)[];
   formatter?: string;
+  scopeInfo?: string;
+  languageInfo?: string;
+  formatterInfo?: string;
+  diagnostic?: Finding;
   scope: string;
   languageScope: string;
   paused?: boolean;
@@ -39,10 +44,23 @@ export const statusHover = (
   return `<table width="${art.context.width}"><colgroup><col width="${art.header.width}"><col width="${art.context.width - art.header.width}"></colgroup><tbody>${[
     `<tr><td>${image(art.header)}</td><td align="right"><a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}">${image(art.settings)}</a></td></tr>`,
     fullRow(image(art.context)),
-    fullRow(image(art.scopes)),
-    fullRow(image(art.formatter)),
+    fullRow(
+      `${image(art.scopeLabel)}${image(art.scopeInfo)}${image(art.fieldGap)}${image(art.scopeValue)}`,
+    ),
+    fullRow(
+      `${image(art.languageLabel)}${image(art.languageInfo)}${image(art.fieldGap)}${image(art.languageValue)}`,
+    ),
+    fullRow(
+      `${image(art.formatterLabel)}${image(art.formatterInfo)}${image(art.formatterGap)}${image(art.formatterValue)}`,
+    ),
     fullRow(`${image(art.summary)}${image(art.summaryGap)}${pause}`),
     fullRow(image(art.formatting)),
+    ...(context.diagnostic
+      ? [
+          fullRow(image(art.warning)),
+          fullRow(`<a href="${link("diagnostics")}">${image(art.review)}</a>`),
+        ]
+      : []),
     fullRow(
       `<a href="command:formattingControls.dashboard">${image(art.dashboard, undefined, "top")}</a>${image(art.footerGap, undefined, "top")}<a href="${issueUrl}">${image(art.issue, undefined, "top")}</a>`,
     ),

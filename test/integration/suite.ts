@@ -320,8 +320,18 @@ export const run = async (): Promise<void> => {
     );
 
     const navigation = (await dashboard.snapshot()).navigation;
+    await dashboard.open(false, {
+      finding: "formatter-unavailable",
+      scope: { target: "folder", folder: folder.uri.toString() },
+      document: vscode.window.activeTextEditor?.document ?? activeDocument,
+    });
+    const diagnosticNavigation = await dashboard.snapshot();
+    assert.equal(diagnosticNavigation.page, "diagnostics");
+    assert.equal(diagnosticNavigation.focusFinding, "formatter-unavailable");
+    assert.equal(diagnosticNavigation.scope.folder, folder.uri.toString());
     await dashboard.open();
     assert.equal((await dashboard.snapshot()).page, "overview");
+    assert.equal((await dashboard.snapshot()).focusFinding, undefined);
     assert.ok((await dashboard.snapshot()).navigation > navigation);
     await assert.rejects(
       write({ ...first, language: "typescript" }, "files.autoSave", "off"),
