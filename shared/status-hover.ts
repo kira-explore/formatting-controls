@@ -34,10 +34,10 @@ export const statusHover = (
   const fullRow = (contents: string) =>
     `<tr><td colspan="2">${contents}</td></tr>`;
   const pause = context.canPause
-    ? `<a href="${link("pause")}" title="${escapeText(art.pauseCaption.alt)}">${image(art.pause, art.pauseCaption.alt)}</a>`
-    : image(art.pause, art.pauseCaption.alt);
+    ? `<a href="${link("pause")}">${image(art.pause)}</a>`
+    : image(art.pause);
   return `<table width="${art.context.width}"><colgroup><col width="${art.header.width}"><col width="${art.context.width - art.header.width}"></colgroup><tbody>${[
-    `<tr><td>${image(art.header)}</td><td align="right">${pause}&#160;&#160;<a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}" title="Open VS Code Settings">${image(art.settings)}</a></td></tr>`,
+    `<tr><td>${image(art.header)}</td><td align="right">${pause}&#160;&#160;<a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}">${image(art.settings)}</a></td></tr>`,
     fullRow(image(art.context)),
     fullRow(image(art.scopes)),
     fullRow(image(art.formatter)),

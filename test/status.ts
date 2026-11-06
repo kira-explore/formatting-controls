@@ -5,7 +5,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import axe from "axe-core";
 import type { Page } from "playwright-core";
 import { statusArtwork } from "../shared/status-artwork";
-import { issueUrl, statusHelp } from "../shared/status-help";
+import { issueUrl } from "../shared/status-help";
 
 export const reviewStatus = async (
   page: Page,
@@ -73,6 +73,7 @@ export const reviewStatus = async (
       summaryHeadingOffsetY: number;
       summaryIconOffsetY: number;
       summaryIconGap: number;
+      summaryIconDiameter: number;
       summaryTop: number;
       triggerBottom: number;
       headerFits: boolean;
@@ -124,6 +125,7 @@ export const reviewStatus = async (
           summaryHeadingOffsetY: summaryHeading.y + summaryHeading.height/2 - 14,
           summaryIconOffsetY: summaryHeading.y + summaryHeading.height/2 - (summaryIcon.y + summaryIcon.height/2),
           summaryIconGap: summaryIcon.x - (summaryHeading.x + summaryHeading.width),
+          summaryIconDiameter: summaryIcon.width,
           summaryTop: summaryHeading.y,
           triggerBottom: triggerNote.y + triggerNote.height,
           headerFits: title.x + title.width <= art.header.width,
@@ -158,6 +160,10 @@ export const reviewStatus = async (
       "Heading clears its status icon",
     );
     assert.ok(
+      Math.abs(measurement.summaryIconDiameter - 14.4) < 0.01,
+      "All three state icons are reduced by ten percent",
+    );
+    assert.ok(
       measurement.contextFits,
       "Ellipsized names fit their column without clipping",
     );
@@ -168,7 +174,7 @@ export const reviewStatus = async (
   }
 
   const button = page.getByRole("button", {
-    name: /^Formatting: (Enabled|Disabled|Mixed)$/,
+    name: /^Formatting: (ON|OFF)$/,
   });
   const hover = page.locator(".monaco-hover").filter({
     has: page.getByRole("img", { name: /^Kira Formatting Controls/ }),
@@ -367,6 +373,8 @@ export const reviewStatus = async (
     name: "Open VS Code Settings",
     exact: true,
   });
+  assert.equal(await settings.getAttribute("title"), null);
+  assert.equal(await settings.getByRole("img").getAttribute("title"), null);
   assert.equal(
     await settings
       .getByRole("img", { name: "Open VS Code Settings", exact: true })
@@ -471,9 +479,9 @@ export const reviewStatus = async (
   );
   assert.equal(await issue.getAttribute("data-href"), issueUrl);
   const pauseLink = hover.getByRole("link", { name: "Pause", exact: true });
-  assert.equal(await pauseLink.getAttribute("title"), statusHelp.pause);
+  assert.equal(await pauseLink.getAttribute("title"), null);
   const pauseImage = pauseLink.getByRole("img", { name: "Pause", exact: true });
-  assert.equal(await pauseImage.getAttribute("title"), statusHelp.pause);
+  assert.equal(await pauseImage.getAttribute("title"), null);
   assert.equal((await pauseImage.boundingBox())?.width, 66);
   const pauseBounds = await pauseImage.boundingBox();
   const settingsBounds = await settings.getByRole("img").boundingBox();
@@ -634,10 +642,8 @@ export const reviewStatus = async (
   const originalFlags = await flags.getAttribute("alt");
   for (const action of ["Pause", "Resume"]) {
     const actionLink = hover.getByRole("link", { name: action, exact: true });
-    assert.equal(
-      await actionLink.getAttribute("title"),
-      action === "Pause" ? statusHelp.pause : statusHelp.resume,
-    );
+    assert.equal(await actionLink.getAttribute("title"), null);
+    assert.equal(await actionLink.getByRole("img").getAttribute("title"), null);
     await actionLink.click();
     await picker.waitFor();
     await hover.waitFor({ state: "hidden" });

@@ -2,9 +2,11 @@
 
 ## 0.7.0 — Unreleased
 
-- Keep the hover/click card at its original 330px content width. Ellipsize long file, workspace and folder names and reveal their full labels on hover. Remove explanatory file/formatting and footer tooltips, retaining Settings and Pause/Resume help.
+- Show full active-file language names such as JavaScript, TypeScript and Python instead of shortened labels.
 
-- Show a blue circled checkmark (Enabled), circle minus (Disabled), or half-filled circle (Mixed) beside Automatic formatting, vertically centered with the heading. Keep the text-document icon in the file box and its full text column. Use Enabled/Disabled/Mixed in the status bar and accessible descriptions; keep Pause/Resume in the header.
+- Keep the hover/click card at its original 330px content width. Ellipsize long file, workspace and folder names and reveal their full labels on hover. Remove explanatory and action tooltips, retaining full labels on hover only when context names are truncated.
+
+- Show a blue circled checkmark (Enabled), circle minus (Disabled), or half-filled circle (Mixed) beside Automatic formatting, vertically centered with the heading. Keep the text-document icon in the file box and its full text column. Reduce only these state icons by 10%, keeping the file icon unchanged. Use ON in the status bar when any trigger is enabled and OFF when all are disabled; retain all three states in the card and accessible descriptions. Keep Pause/Resume in the header.
 
 - Align host/test bundles and Node type declarations with Node 24 LTS, and resolve its latest patch in every CI/release job. Modernize standalone host functions to arrow syntax and reduce repeated configuration reads during dashboard/status refreshes.
 

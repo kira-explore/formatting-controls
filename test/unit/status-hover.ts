@@ -171,7 +171,7 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
   assert.equal(statusArtwork(context).context.tooltip, undefined);
 });
 
-test("only Settings and Pause/Resume explain actions while footer links have no tooltip", () => {
+test("actions have no tooltip while keeping their labels and click targets", () => {
   for (const paused of [false, true]) {
     const html = statusHover({ ...context, paused });
     const button = [
@@ -182,15 +182,9 @@ test("only Settings and Pause/Resume explain actions while footer links have no 
       (match) => JSON.parse(decodeURIComponent(match[1] ?? ""))[1] === "pause",
     );
     assert.ok(button);
-    assert.equal(
-      button[2],
-      ` title="${paused ? statusHelp.resume : statusHelp.pause}"`,
-    );
+    assert.equal(button[2], "");
     assert.match(button[3] ?? "", /width="66" height="24"/);
-    assert.match(
-      button[3] ?? "",
-      /title="(?:Pause automatic|Restore your previous)/,
-    );
+    assert.doesNotMatch(html, /title=/);
     assert.doesNotMatch(html, /formattingControls\.statusInfo/);
     const rows = [...html.matchAll(/<tr>(.*?)<\/tr>/g)].map(
       (match) => match[1] ?? "",
@@ -250,15 +244,17 @@ test("theme palettes change the artwork and read-only User pause has no action",
   );
 });
 
-test("file context uses distinct short language labels and a separate folder line", () => {
+test("file context uses full language names and a separate folder line", () => {
   for (const [language, label] of [
-    ["javascript", "JS"],
-    ["typescript", "TS"],
-    ["javascriptreact", "JSX"],
-    ["typescriptreact", "TSX"],
+    ["javascript", "JavaScript"],
+    ["typescript", "TypeScript"],
+    ["javascriptreact", "JavaScript React"],
+    ["typescriptreact", "TypeScript React"],
     ["json", "JSON"],
-    ["jsonc", "JSONC"],
-    ["python", "PY"],
+    ["jsonc", "JSON with Comments"],
+    ["python", "Python"],
+    ["shellscript", "Shell Script"],
+    ["plaintext", "Plain Text"],
     ["custom", "custom"],
   ] as const) {
     const art = statusArtwork({
@@ -270,7 +266,12 @@ test("file context uses distinct short language labels and a separate folder lin
     assert.equal(art.context.height, 94);
     assert.match(art.context.svg, /y="51"[^>]*>Workspace: project<\/text>/);
     assert.match(art.context.svg, /y="69"[^>]*>Folder: second-project<\/text>/);
-    assert.ok(art.context.svg.includes(` · ${label}</text>`));
+    assert.ok(art.context.alt.includes(` · ${label}.`));
+    assert.ok(
+      art.context.svg.includes(` · ${label}</text>`) ||
+        art.context.tooltip?.includes(` · ${label}`),
+      `Full ${label} name appears in the card or its truncated-label tooltip`,
+    );
     assert.match(
       art.context.alt,
       /Workspace: project\. Folder: second-project\./,
@@ -328,6 +329,7 @@ test("heading status icons distinguish every flag combination while context keep
         new RegExp(`data-icon="${icon}" data-status="${expected}"`),
       );
       assert.equal(art.summary.alt, `Automatic formatting: ${expected}.`);
+      assert.match(art.summary.svg, /r="7.2"/);
       assert.match(art.context.svg, /data-icon="file-text"/);
       assert.doesNotMatch(art.context.svg, /data-status=/);
       assert.doesNotMatch(

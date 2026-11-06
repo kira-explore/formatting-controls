@@ -102,26 +102,14 @@ const languageName = (id: string): string =>
     jsonc: "JSON with Comments",
     markdown: "Markdown",
     python: "Python",
-  })[id] ?? id;
-
-const languageCode = (id: string): string =>
-  ({
-    javascript: "JS",
-    typescript: "TS",
-    javascriptreact: "JSX",
-    typescriptreact: "TSX",
-    json: "JSON",
-    jsonc: "JSONC",
-    markdown: "MD",
-    python: "PY",
     html: "HTML",
     css: "CSS",
     scss: "SCSS",
-    less: "LESS",
+    less: "Less",
     yaml: "YAML",
     xml: "XML",
-    shellscript: "SH",
-    plaintext: "Text",
+    shellscript: "Shell Script",
+    plaintext: "Plain Text",
     c: "C",
     cpp: "C++",
     csharp: "C#",
@@ -131,7 +119,7 @@ const languageCode = (id: string): string =>
     ruby: "Ruby",
     php: "PHP",
     sql: "SQL",
-  })[id] ?? languageName(id);
+  })[id] ?? id;
 
 // SVG text is rendered in the workbench, where host-side font metrics are
 // unavailable. Reserve conservative glyph widths rather than scaling text.
@@ -185,15 +173,11 @@ export const statusArtwork = (
     context.file === "No active file"
       ? context.file
       : `Active file: ${context.file}${context.language ? ` · ${languageName(context.language)}` : ""}`;
-  const fileLabel =
-    context.file === "No active file"
-      ? context.file
-      : `Active file: ${context.file}${context.language ? ` · ${languageCode(context.language)}` : ""}`;
   const workspace = context.workspace
     ? `Workspace: ${context.workspace}`
     : "No workspace open";
   const folder = context.folder ? `Folder: ${context.folder}` : undefined;
-  const labels = [fileLabel, workspace, ...(folder ? [folder] : [])];
+  const labels = [file, workspace, ...(folder ? [folder] : [])];
   const width = 330;
   const contextTextWidth = width - 65;
   const contextLines = labels.map((label) =>
@@ -225,11 +209,11 @@ export const statusArtwork = (
           : "contrast";
     const mark =
       state === "Enabled"
-        ? `<path d="M${x - 4} ${y}l3 3 5-6"/>`
+        ? `<path d="M${x - 3.6} ${y}l2.7 2.7 4.5-5.4"/>`
         : state === "Disabled"
-          ? `<path d="M${x - 3.5} ${y}h7"/>`
-          : `<path d="M${x} ${y - 8}a8 8 0 0 1 0 16Z" fill="${p.accent}" stroke="none"/>`;
-    return `<g data-icon="${icon}" data-status="${state}" fill="none" stroke="${p.accent}" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="${x}" cy="${y}" r="8"/>${mark}</g>`;
+          ? `<path d="M${x - 3.15} ${y}h6.3"/>`
+          : `<path d="M${x} ${y - 7.2}a7.2 7.2 0 0 1 0 14.4Z" fill="${p.accent}" stroke="none"/>`;
+    return `<g data-icon="${icon}" data-status="${state}" fill="none" stroke="${p.accent}" stroke-width="1.125" stroke-linecap="round" stroke-linejoin="round"><circle cx="${x}" cy="${y}" r="7.2"/>${mark}</g>`;
   };
   const documentGlyph = (x: number, y: number) =>
     `<g data-icon="file-text" fill="none" stroke="${p.accent}" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M${x - 7} ${y - 9}h8l6 6v12h-14Z"/><path d="M${x + 1} ${y - 9}v6h6M${x - 3} ${y - 1}h2M${x - 3} ${y + 3}h6M${x - 3} ${y + 6}h6"/></g>`;

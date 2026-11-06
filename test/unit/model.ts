@@ -6,9 +6,10 @@ test("status reports all three effective states", () => {
   assert.equal(status([true, true, true]), "ON");
   assert.equal(status([false, false, false]), "OFF");
   assert.equal(status([true, false, false]), "MIXED");
-  assert.equal(statusLabel([true, true, true]), "Enabled");
-  assert.equal(statusLabel([false, false, false]), "Disabled");
-  assert.equal(statusLabel([true, false, false]), "Mixed");
+  for (let mask = 0; mask < 8; mask++) {
+    const flags = [0, 1, 2].map((bit) => Boolean(mask & (1 << bit)));
+    assert.equal(statusLabel(flags), mask === 0 ? "OFF" : "ON");
+  }
 });
 test("single action update preserves unrelated and legacy boolean values without mutation", () => {
   const original = {
