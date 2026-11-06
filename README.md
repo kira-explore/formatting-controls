@@ -12,9 +12,9 @@ Hover or click the status bar to open the same **Kira Formatting Controls** card
 
 ## What you can do
 
-- **Keep a clear summary at the status bar.** Read formatting, scope, source notes and formatter details. Pause/Resume appears beside Settings in the header and preserves save actions. Information rows explain the summary on hover without being clickable.
+- **Keep a clear summary at the status bar.** Read formatting, scope, source notes and formatter details. Pause/Resume appears beside Settings in the header and preserves save actions. Formatting values remain read-only; long context names reveal their full labels on hover.
 - **Pause through native commands.** Pause/Resume opens a native picker before changing settings. The hover card closes first, avoiding live-update flicker. The same action is available from the Command Palette; Escape cancels it.
-- **See the effective state.** The status bar shows ON, OFF, or MIXED for Format on Save, Paste, and Type in the active editor.
+- **See the effective state.** The status bar shows ON when any of Format on Save, Paste or Type is enabled and OFF when all three are disabled. The card distinguishes fully enabled, disabled and mixed settings.
 - **Choose where changes belong.** Write to User, Workspace, or a specific workspace folder. Select a VS Code language ID for language overrides.
 - **Configure formatting and saving.** Toggle formatting triggers, select the save formatting mode, choose a default formatter, and configure Auto Save and its delay.
 - **Manage save actions individually.** Set a source action to explicit save, always, or never while preserving unrelated entries at the selected scope.
@@ -30,7 +30,7 @@ No telemetry, remote analytics, or source-code transmission. Settings stay in VS
 
 ## Dark theme previews
 
-Screenshots are captured from version **0.7.0** running in VS Code’s **Dark Modern** theme. Overview is shown above; expand the sections below to see the other seven dashboard tabs.
+Screenshots are captured from version **0.8.0** running in VS Code’s **Dark Modern** theme. Overview is shown above; expand the sections below to see the other seven dashboard tabs.
 
 <details>
 <summary>Formatting controls and effective values</summary>
@@ -107,7 +107,7 @@ Open the folder in VS Code and press **F5** to launch the Extension Development 
 bun run package
 ```
 
-In VS Code, run **Extensions: Install from VSIX…** and select `formatting-controls-0.7.0.vsix`. A successful GitHub Actions run also provides the VSIX artifact. No Marketplace credentials are required.
+In VS Code, run **Extensions: Install from VSIX…** and select `formatting-controls-0.8.0.vsix`. A successful GitHub Actions run also provides the VSIX artifact. No Marketplace credentials are required.
 
 ## Find your flow
 
@@ -125,7 +125,7 @@ Hover the status-bar item to open the anchored **Kira Formatting Controls** card
 
 The welcome page appears once on first activation. It introduces the workflow and links to settings, documentation, and GitHub; it does not apply a preset automatically.
 
-The card's right-aligned **Enabled / Disabled / Mixed** status beside Automatic formatting summarizes the three formatting triggers. **Scope**, **Language** and **Formatter** appear together above that section. Its information regions explain the file context and summary. Pause/Resume and Settings appear in the header; the footer opens the dashboard or a new GitHub issue. [Status-card details and API limits](docs/status-controls.md).
+The blue status icon beside **Automatic formatting** summarizes the three formatting triggers: a circled checkmark for **Enabled**, a circle minus for **Disabled**, and a half-filled circle for **Mixed**. The file box keeps its text-document icon and full text column without a duplicate state label. The status bar uses ON when any trigger is enabled and OFF when all are disabled; the card’s accessible description retains the three-state summary. Active-file labels use full language names. The card keeps a fixed 330px content width; exceptionally long names use ellipses, with full names available on hover. **Scope**, **Language** and **Formatter** appear above Automatic formatting. Pause/Resume and Settings stay in the header; the footer opens the dashboard or a new GitHub issue. [Status-card details and API limits](docs/status-controls.md).
 
 ![Native formatting summary above the status bar in Dark Modern](docs/assets/status-card-dark.png)
 
@@ -148,7 +148,7 @@ For a multi-root project, choose **Workspace folder** and select the intended fo
 
 ### Formatting and source actions are separate
 
-The ON/OFF/MIXED indicator summarizes only the three built-in formatting flags. It does not promise that a formatter is available or that code actions will execute.
+The status bar and card icons summarize only the three built-in formatting flags. It does not promise that a formatter is available or that code actions will execute.
 
 | Source-action value | Behavior                                  |
 | ------------------- | ----------------------------------------- |
@@ -178,7 +178,7 @@ The development VSIX can be installed locally. PR and release checks require a c
 
 ## Development
 
-**Package manager:** Bun 1.4.4 with a committed `bun.lock`. **Node.js:** 24 or newer; Node 24 LTS is recommended. Tool versions are declared in `package.json`.
+**Package manager:** Bun 1.4.4 with a committed `bun.lock`. **Node.js:** use the latest patch of Node 24 LTS for development. CI, Node type declarations and host/test bundle targets use the 24.x line. Tool versions are declared in `package.json`.
 
 All authored scripts use TypeScript and ES imports. The dashboard uses React and Vite; Biome handles formatting, linting, and import organization. The extension host is bundled separately, and dashboard assets load only when requested.
 

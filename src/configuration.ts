@@ -1,3 +1,4 @@
+import { setTimeout as delay } from "node:timers/promises";
 import { isDeepStrictEqual } from "node:util";
 import * as vscode from "vscode";
 import { type ActionValue, type SettingKey, updateAction } from "./model";
@@ -16,7 +17,7 @@ export class UnsavedSettingsError extends Error {
 }
 
 /** Resolve project settings through VS Code URIs, including remote workspaces. */
-export function projectSettingsFile(s: Selection): vscode.Uri | undefined {
+export const projectSettingsFile = (s: Selection): vscode.Uri | undefined => {
   if (s.target === vscode.ConfigurationTarget.Global) return undefined;
   if (
     s.target === vscode.ConfigurationTarget.Workspace &&
@@ -30,9 +31,11 @@ export function projectSettingsFile(s: Selection): vscode.Uri | undefined {
   return folder
     ? vscode.Uri.joinPath(folder.uri, ".vscode", "settings.json")
     : undefined;
-}
+};
 
-function dirtySettingsDocument(s: Selection): vscode.TextDocument | undefined {
+const dirtySettingsDocument = (
+  s: Selection,
+): vscode.TextDocument | undefined => {
   const uri = projectSettingsFile(s);
   return uri
     ? vscode.workspace.textDocuments.find(
@@ -40,43 +43,43 @@ function dirtySettingsDocument(s: Selection): vscode.TextDocument | undefined {
           document.isDirty && document.uri.toString() === uri.toString(),
       )
     : undefined;
-}
-export function assertSettingsSaved(s: Selection): void {
+};
+export const assertSettingsSaved = (s: Selection): void => {
   const document = dirtySettingsDocument(s);
   if (document) throw new UnsavedSettingsError(document.uri);
-}
+};
 
 /** Let an existing native save settle; never save or discard editor changes. */
-export async function waitForSettingsSave(s: Selection): Promise<void> {
+export const waitForSettingsSave = async (s: Selection): Promise<void> => {
   if (!dirtySettingsDocument(s)) return;
-  await new Promise<void>((resolve) => {
-    const finish = () => {
-      clearTimeout(timeout);
-      for (const listener of listeners) listener.dispose();
-      resolve();
-    };
-    const check = () => {
-      if (!dirtySettingsDocument(s)) finish();
-    };
-    const listeners = [
-      vscode.workspace.onDidSaveTextDocument(check),
-      vscode.workspace.onDidChangeTextDocument(check),
-      vscode.workspace.onDidCloseTextDocument(check),
-    ];
-    const timeout = setTimeout(finish, 1000);
-    check();
-  });
+  const { promise, resolve } = Promise.withResolvers<void>();
+  const finish = () => {
+    clearTimeout(timeout);
+    for (const listener of listeners) listener.dispose();
+    resolve();
+  };
+  const check = () => {
+    if (!dirtySettingsDocument(s)) finish();
+  };
+  const listeners = [
+    vscode.workspace.onDidSaveTextDocument(check),
+    vscode.workspace.onDidChangeTextDocument(check),
+    vscode.workspace.onDidCloseTextDocument(check),
+  ];
+  const timeout = setTimeout(finish, 1000);
+  check();
+  await promise;
   assertSettingsSaved(s);
-}
-export function configuration(s: Selection): vscode.WorkspaceConfiguration {
+};
+export const configuration = (s: Selection): vscode.WorkspaceConfiguration => {
   return vscode.workspace.getConfiguration(
     undefined,
     s.language
       ? { ...(s.uri ? { uri: s.uri } : {}), languageId: s.language }
       : s.uri,
   );
-}
-export function own(s: Selection, key: SettingKey): unknown {
+};
+export const own = (s: Selection, key: SettingKey): unknown => {
   const i = configuration(s).inspect(key);
   if (!i) return undefined;
   if (s.language)
@@ -90,14 +93,14 @@ export function own(s: Selection, key: SettingKey): unknown {
     : s.target === vscode.ConfigurationTarget.Workspace
       ? i.workspaceValue
       : i.workspaceFolderValue;
-}
-export async function write(
+};
+export const write = async (
   s: Selection,
   key: SettingKey,
   value: unknown,
   update = () =>
     configuration(s).update(key, value, s.target, Boolean(s.language)),
-): Promise<void> {
+): Promise<void> => {
   if (
     s.target !== vscode.ConfigurationTarget.Global &&
     !vscode.workspace.workspaceFile &&
@@ -148,10 +151,7 @@ export async function write(
         if (attempt >= 3 || document.version !== version + 1)
           throw new UnsavedSettingsError(document.uri);
         await document.save();
-        if (document.isDirty)
-          await new Promise((resolve) =>
-            setTimeout(resolve, 20 * (attempt + 1)),
-          );
+        if (document.isDirty) await delay(20 * (attempt + 1));
       }
       // The first native request may have reloaded configuration before its
       // cancelled save was completed above. Repeating the same native update
@@ -166,48 +166,48 @@ export async function write(
     opened.dispose();
   }
   if (!isDeepStrictEqual(own(s, key), value)) {
-    await new Promise<void>((resolve) => {
-      const finish = () => {
-        clearTimeout(timeout);
-        listener.dispose();
-        resolve();
-      };
-      const check = () => {
-        if (isDeepStrictEqual(own(s, key), value)) finish();
-      };
-      const listener = vscode.workspace.onDidChangeConfiguration(check);
-      const timeout = setTimeout(finish, 1000);
-      check();
-    });
+    const { promise, resolve } = Promise.withResolvers<void>();
+    const finish = () => {
+      clearTimeout(timeout);
+      listener.dispose();
+      resolve();
+    };
+    const check = () => {
+      if (isDeepStrictEqual(own(s, key), value)) finish();
+    };
+    const listener = vscode.workspace.onDidChangeConfiguration(check);
+    const timeout = setTimeout(finish, 1000);
+    check();
+    await promise;
     if (!isDeepStrictEqual(own(s, key), value))
       throw new Error(
         `VS Code did not confirm the saved value of ${key}. Review the current settings before retrying.`,
       );
   }
-}
-export async function setAction(
+};
+export const setAction = async (
   s: Selection,
   id: string,
   value: ActionValue,
-): Promise<void> {
+): Promise<void> => {
   // Read only the selected scope: never copy inherited settings into a narrower scope.
   await write(
     s,
     "editor.codeActionsOnSave",
     updateAction(own(s, "editor.codeActionsOnSave"), id, value),
   );
-}
+};
 
 /** Refuse a reset if its confirmed preview no longer matches the selected scope. */
-export async function resetIfUnchanged(
+export const resetIfUnchanged = async (
   s: Selection,
   key: SettingKey,
   expected: unknown,
-): Promise<void> {
+): Promise<void> => {
   if (!isDeepStrictEqual(own(s, key), expected)) {
     throw new Error(
       "This setting changed while the reset preview was open. Reopen Reset to review its current value.",
     );
   }
   await write(s, key, undefined);
-}
+};

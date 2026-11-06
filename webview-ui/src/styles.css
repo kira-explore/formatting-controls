@@ -118,15 +118,11 @@ h1:focus {
   margin: 0 10px 48px;
 }
 .brand-mark {
-  display: grid;
-  place-items: center;
+  display: block;
+  flex-shrink: 0;
   width: 37px;
   height: 37px;
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  font-size: 30px;
-  color: var(--accent);
-  font-weight: 600;
+  color: var(--vscode-foreground, #d7dde6);
 }
 .brand strong {
   font-weight: 650;

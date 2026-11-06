@@ -15,7 +15,7 @@ import { FileProfiles } from "./profile-store";
 import { StatusControls } from "./status-controls";
 import { Workflows } from "./workflows";
 
-export function activate(context: vscode.ExtensionContext): void {
+export const activate = (context: vscode.ExtensionContext): void => {
   const profiles = new FileProfiles(
     context.globalStorageUri,
     context.globalState,
@@ -313,30 +313,23 @@ export function activate(context: vscode.ExtensionContext): void {
       (recovery.kind === "pause" || recovery.phase !== "applied") &&
       context.extensionMode !== vscode.ExtensionMode.Test
     )
-      void vscode.window
-        .showWarningMessage(
+      void guarded(async () => {
+        const choice = await vscode.window.showWarningMessage(
           "Formatting Controls has a saved pause or incomplete recovery record for this workspace.",
           "Review recovery",
-        )
-        .then((choice) => {
-          if (choice) return dashboard.open();
-          return undefined;
-        });
+        );
+        if (choice) await dashboard.open();
+      })();
   } catch (error) {
     void vscode.window.showErrorMessage(
       `Formatting Controls recovery: ${String(error)}`,
     );
   }
   if (!context.globalState.get("welcomeShown")) {
-    void context.globalState
-      .update("welcomeShown", true)
-      .then(() => {
-        if (context.extensionMode !== vscode.ExtensionMode.Test)
-          return dashboard.open(true);
-        return undefined;
-      })
-      .then(undefined, (error) =>
-        vscode.window.showErrorMessage(`Formatting Controls: ${String(error)}`),
-      );
+    void guarded(async () => {
+      await context.globalState.update("welcomeShown", true);
+      if (context.extensionMode !== vscode.ExtensionMode.Test)
+        await dashboard.open(true);
+    })();
   }
-}
+};

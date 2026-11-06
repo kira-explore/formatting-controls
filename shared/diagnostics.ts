@@ -5,10 +5,10 @@ export interface Finding {
   title: string;
   detail: string;
 }
-export function diagnose(
+export const diagnose = (
   settings: readonly Setting[],
   providers: readonly Provider[],
-): Finding[] {
+): Finding[] => {
   const value = (key: string) => settings.find((s) => s.key === key)?.effective;
   const findings: Finding[] = [];
   if (value("editor.formatOnSave") === false)
@@ -133,4 +133,4 @@ export function diagnose(
         "The always mode includes explicit saves and focus/window-change Auto Save. afterDelay does not guarantee source-action execution.",
     });
   return findings;
-}
+};

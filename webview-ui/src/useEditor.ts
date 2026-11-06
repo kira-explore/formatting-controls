@@ -14,7 +14,7 @@ declare const acquireVsCodeApi:
 const api =
   typeof acquireVsCodeApi === "function" ? acquireVsCodeApi() : undefined;
 
-export function useEditor() {
+export const useEditor = () => {
   const [state, setState] = useState<Snapshot>();
   const [page, setPage] = useState<string>("overview");
   const [pending, setPending] = useState<string>();
@@ -87,4 +87,4 @@ export function useEditor() {
   }, [state, error]);
 
   return { state, page, setPage, pending, error, setError, notice, send };
-}
+};

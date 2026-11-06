@@ -14,7 +14,7 @@ await build({
   outfile: "dist/extension.js",
   bundle: true,
   platform: "node",
-  target: "node22",
+  target: "node24",
   format: "cjs",
   external: ["vscode"],
   sourcemap: true,
@@ -27,7 +27,7 @@ for (const file of globSync("test/{unit,integration}/**/*.ts"))
     outfile: join("dist", file).replace(/\.ts$/, ".js"),
     bundle: true,
     platform: "node",
-    target: "node22",
+    target: "node24",
     format: "cjs",
     external: ["vscode"],
   });

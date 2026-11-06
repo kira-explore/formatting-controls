@@ -1,8 +1,9 @@
+import { setTimeout as delay } from "node:timers/promises";
 import * as vscode from "vscode";
 import { adapters } from "../shared/providers";
 import { settingSource } from "../shared/setting-source";
 import { own, type Selection, write } from "./configuration";
-import { flags, status } from "./model";
+import { flags, statusLabel } from "./model";
 import { providersFor } from "./providers";
 import { statusTooltip } from "./status-hover";
 import type { Workflows } from "./workflows";
@@ -111,12 +112,13 @@ export class StatusControls {
     } catch {
       /* The dashboard reports invalid recovery storage. */
     }
-    const sources = flags.map((key) => {
-      const source = settingSource(
+    const owned = flags.map((key) => own(selection, key));
+    const sources = flags.map((key, index) =>
+      settingSource(
         {
-          configured: own(selection, key) !== undefined,
-          owned: own(selection, key),
-          effective: effective.get(key),
+          configured: owned[index] !== undefined,
+          owned: owned[index],
+          effective: values[index],
           sources: effective.inspect(key) as unknown as Record<string, unknown>,
         },
         {
@@ -129,16 +131,15 @@ export class StatusControls {
           ...(selection.language ? { language: selection.language } : {}),
         },
         document?.languageId,
-      );
-      return source;
-    });
+      ),
+    );
     const context = {
       paused,
       canPause:
         !!this.workflows &&
         (paused || selection.target !== vscode.ConfigurationTarget.Global),
       file: document
-        ? (document.uri.path.split("/").pop() ?? document.fileName)
+        ? (document.uri.path.split("/").at(-1) ?? document.fileName)
         : "No active file",
       ...(document ? { language: document.languageId } : {}),
       ...(vscode.workspace.name ? { workspace: vscode.workspace.name } : {}),
@@ -148,10 +149,9 @@ export class StatusControls {
       flags: values,
       sources: sources.map((source) => source.label),
       overrides: sources.map((source) => source.override),
-      owned: flags.map((key) => {
-        const value = own(selection, key);
-        return typeof value === "boolean" ? value : undefined;
-      }),
+      owned: owned.map((value) =>
+        typeof value === "boolean" ? value : undefined,
+      ),
       ...(formatter
         ? {
             formatter:
@@ -183,7 +183,7 @@ export class StatusControls {
     if (fingerprint === this.fingerprint) return;
     this.fingerprint = fingerprint;
     this.revision++;
-    this.item.text = `Formatting: ${status(values)}`;
+    this.item.text = `Formatting: ${statusLabel(values)}`;
     if (!this.pausePicker)
       this.item.tooltip = statusTooltip({
         ...context,
@@ -246,7 +246,7 @@ export class StatusControls {
       this.item.tooltip = undefined;
       this.item.hide();
       this.item.show();
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await delay(0);
       if (!(await this.pausePrompt(paused, destination))) return;
       this.assertCurrent(revision);
       if (JSON.stringify(this.workflows.journal()) !== journal)

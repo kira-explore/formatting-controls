@@ -56,7 +56,7 @@ export const actionId = (id: unknown): id is string =>
   id.length <= 200 &&
   !["__proto__", "constructor", "prototype"].includes(id) &&
   /^[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)*$/.test(id);
-export function actionMap(value: unknown): ActionMap {
+export const actionMap = (value: unknown): ActionMap => {
   if (!record(value) || Object.keys(value).length > 100)
     throw new Error(
       "Use a source-action object with at most 100 entries; migrate legacy arrays in Settings first.",
@@ -68,8 +68,8 @@ export function actionMap(value: unknown): ActionMap {
     )
       throw new Error(`Unsupported save action: ${id}`);
   return value as ActionMap;
-}
-export function parseProfile(raw: unknown): Profile {
+};
+export const parseProfile = (raw: unknown): Profile => {
   if (
     !record(raw) ||
     raw.version !== 1 ||
@@ -111,13 +111,13 @@ export function parseProfile(raw: unknown): Profile {
     ...(typeof raw.language === "string" ? { language: raw.language } : {}),
     settings: raw.settings as Profile["settings"],
   };
-}
-export function slot(value: unknown): Slot {
+};
+export const slot = (value: unknown): Slot => {
   return value === undefined
     ? absent
     : { present: true, value: value as Value };
-}
-export function same(a: Slot, b: Slot): boolean {
+};
+export const same = (a: Slot, b: Slot): boolean => {
   if (!a.present || !b.present) return a.present === b.present;
   if (record(a.value) && record(b.value)) {
     const left = a.value,
@@ -129,8 +129,11 @@ export function same(a: Slot, b: Slot): boolean {
     );
   }
   return a.value === b.value;
-}
-export function plan(profile: Profile, read: (key: Key) => unknown): Change[] {
+};
+export const plan = (
+  profile: Profile,
+  read: (key: Key) => unknown,
+): Change[] => {
   const changes: Change[] = [];
   for (const [key, value] of Object.entries(profile.settings) as [
     Key,
@@ -155,20 +158,20 @@ export function plan(profile: Profile, read: (key: Key) => unknown): Change[] {
     }
   }
   return changes;
-}
+};
 export interface BatchPort {
   save(journal: Journal | undefined): PromiseLike<void>;
   read(change: Change): Slot;
   write(change: Change, value: Slot): PromiseLike<void>;
 }
-export async function restoreBatch(
+export const restoreBatch = async (
   journal: Journal,
   port: BatchPort,
   reviewed?: ReadonlySet<Change>,
-): Promise<number> {
+): Promise<number> => {
   await port.save({ ...journal, phase: "restoring" });
   const conflicts: Change[] = [];
-  for (const change of [...journal.changes].reverse()) {
+  for (const change of journal.changes.toReversed()) {
     if (!change.attempted) continue;
     const current = port.read(change);
     if (same(current, change.before)) continue;
@@ -184,11 +187,11 @@ export async function restoreBatch(
       : undefined,
   );
   return conflicts.length;
-}
-export async function applyBatch(
+};
+export const applyBatch = async (
   journal: Journal,
   port: BatchPort,
-): Promise<void> {
+): Promise<void> => {
   let progress = journal;
   await port.save(progress);
   try {
@@ -236,8 +239,8 @@ export async function applyBatch(
     }
     throw error;
   }
-}
-export function parseJournal(raw: unknown): Journal {
+};
+export const parseJournal = (raw: unknown): Journal => {
   if (
     !record(raw) ||
     raw.version !== 1 ||
@@ -300,4 +303,4 @@ export function parseJournal(raw: unknown): Journal {
       throw new Error("Invalid language-specific recovery setting.");
   }
   return raw as unknown as Journal;
-}
+};

@@ -33,7 +33,7 @@ interface Request {
   method: string;
   body?: unknown;
 }
-function transport(rejectToken = false) {
+const transport = (rejectToken = false) => {
   const posts: URLSearchParams[] = [];
   return {
     posts,
@@ -88,7 +88,7 @@ function transport(rejectToken = false) {
       },
     },
   };
-}
+};
 test("vsce resolves the patched MSAL through its Azure Identity dependency", () => {
   assert.equal(
     (fromIdentity("@azure/msal-node/package.json") as { version: string })

@@ -1,6 +1,22 @@
 # Changelog
 
-## 0.7.0 — Unreleased
+## 0.8.0 — Unreleased
+
+- Replace the extension icon with a transparent white-and-blue formatting-controls mark: indented lines and a slider. Use the same mark in the dashboard sidebar and loading view, adapting its foreground to the editor theme.
+
+## 0.7.0
+
+- Show full active-file language names such as JavaScript, TypeScript and Python instead of shortened labels.
+
+- Keep the hover/click card at its original 330px content width. Ellipsize long file, workspace and folder names and reveal their full labels on hover. Remove explanatory and action tooltips, retaining full labels on hover only when context names are truncated.
+
+- Show a blue circled checkmark (Enabled), circle minus (Disabled), or half-filled circle (Mixed) beside Automatic formatting, vertically centered with the heading. Keep the text-document icon in the file box and its full text column. Reduce only these state icons by 10%, keeping the file icon unchanged. Use ON in the status bar when any trigger is enabled and OFF when all are disabled; retain all three states in the card and accessible descriptions. Keep Pause/Resume in the header.
+
+- Align host/test bundles and Node type declarations with Node 24 LTS, and resolve its latest patch in every CI/release job. Modernize standalone host functions to arrow syntax and reduce repeated configuration reads during dashboard/status refreshes.
+
+- Use native promise timers, Promise.withResolvers and non-mutating last-item access in host code. Simplify startup tasks with async/await and the shared error boundary while retaining event cleanup, save ownership checks and serialized setting operations.
+
+- Extend modern syntax to shared modules, dashboard components, packaging helpers and test fixtures. Reuse dashboard setting lookups and sorted languages between renders; use immutable array operations for language ordering and recovery traversal, and native promise timers in Node-based test runners.
 
 - Use the same text color for Pause and Resume while keeping Resume's soft blue background and border.
 

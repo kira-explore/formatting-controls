@@ -49,9 +49,9 @@ test("reference artwork has live values, accessible descriptions and read-only f
   assert.deepEqual(actions, [[7, "pause"]]);
   assert.match(html, /width="330" height="76"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
-  assert.match(art.state.alt, /Mixed/);
-  assert.doesNotMatch(art.context.alt, /Automatic formatting:/);
-  assert.match(html, /alt="Automatic formatting: Mixed"/);
+  assert.match(art.summary.alt, /Automatic formatting: Mixed/);
+  assert.match(art.summary.svg, /data-icon="contrast"/);
+  assert.match(art.context.svg, /data-icon="file-text"/);
   assert.match(html, /data:image\/svg\+xml;base64,/);
 });
 
@@ -80,11 +80,11 @@ test("formatting stays visible with context, formatter and footer actions", () =
     /^Resume/,
   );
   assert.match(
-    statusArtwork({ ...context, flags: [true, true, true] }).state.alt,
+    statusArtwork({ ...context, flags: [true, true, true] }).summary.alt,
     /formatting: Enabled/,
   );
   assert.match(
-    statusArtwork({ ...context, flags: [false, false, false] }).state.alt,
+    statusArtwork({ ...context, flags: [false, false, false] }).summary.alt,
     /formatting: Disabled/,
   );
 });
@@ -137,7 +137,7 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
     { flags: [true, false, true], paused: true },
   ].map((variant) => statusArtwork({ ...context, ...variant }));
   assert.equal(
-    new Set(variants.map((art) => `${art.state.width}x${art.state.height}`))
+    new Set(variants.map((art) => `${art.context.width}x${art.context.height}`))
       .size,
     1,
   );
@@ -154,11 +154,10 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
   for (const art of variants) {
     assert.equal(art.pause.width, 66);
     assert.equal(art.pause.height, art.settings.height);
-    assert.doesNotMatch(art.state.svg, /<rect\b/);
     assert.doesNotMatch(art.summary.svg, /<rect\b/);
   }
-  assert.match(variants[4]?.state.alt ?? "", /Disabled/);
-  assert.match(variants[5]?.state.alt ?? "", /Mixed/);
+  assert.match(variants[4]?.summary.alt ?? "", /Disabled/);
+  assert.match(variants[5]?.summary.alt ?? "", /Mixed/);
   assert.notEqual(
     variants[0]?.pause.svg,
     variants[3]?.pause.svg,
@@ -169,12 +168,10 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
     statusArtwork(context).pauseCaption.alt,
     /Pause automatic formatting until you resume\./,
   );
-  assert.ok(
-    statusHover(context).includes(statusHelp.file.replaceAll("\n", "&#10;")),
-  );
+  assert.equal(statusArtwork(context).context.tooltip, undefined);
 });
 
-test("information and pause explanations are passive while actions retain their destinations", () => {
+test("actions have no tooltip while keeping their labels and click targets", () => {
   for (const paused of [false, true]) {
     const html = statusHover({ ...context, paused });
     const button = [
@@ -185,15 +182,9 @@ test("information and pause explanations are passive while actions retain their 
       (match) => JSON.parse(decodeURIComponent(match[1] ?? ""))[1] === "pause",
     );
     assert.ok(button);
-    assert.equal(
-      button[2],
-      ` title="${paused ? statusHelp.resume : statusHelp.pause}"`,
-    );
+    assert.equal(button[2], "");
     assert.match(button[3] ?? "", /width="66" height="24"/);
-    assert.match(
-      button[3] ?? "",
-      /title="(?:Pause automatic|Restore your previous)/,
-    );
+    assert.doesNotMatch(html, /title=/);
     assert.doesNotMatch(html, /formattingControls\.statusInfo/);
     const rows = [...html.matchAll(/<tr>(.*?)<\/tr>/g)].map(
       (match) => match[1] ?? "",
@@ -211,25 +202,14 @@ test("information and pause explanations are passive while actions retain their 
     );
     assert.equal(pauseIndex, 0);
     const statusIndex = rows.findIndex((row) =>
-      row.includes('alt="Automatic formatting: Mixed"'),
+      row.includes("Automatic formatting: Mixed."),
     );
-    assert.ok(
-      rows.findIndex((row) => row.includes("Formatter:")) < statusIndex,
-    );
-    assert.match(rows[statusIndex] ?? "", /alt="Automatic formatting"/);
+    assert.equal(statusIndex, 4);
+    assert.doesNotMatch(rows[1] ?? "", /Automatic formatting: Mixed/);
     assert.doesNotMatch(rows[statusIndex] ?? "", /<a\b/);
     for (const row of rows.filter((row) => /alt="Active file:/.test(row)))
       assert.doesNotMatch(row, /<a\b/);
-    assert.match(
-      html,
-      /title="This summary is based on the active file\.&#10;Settings may differ by language or workspace folder\."/,
-    );
-    assert.match(
-      html,
-      /title="Automatic formatting settings for save, paste and type\.&#10;1\. Enabled:/,
-    );
-    assert.match(html, /title="Open Kira Formatting Controls dashboard"/);
-    assert.match(html, /title="Open a new issue on GitHub"/);
+    for (const row of rows.slice(1)) assert.doesNotMatch(row, /title=/);
     const art = statusArtwork({ ...context, paused });
     assert.equal(
       art.pauseCaption.alt,
@@ -264,26 +244,34 @@ test("theme palettes change the artwork and read-only User pause has no action",
   );
 });
 
-test("file context uses distinct short language labels and a separate folder line", () => {
+test("file context uses full language names and a separate folder line", () => {
   for (const [language, label] of [
-    ["javascript", "JS"],
-    ["typescript", "TS"],
-    ["javascriptreact", "JSX"],
-    ["typescriptreact", "TSX"],
+    ["javascript", "JavaScript"],
+    ["typescript", "TypeScript"],
+    ["javascriptreact", "JavaScript React"],
+    ["typescriptreact", "TypeScript React"],
     ["json", "JSON"],
-    ["jsonc", "JSONC"],
-    ["python", "PY"],
+    ["jsonc", "JSON with Comments"],
+    ["python", "Python"],
+    ["shellscript", "Shell Script"],
+    ["plaintext", "Plain Text"],
     ["custom", "custom"],
   ] as const) {
     const art = statusArtwork({
       ...context,
+      file: "a",
       language,
       folder: "second-project",
     });
     assert.equal(art.context.height, 94);
     assert.match(art.context.svg, /y="51"[^>]*>Workspace: project<\/text>/);
     assert.match(art.context.svg, /y="69"[^>]*>Folder: second-project<\/text>/);
-    assert.ok(art.context.svg.includes(` · ${label}</text>`));
+    assert.ok(art.context.alt.includes(` · ${label}.`));
+    assert.ok(
+      art.context.svg.includes(` · ${label}</text>`) ||
+        art.context.tooltip?.includes(` · ${label}`),
+      `Full ${label} name appears in the card or its truncated-label tooltip`,
+    );
     assert.match(
       art.context.alt,
       /Workspace: project\. Folder: second-project\./,
@@ -293,4 +281,64 @@ test("file context uses distinct short language labels and a separate folder lin
   assert.equal(single.context.height, 76);
   assert.doesNotMatch(single.context.svg, /Folder:/);
   assert.match(single.context.alt, /TypeScript/);
+});
+
+test("long context names keep the fixed width and expose full names only when truncated", () => {
+  assert.equal(statusArtwork(context).context.tooltip, undefined);
+  for (const [field, name] of [
+    ["workspace", "design-system-and-editor-productivity-tools-".repeat(3)],
+    ["folder", "W".repeat(90)],
+    ["file", `${"longfilename".repeat(12)}.ts`],
+    ["workspace", "开发工作区".repeat(20)],
+  ] as const) {
+    const input = { ...context, [field]: name };
+    const art = statusArtwork(input);
+    assert.equal(art.context.width, 330);
+    assert.equal(art.context.height, field === "folder" ? 94 : 76);
+    assert.match(art.context.svg, /…<\/text>/);
+    assert.ok(art.context.tooltip?.includes(name));
+    assert.ok(art.context.alt.includes(name));
+    assert.equal(art.scopes.width, 330);
+    assert.equal(art.formatter.width, 330);
+    assert.equal(art.formatting.width, 330);
+    assert.equal(
+      art.dashboard.width + art.footerGap.width + art.issue.width,
+      330,
+    );
+    const html = statusHover(input);
+    assert.match(html, /title="(?:Workspace:|Folder:|Active file:)/);
+    assert.match(art.summary.svg, /data-status="Mixed"/);
+  }
+});
+
+test("heading status icons distinguish every flag combination while context keeps its document icon", () => {
+  for (let mask = 0; mask < 8; mask++) {
+    const flags = [0, 1, 2].map((bit) => Boolean(mask & (1 << bit)));
+    const expected = mask === 7 ? "Enabled" : mask === 0 ? "Disabled" : "Mixed";
+    const icon =
+      mask === 7 ? "circle-check" : mask === 0 ? "circle-minus" : "contrast";
+    for (const paused of [false, true]) {
+      const art = statusArtwork({
+        ...context,
+        flags,
+        paused,
+        workspace: "formatting-controls",
+      });
+      assert.match(
+        art.summary.svg,
+        new RegExp(`data-icon="${icon}" data-status="${expected}"`),
+      );
+      assert.equal(art.summary.alt, `Automatic formatting: ${expected}.`);
+      assert.match(art.summary.svg, /r="7.2"/);
+      assert.match(art.context.svg, /data-icon="file-text"/);
+      assert.doesNotMatch(art.context.svg, /data-status=/);
+      assert.doesNotMatch(
+        art.context.svg,
+        />(?:Enabled|Disabled|Mixed)<\/text>/,
+      );
+      assert.match(art.context.svg, />Workspace: formatting-controls<\/text>/);
+      assert.equal(art.context.width, 330);
+      assert.equal(art.context.tooltip, undefined);
+    }
+  }
 });

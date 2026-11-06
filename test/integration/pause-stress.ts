@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import * as vscode from "vscode";
 import { configuration, own, write } from "../../src/configuration";
 import { flags } from "../../src/model";
@@ -8,7 +9,7 @@ import { StatusControls } from "../../src/status-controls";
 import { Workflows } from "../../src/workflows";
 import { MemoryStore } from "./workflows";
 
-export async function run(): Promise<void> {
+export const run = async (): Promise<void> => {
   await vscode.extensions
     .getExtension("rajudhami.formatting-controls")
     ?.activate();
@@ -127,7 +128,7 @@ export async function run(): Promise<void> {
     for (let attempt = 0; ; attempt++) {
       if (await document.save()) break;
       assert.ok(attempt < 4, "Manual fixture save must complete");
-      await new Promise((resolve) => setTimeout(resolve, 20));
+      await delay(20);
     }
     if (process.env.FORMATTING_CONTROLS_EXHAUSTIVE === "1") {
       // The exhaustive state matrix starts only after the host acknowledges a
@@ -149,7 +150,7 @@ export async function run(): Promise<void> {
       if (flags.every((key, index) => own(selection, key) === values[index]))
         break;
       assert.ok(attempt < 100, "Manual save must refresh configuration");
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      await delay(10);
     }
     assert.equal(document.isDirty, false);
     controls.refresh();
@@ -205,9 +206,7 @@ export async function run(): Promise<void> {
       assert.equal(workflows.recovery(), null);
       if (cycle % 10 === 9)
         console.log(`Inherited cycles completed: ${cycle + 1}/50`);
-      await new Promise((resolve) =>
-        setTimeout(resolve, cycle % 3 === 0 ? 150 : 5),
-      );
+      await delay(cycle % 3 === 0 ? 150 : 5);
       assert.deepEqual(
         snapshot("after settling").effective,
         initial.effective,
@@ -402,4 +401,4 @@ export async function run(): Promise<void> {
     workflows.dispose();
     item.dispose();
   }
-}
+};

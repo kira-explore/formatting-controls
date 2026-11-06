@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import {
   downloadAndUnzipVSCode,
   resolveCliArgsFromVSCodeExecutablePath,
@@ -79,7 +80,7 @@ try {
       break;
     } catch (error) {
       if (Date.now() > deadline) throw error;
-      await new Promise((r) => setTimeout(r, 500));
+      await delay(500);
     }
   }
   const fixture = join(root, "extension");

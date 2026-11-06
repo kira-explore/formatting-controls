@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
-export function verifyReleaseTag(
+export const verifyReleaseTag = (
   version: string,
   revision: string,
   output: string,
-): void {
+): void => {
   assert.match(revision, /^[a-f0-9]{40}$/i, "Invalid candidate revision");
   const ref = `refs/tags/v${version}`;
   const entries = new Map<string, string>();
@@ -26,4 +26,4 @@ export function verifyReleaseTag(
       revision.toLowerCase(),
       `Existing v${version} tag points to a different commit`,
     );
-}
+};

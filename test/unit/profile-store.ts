@@ -17,7 +17,7 @@ const profile = (name: string): Profile => ({
   name,
   settings: { "editor.formatOnSave": true },
 });
-function fixture(legacy: Profile[] = [], nativeWatching = true) {
+const fixture = (legacy: Profile[] = [], nativeWatching = true) => {
   const directory = mkdtempSync(join(tmpdir(), "fc-profiles-"));
   const source = {
     get<T>(): T | undefined {
@@ -48,7 +48,7 @@ function fixture(legacy: Profile[] = [], nativeWatching = true) {
       rmSync(directory, { recursive: true, force: true });
     },
   };
-}
+};
 test("legacy profiles migrate on successful commit without deleting the original backup", async () => {
   const f = fixture([profile("Legacy")]);
   try {

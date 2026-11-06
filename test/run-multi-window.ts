@@ -12,6 +12,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { downloadAndUnzipVSCode, runTests } from "@vscode/test-electron";
 
 const root = mkdtempSync(join(tmpdir(), "fcw-"));
@@ -25,7 +26,7 @@ const wait = async (check: () => boolean, label: string) => {
     if (existsSync(join(root, "startup-error.json")))
       throw new Error(readFileSync(join(root, "startup-error.json"), "utf8"));
     if (Date.now() > deadline) throw new Error(`Timed out: ${label}`);
-    await new Promise((r) => setTimeout(r, 100));
+    await delay(100);
   }
 };
 try {

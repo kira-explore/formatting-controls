@@ -5,7 +5,7 @@ import { Dashboard } from "../../src/dashboard";
 import { StatusControls } from "../../src/status-controls";
 import { Workflows } from "../../src/workflows";
 import { MemoryStore } from "./workflows";
-export async function run(): Promise<void> {
+export const run = async (): Promise<void> => {
   const extension = vscode.extensions.getExtension(
     "rajudhami.formatting-controls",
   );
@@ -93,4 +93,4 @@ export async function run(): Promise<void> {
     dashboard.dispose();
     workflows.dispose();
   }
-}
+};

@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import * as vscode from "vscode";
 import { configuration, own, write } from "../../../src/configuration";
 import { FileProfiles } from "../../../src/profile-store";
 import { type Confirm, Workflows } from "../../../src/workflows";
-export async function runWindow(role: "a" | "b"): Promise<void> {
+export const runWindow = async (role: "a" | "b"): Promise<void> => {
   assert.ok(vscode.workspace.workspaceFile);
   const root = dirname(vscode.workspace.workspaceFile.fsPath);
   const signal = (name: string, value: unknown = true) =>
@@ -21,7 +22,7 @@ export async function runWindow(role: "a" | "b"): Promise<void> {
       if (checkErrors && (present("a-error") || present("b-error")))
         throw new Error(`Other window failed while waiting: ${label}`);
       if (Date.now() > deadline) throw new Error(`Timed out: ${label}`);
-      await new Promise((r) => setTimeout(r, 50));
+      await delay(50);
     }
   };
   const extension = vscode.extensions.getExtension(
@@ -264,11 +265,11 @@ export async function runWindow(role: "a" | "b"): Promise<void> {
       const time = JSON.parse(
         readFileSync(join(root, "concurrent-go.json"), "utf8"),
       ) as number;
-      await new Promise((r) => setTimeout(r, Math.max(0, time - Date.now())));
+      await delay(Math.max(0, time - Date.now()));
       await workflows.save("Concurrent A", selection, scope);
       signal("concurrent-a-saved");
       await wait(() => present("concurrent-b-saved"), "B concurrent save");
-      await new Promise((r) => setTimeout(r, 500));
+      await delay(500);
       assert.ok(
         names().includes("Concurrent A") && names().includes("Concurrent B"),
         "Simultaneous new-profile saves must retain both profiles",
@@ -394,7 +395,7 @@ export async function runWindow(role: "a" | "b"): Promise<void> {
       const time = JSON.parse(
         readFileSync(join(root, "concurrent-go.json"), "utf8"),
       ) as number;
-      await new Promise((r) => setTimeout(r, Math.max(0, time - Date.now())));
+      await delay(Math.max(0, time - Date.now()));
       await workflows.save("Concurrent B", selection, scope);
       signal("concurrent-b-saved");
       await wait(
@@ -437,4 +438,4 @@ export async function runWindow(role: "a" | "b"): Promise<void> {
     for (const resource of resources) resource.dispose();
   }
   if (error) throw error;
-}
+};

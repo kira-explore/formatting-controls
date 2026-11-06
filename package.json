@@ -1,6 +1,6 @@
 {
   "name": "formatting-controls",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Control formatting from your status bar, with a dashboard for explicit scopes, language rules, profiles and diagnostics.",
   "main": "./dist/extension.js",
   "scripts": {
@@ -27,7 +27,7 @@
   "type": "module",
   "devDependencies": {
     "@biomejs/biome": "2.6.3",
-    "@types/node": "^26.6.5",
+    "@types/node": "^24.19.2",
     "@types/proper-lockfile": "4.1.4",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",

@@ -97,7 +97,7 @@ const string = (v: unknown, max = 200): v is string =>
   typeof v === "string" && v.length > 0 && v.length <= max;
 export const sourceAction = (v: unknown): v is string =>
   string(v) && /^source(?:\.[a-zA-Z0-9_-]+)+$/.test(v);
-export function validValue(key: Key, value: unknown): boolean {
+export const validValue = (key: Key, value: unknown): boolean => {
   if (
     [
       "editor.formatOnSave",
@@ -126,11 +126,11 @@ export function validValue(key: Key, value: unknown): boolean {
       ["off", "afterDelay", "onFocusChange", "onWindowChange"].includes(value)
     );
   return false;
-}
-export function correlationId(raw: unknown): string | undefined {
+};
+export const correlationId = (raw: unknown): string | undefined => {
   return object(raw) && string(raw.id, 80) ? raw.id : undefined;
-}
-export function parseRequest(raw: unknown): Request {
+};
+export const parseRequest = (raw: unknown): Request => {
   if (JSON.stringify(raw)?.length > 16384)
     throw new Error("Request is too large.");
   if (!object(raw) || !string(raw.id, 80) || !object(raw.scope))
@@ -202,4 +202,4 @@ export function parseRequest(raw: unknown): Request {
       return raw as Request;
   }
   throw new Error("Unsupported setting or value.");
-}
+};

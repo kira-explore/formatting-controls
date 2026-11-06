@@ -8,13 +8,13 @@ interface Props {
   send: (operation: Operation) => void;
   selectLanguage: (language: string) => void;
 }
-export function WorkflowPages({
+export const WorkflowPages = ({
   page,
   state,
   disabled,
   send,
   selectLanguage,
-}: Props) {
+}: Props) => {
   const [name, setName] = useState("");
   const profile = (
     action:
@@ -305,4 +305,4 @@ export function WorkflowPages({
       </p>
     </>
   );
-}
+};

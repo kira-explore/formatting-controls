@@ -10,9 +10,9 @@ import {
 import { Workflows } from "../../src/workflows";
 import { MemoryStore } from "./workflows";
 
-export async function runConfigurationWriteTests(
+export const runConfigurationWriteTests = async (
   uri: vscode.Uri,
-): Promise<void> {
+): Promise<void> => {
   const selection = { target: vscode.ConfigurationTarget.WorkspaceFolder, uri };
   const key = "editor.formatOnPaste";
   const original = own(selection, key);
@@ -167,4 +167,4 @@ export async function runConfigurationWriteTests(
   } finally {
     await write(selection, key, original);
   }
-}
+};

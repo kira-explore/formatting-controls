@@ -102,26 +102,14 @@ const languageName = (id: string): string =>
     jsonc: "JSON with Comments",
     markdown: "Markdown",
     python: "Python",
-  })[id] ?? id;
-
-const languageCode = (id: string): string =>
-  ({
-    javascript: "JS",
-    typescript: "TS",
-    javascriptreact: "JSX",
-    typescriptreact: "TSX",
-    json: "JSON",
-    jsonc: "JSONC",
-    markdown: "MD",
-    python: "PY",
     html: "HTML",
     css: "CSS",
     scss: "SCSS",
-    less: "LESS",
+    less: "Less",
     yaml: "YAML",
     xml: "XML",
-    shellscript: "SH",
-    plaintext: "Text",
+    shellscript: "Shell Script",
+    plaintext: "Plain Text",
     c: "C",
     cpp: "C++",
     csharp: "C#",
@@ -131,14 +119,76 @@ const languageCode = (id: string): string =>
     ruby: "Ruby",
     php: "PHP",
     sql: "SQL",
-  })[id] ?? languageName(id);
+  })[id] ?? id;
+
+// SVG text is rendered in the workbench, where host-side font metrics are
+// unavailable. Reserve conservative glyph widths rather than scaling text.
+const labelWidth = (value: string): number =>
+  Array.from(value).reduce((width, character) => {
+    const em = /\p{Mark}|[\u200d\ufe0e\ufe0f]/u.test(character)
+      ? 0
+      : /\p{Extended_Pictographic}/u.test(character)
+        ? 1.4
+        : /[\silI|!.,:;'`]/u.test(character)
+          ? 0.36
+          : /[ftr()[\]{}/\\-]/u.test(character)
+            ? 0.5
+            : /[mwMW@%]/u.test(character)
+              ? 1
+              : (character.codePointAt(0) ?? 0) >= 0x80
+                ? 1.1
+                : /[A-Z0-9]/u.test(character)
+                  ? 0.76
+                  : 0.64;
+    return width + em * 12.5;
+  }, 0);
+
+const clippedLabel = (value: string, width: number): string => {
+  const label = Array.from(value.slice(0, 500).toWellFormed(), (character) =>
+    character.charCodeAt(0) < 32 || character.charCodeAt(0) === 127
+      ? " "
+      : character,
+  ).join("");
+  if (labelWidth(label) <= width) return label;
+  let result = "";
+  for (const character of label) {
+    if (labelWidth(`${result}${character}…`) > width) break;
+    result += character;
+  }
+  return `${result}…`;
+};
 
 /** Locally generated, inert SVG artwork. No scripts, external assets or embedded HTML. */
-export function statusArtwork(
+export const statusArtwork = (
   context: HoverContext,
   theme: CardTheme = "dark",
-) {
+) => {
   const p = palettes[theme];
+  const state = context.flags.every(Boolean)
+    ? "Enabled"
+    : context.flags.some(Boolean)
+      ? "Mixed"
+      : "Disabled";
+  const file =
+    context.file === "No active file"
+      ? context.file
+      : `Active file: ${context.file}${context.language ? ` · ${languageName(context.language)}` : ""}`;
+  const workspace = context.workspace
+    ? `Workspace: ${context.workspace}`
+    : "No workspace open";
+  const folder = context.folder ? `Folder: ${context.folder}` : undefined;
+  const labels = [file, workspace, ...(folder ? [folder] : [])];
+  const width = 330;
+  const contextTextWidth = width - 65;
+  const contextLines = labels.map((label) =>
+    clippedLabel(label, contextTextWidth - 8),
+  );
+  const truncatedLabels = labels.flatMap((label, index) =>
+    label !== contextLines[index] ? [index === 0 ? file : label] : [],
+  );
+  const contextExtraHeight = (contextLines.length - 2) * 18;
+  const contextCenter = 42 + contextExtraHeight / 2;
+  const footerGapWidth = width - 272;
   const centeredText = (
     x: number,
     y: number,
@@ -148,9 +198,25 @@ export function statusArtwork(
     anchor: "start" | "middle" | "end" = "start",
   ) =>
     `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" text-anchor="${anchor}" dominant-baseline="central">${escapeText(value)}</text>`;
-  const line = (y: number) => `<path d="M5 ${y}H325" stroke="${p.line}"/>`;
-  const infoGlyph = (x: number, y: number, color: string) =>
-    `<circle cx="${x}" cy="${y}" r="5" stroke="${color}" fill="none"/><circle cx="${x}" cy="${y - 2.75}" r=".55" fill="${color}"/><path d="M${x} ${y - 0.46}v3.2" stroke="${color}" stroke-width="1.1" stroke-linecap="round"/>`;
+  const line = (y: number) =>
+    `<path d="M5 ${y}H${width - 5}" stroke="${p.line}"/>`;
+  const statusGlyph = (x: number, y: number) => {
+    const icon =
+      state === "Enabled"
+        ? "circle-check"
+        : state === "Disabled"
+          ? "circle-minus"
+          : "contrast";
+    const mark =
+      state === "Enabled"
+        ? `<path d="M${x - 3.6} ${y}l2.7 2.7 4.5-5.4"/>`
+        : state === "Disabled"
+          ? `<path d="M${x - 3.15} ${y}h6.3"/>`
+          : `<path d="M${x} ${y - 7.2}a7.2 7.2 0 0 1 0 14.4Z" fill="${p.accent}" stroke="none"/>`;
+    return `<g data-icon="${icon}" data-status="${state}" fill="none" stroke="${p.accent}" stroke-width="1.125" stroke-linecap="round" stroke-linejoin="round"><circle cx="${x}" cy="${y}" r="7.2"/>${mark}</g>`;
+  };
+  const documentGlyph = (x: number, y: number) =>
+    `<g data-icon="file-text" fill="none" stroke="${p.accent}" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M${x - 7} ${y - 9}h8l6 6v12h-14Z"/><path d="M${x + 1} ${y - 9}v6h6M${x - 3} ${y - 1}h2M${x - 3} ${y + 3}h6M${x - 3} ${y + 6}h6"/></g>`;
   const rect = (
     x: number,
     y: number,
@@ -162,29 +228,15 @@ export function statusArtwork(
   ) =>
     `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" stroke="${stroke}" fill="${fill}"/>`;
   const dropdown = (y: number, value: string) =>
-    rect(100, y, 225, 28) +
-    centeredText(110, y + 14, shortened(value, 31)) +
-    `<path d="M306.5 ${y + 12.25}l3.5 3.5 3.5-3.5" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
-  const svg = (height: number, contents: string, width = 330) =>
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><g font-family="-apple-system, BlinkMacSystemFont, Segoe WPC, Segoe UI, system-ui, Ubuntu, Droid Sans, sans-serif" font-weight="400">${contents}</g></svg>`;
-  const state = context.flags.every(Boolean)
-    ? "Enabled"
-    : context.flags.some(Boolean)
-      ? "Mixed"
-      : "Disabled";
-  const file =
-    context.file === "No active file"
-      ? context.file
-      : `Active file: ${context.file}${context.language ? ` · ${languageName(context.language)}` : ""}`;
-  const fileLabel =
-    context.file === "No active file"
-      ? context.file
-      : `Active file: ${context.file}${context.language ? ` · ${languageCode(context.language)}` : ""}`;
-  const workspace = context.workspace
-    ? `Workspace: ${context.workspace}`
-    : "No workspace open";
-  const folder = context.folder ? `Folder: ${context.folder}` : undefined;
-  const contextExtraHeight = folder ? 18 : 0;
+    rect(100, y, width - 105, 28) +
+    centeredText(
+      110,
+      y + 14,
+      shortened(value, 31 + Math.floor((width - 330) / 7)),
+    ) +
+    `<path d="M${width - 23.5} ${y + 12.25}l3.5 3.5 3.5-3.5" fill="none" stroke="${p.fg}" stroke-width="1.2"/>`;
+  const svg = (height: number, contents: string, imageWidth: number) =>
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${imageWidth}" height="${height}" viewBox="0 0 ${imageWidth} ${height}"><g font-family="-apple-system, BlinkMacSystemFont, Segoe WPC, Segoe UI, system-ui, Ubuntu, Droid Sans, sans-serif" font-weight="400">${contents}</g></svg>`;
   const scope = context.scope;
   const language = languageName(context.languageScope);
   const sourceNotes = ["save", "paste", "type"].map((_, i) => {
@@ -201,10 +253,19 @@ export function statusArtwork(
     height: number,
     contents: string,
     alt: string,
-    width = 330,
-  ) => ({ svg: svg(height, contents, width), alt, width, height });
-  // Keep the info gap stable when the renderer selects a wider fallback font.
-  const formattingHeading = `<text x="5" y="14" dominant-baseline="central" font-size="13.5" textLength="135" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>`;
+    imageWidth = width,
+    tooltip?: string,
+  ) => ({
+    tooltip,
+    svg: svg(height, contents, imageWidth),
+    alt,
+    width: imageWidth,
+    height,
+  });
+  // Preserve the approved heading width across fallback fonts.
+  const formattingHeading =
+    `<text x="5" y="14" dominant-baseline="central" font-size="13.5" textLength="135" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>` +
+    statusGlyph(157, 14);
   const flagContents = ["save", "paste", "type"]
     .map((label, i) => {
       const y = i * 46;
@@ -244,12 +305,6 @@ export function statusArtwork(
       "Open VS Code Settings",
       26,
     ),
-    info: image(
-      20,
-      infoGlyph(8, 10, p.muted),
-      "About automatic formatting",
-      16,
-    ),
     header: image(
       36,
       centeredText(5, 18, "Kira Formatting Controls", 13.5),
@@ -259,14 +314,24 @@ export function statusArtwork(
     context: image(
       76 + contextExtraHeight,
       line(1) +
-        rect(5, 12, 320, 60 + contextExtraHeight, p.focus, p.info, 6) +
-        infoGlyph(25, 42 + contextExtraHeight / 2, p.focus) +
-        centeredText(45, 33, shortened(fileLabel, 41)) +
-        centeredText(45, 51, shortened(workspace, 41), 12.5, p.muted) +
-        (folder
-          ? centeredText(45, 69, shortened(folder, 41), 12.5, p.muted)
-          : ""),
+        rect(5, 12, width - 10, 60 + contextExtraHeight, p.focus, p.info, 6) +
+        documentGlyph(25, contextCenter) +
+        `<defs><clipPath id="context-labels"><rect x="44" y="21" width="${contextTextWidth + 1}" height="${42 + contextExtraHeight}"/></clipPath></defs><g clip-path="url(#context-labels)">` +
+        contextLines
+          .map((label, index) =>
+            centeredText(
+              45,
+              33 + index * 18,
+              label,
+              12.5,
+              index === 0 ? p.fg : p.muted,
+            ),
+          )
+          .join("") +
+        `</g>`,
       `${file}. ${workspace}.${folder ? ` ${folder}.` : ""}`,
+      width,
+      truncatedLabels.length ? truncatedLabels.join("\n") : undefined,
     ),
     scopes: image(
       72,
@@ -276,17 +341,16 @@ export function statusArtwork(
         dropdown(44, language),
       `Scope: ${scope}. Language: ${language}. Read-only.`,
     ),
-    heading: image(28, formattingHeading, "Automatic formatting", 153),
-    state: image(
+    heading: image(
       28,
-      centeredText(78, 14, state, 12.5, p.muted, "end"),
-      `Automatic formatting: ${state}`,
-      78,
+      formattingHeading,
+      `Automatic formatting: ${state}.`,
+      169,
     ),
     summary: image(
       28,
-      formattingHeading + infoGlyph(153, 15, p.muted),
-      "Automatic formatting",
+      formattingHeading,
+      `Automatic formatting: ${state}.`,
       220,
     ),
     formatting: image(
@@ -338,7 +402,12 @@ export function statusArtwork(
       "Open dashboard ↗",
       139,
     ),
-    footerGap: image(36, `<path d="M0 1H58" stroke="${p.line}"/>`, "", 58),
+    footerGap: image(
+      36,
+      `<path d="M0 1H${footerGapWidth}" stroke="${p.line}"/>`,
+      "",
+      footerGapWidth,
+    ),
     issue: image(
       36,
       `<path d="M0 1H128" stroke="${p.line}"/><text x="12" y="21" dominant-baseline="central" font-size="12.5" textLength="104.81" lengthAdjust="spacingAndGlyphs" fill="${p.accent}">Report an issue ↗</text>`,
@@ -346,4 +415,4 @@ export function statusArtwork(
       133,
     ),
   };
-}
+};

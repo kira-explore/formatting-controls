@@ -1,24 +1,56 @@
 import assert from "node:assert/strict";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import axe from "axe-core";
 import type { Page } from "playwright-core";
 import { statusArtwork } from "../shared/status-artwork";
-import { issueUrl, statusHelp } from "../shared/status-help";
+import { issueUrl } from "../shared/status-help";
 
-export async function reviewStatus(
+export const reviewStatus = async (
   page: Page,
   directory: string,
-): Promise<void> {
+): Promise<void> => {
   mkdirSync(directory, { recursive: true });
   const fixtures = [
     { flags: [true, true, true], paused: false },
     { flags: [false, false, false], paused: false },
     { flags: [true, false, true], paused: false },
     { flags: [false, false, false], paused: true },
+    {
+      flags: [true, false, true],
+      paused: false,
+      workspace: "formatting-controls",
+    },
+    {
+      flags: [true, true, true],
+      paused: false,
+      workspace: "design-system-and-editor-productivity-tools",
+    },
+    {
+      flags: [false, false, false],
+      paused: true,
+      file: `${"W".repeat(70)}.ts`,
+      folder: "folder-with-an-exceptionally-long-unbroken-name",
+    },
+    {
+      flags: [true, false, true],
+      paused: false,
+      workspace: "开发工作区".repeat(12),
+    },
+    {
+      flags: [true, false, true],
+      paused: false,
+      workspace: "Широкое-название-рабочего-пространства".repeat(3),
+    },
+    {
+      flags: [true, true, true],
+      paused: false,
+      file: "No active file",
+      workspace: "🌿".repeat(30),
+    },
   ].map((state) =>
     statusArtwork({
-      ...state,
       ...(state.paused ? { folder: "second-project" } : {}),
       file: "app.ts",
       language: "typescript",
@@ -28,20 +60,22 @@ export async function reviewStatus(
       owned: [],
       revision: 1,
       canPause: true,
+      ...state,
     }),
   );
   const alignment = await page.evaluate<
     Array<{
-      stateEdgeOffsetX: number;
-      stateOffsetY: number;
       contextOffsetY: number;
+      contextIconGap: number;
+      contextFits: boolean;
       pauseOffsetX: number;
       pauseOffsetY: number;
       summaryHeadingOffsetY: number;
       summaryIconOffsetY: number;
+      summaryIconGap: number;
+      summaryIconDiameter: number;
       summaryTop: number;
       triggerBottom: number;
-      summaryFits: boolean;
       headerFits: boolean;
       pauseFits: boolean;
     }>
@@ -56,7 +90,7 @@ export async function reviewStatus(
           continue;
         }
         if (match[0].startsWith("</")) { stack.pop(); continue; }
-        if (!["svg","g","text","tspan","rect","circle","path"].includes(match[1])) throw new Error("Unexpected SVG node");
+        if (!["svg","g","text","tspan","rect","circle","path","defs","clipPath"].includes(match[1])) throw new Error("Unexpected SVG node");
         const element = document.createElementNS(namespace, match[1]);
         for (const attr of match[2].matchAll(/([\\w-]+)="([^"]*)"/g)) element.setAttribute(attr[1], attr[2]);
         if (stack.length) stack[stack.length-1].append(element); else root = element;
@@ -66,34 +100,38 @@ export async function reviewStatus(
       return root;
     }
     return fixtures.map(art => {
-      const stateImage = mount(art.state), context = mount(art.context), pause = mount(art.pause), header = mount(art.header), summary = mount(art.summary), formatting = mount(art.formatting);
+      const context = mount(art.context), pause = mount(art.pause), header = mount(art.header), summary = mount(art.summary), formatting = mount(art.formatting);
       try {
-        const stateText = stateImage.querySelector("text").getBBox();
-        const file = Array.from(context.querySelectorAll("text")).find(text => text.textContent.startsWith("Active file:")).getBBox();
-        const contextLines = Array.from(context.querySelectorAll("text"));
-        const lastContextLine = (contextLines.find(text => text.textContent.startsWith("Folder:")) ?? contextLines.find(text => text.textContent.startsWith("Workspace:"))).getBBox();
-        const contextIcon = context.querySelector("circle").getBBox();
+        const contextLines = Array.from(context.querySelectorAll('g[clip-path] text'));
+        const file = contextLines[0].getBBox();
+        const lastContextLine = contextLines.at(-1).getBBox();
+        const contextIcon = context.querySelector('[data-icon="file-text"]').getBBox();
+        const contextClip = context.querySelector("clipPath rect");
         const pauseText = pause.querySelector("text").getBBox();
         const title = header.querySelector("text").getBBox();
         const summaryText = summary.querySelectorAll("text");
         const summaryHeading = summaryText[0].getBBox();
-        const summaryIcon = summary.querySelector("circle").getBBox();
+        const summaryIcon = summary.querySelector('[data-status]').getBBox();
         const triggerNote = Array.from(formatting.querySelectorAll("text")).at(-1).getBBox();
         return {
-          stateEdgeOffsetX: stateText.x + stateText.width - art.state.width,
-          stateOffsetY: stateText.y + stateText.height/2 - art.state.height/2,
           contextOffsetY: (file.y + lastContextLine.y + lastContextLine.height)/2 - (contextIcon.y + contextIcon.height/2),
+          contextIconGap: file.x - (contextIcon.x + contextIcon.width),
+          contextFits: contextLines.every(text => {
+            const box = text.getBBox();
+            return box.x >= +contextClip.getAttribute("x") && box.x + box.width <= +contextClip.getAttribute("x") + +contextClip.getAttribute("width");
+          }),
           pauseOffsetX: pauseText.x + pauseText.width/2 - art.pause.width/2,
           pauseOffsetY: pauseText.y + pauseText.height/2 - art.pause.height/2,
           summaryHeadingOffsetY: summaryHeading.y + summaryHeading.height/2 - 14,
-          summaryIconOffsetY: summaryIcon.y + summaryIcon.height/2 - 14,
+          summaryIconOffsetY: summaryHeading.y + summaryHeading.height/2 - (summaryIcon.y + summaryIcon.height/2),
+          summaryIconGap: summaryIcon.x - (summaryHeading.x + summaryHeading.width),
+          summaryIconDiameter: summaryIcon.width,
           summaryTop: summaryHeading.y,
           triggerBottom: triggerNote.y + triggerNote.height,
-          summaryFits: summaryHeading.x + summaryHeading.width < summaryIcon.x,
           headerFits: title.x + title.width <= art.header.width,
           pauseFits: pauseText.x >= 1 && pauseText.x + pauseText.width <= art.pause.width - 1,
         };
-      } finally { stateImage.remove(); context.remove(); pause.remove(); header.remove(); summary.remove(); formatting.remove(); }
+      } finally { context.remove(); pause.remove(); header.remove(); summary.remove(); formatting.remove(); }
     });
   })(${JSON.stringify(fixtures)})`);
   writeFileSync(
@@ -102,8 +140,6 @@ export async function reviewStatus(
   );
   for (const measurement of alignment) {
     for (const offset of [
-      measurement.stateEdgeOffsetX,
-      measurement.stateOffsetY,
       measurement.contextOffsetY,
       measurement.pauseOffsetX,
       measurement.pauseOffsetY,
@@ -116,17 +152,29 @@ export async function reviewStatus(
       );
     assert.ok(measurement.headerFits, "Full extension name fits");
     assert.ok(
-      measurement.pauseFits,
-      "Pause and Resume labels fit the same button",
+      measurement.contextIconGap >= 10,
+      "File context clears its document icon",
     );
     assert.ok(
-      measurement.summaryFits,
-      "The larger heading clears the info icon",
+      measurement.summaryIconGap >= 8,
+      "Heading clears its status icon",
+    );
+    assert.ok(
+      Math.abs(measurement.summaryIconDiameter - 14.4) < 0.01,
+      "All three state icons are reduced by ten percent",
+    );
+    assert.ok(
+      measurement.contextFits,
+      "Ellipsized names fit their column without clipping",
+    );
+    assert.ok(
+      measurement.pauseFits,
+      "Pause and Resume labels fit the same button",
     );
   }
 
   const button = page.getByRole("button", {
-    name: /^Formatting: (ON|OFF|MIXED)$/,
+    name: /^Formatting: (ON|OFF)$/,
   });
   const hover = page.locator(".monaco-hover").filter({
     has: page.getByRole("img", { name: /^Kira Formatting Controls/ }),
@@ -135,7 +183,7 @@ export async function reviewStatus(
     await hover.waitFor({ state: "visible" });
     const images = hover.locator("img");
     await images.nth(10).waitFor();
-    assert.equal(await images.count(), 12, "All status artwork is rendered");
+    assert.equal(await images.count(), 11, "All status artwork is rendered");
   };
   const captureCard = async (name: string) => {
     const bounds = await hover.boundingBox();
@@ -301,28 +349,32 @@ export async function reviewStatus(
   assert.deepEqual(await hover.boundingBox(), hovered);
 
   const fileInfo = hover.getByRole("img", { name: /^Active file:/ });
-  assert.equal(await fileInfo.getAttribute("title"), statusHelp.file);
+  const fullFileLabel = await fileInfo.getAttribute("alt");
+  const fileTitle = await fileInfo.getAttribute("title");
+  if (fileTitle) {
+    for (const label of fileTitle.split("\n"))
+      assert.ok(fullFileLabel?.includes(label));
+  }
   assert.equal(
     await fileInfo.evaluate((el) => !!el.closest("a")),
     false,
-    "File information is hover-only with no command",
+    "File context has no command",
   );
   const formattingInfo = hover.getByRole("img", {
-    name: /^Automatic formatting$/,
+    name: /^Automatic formatting: (Enabled|Disabled|Mixed)\.$/,
   });
-  assert.equal(
-    await formattingInfo.getAttribute("title"),
-    statusHelp.formatting,
-  );
+  assert.equal(await formattingInfo.getAttribute("title"), null);
   assert.equal(
     await formattingInfo.evaluate((el) => !!el.closest("a")),
     false,
-    "Formatting information is hover-only with no command",
+    "Formatting heading has no command",
   );
   const settings = hover.getByRole("link", {
     name: "Open VS Code Settings",
     exact: true,
   });
+  assert.equal(await settings.getAttribute("title"), null);
+  assert.equal(await settings.getByRole("img").getAttribute("title"), null);
   assert.equal(
     await settings
       .getByRole("img", { name: "Open VS Code Settings", exact: true })
@@ -335,14 +387,19 @@ export async function reviewStatus(
   );
   const dashboard = hover.getByRole("link", { name: /^Open dashboard/ });
   const issue = hover.getByRole("link", { name: /^Report an issue/ });
+  for (const action of [dashboard, issue]) {
+    assert.equal(await action.getAttribute("title"), null);
+    assert.equal(await action.getByRole("img").getAttribute("title"), null);
+  }
   const contextBounds = await fileInfo.boundingBox();
   const dashboardBounds = await dashboard.getByRole("img").boundingBox();
   const issueBounds = await issue.getByRole("img").boundingBox();
   assert.ok(contextBounds && dashboardBounds && issueBounds);
+  assert.equal(contextBounds.width, 330);
   assert.equal(
     contextBounds.width,
-    330,
-    "The card uses the approved narrower content width",
+    Number(await fileInfo.getAttribute("width")),
+    "The card widens without scaling text or icons",
   );
   assert.equal(
     dashboardBounds.x,
@@ -421,15 +478,10 @@ export async function reviewStatus(
     "Clicking the footer gutter does not open the dashboard",
   );
   assert.equal(await issue.getAttribute("data-href"), issueUrl);
-  assert.equal(
-    await dashboard.getAttribute("title"),
-    "Open Kira Formatting Controls dashboard",
-  );
-  assert.equal(await issue.getAttribute("title"), "Open a new issue on GitHub");
   const pauseLink = hover.getByRole("link", { name: "Pause", exact: true });
-  assert.equal(await pauseLink.getAttribute("title"), statusHelp.pause);
+  assert.equal(await pauseLink.getAttribute("title"), null);
   const pauseImage = pauseLink.getByRole("img", { name: "Pause", exact: true });
-  assert.equal(await pauseImage.getAttribute("title"), statusHelp.pause);
+  assert.equal(await pauseImage.getAttribute("title"), null);
   assert.equal((await pauseImage.boundingBox())?.width, 66);
   const pauseBounds = await pauseImage.boundingBox();
   const settingsBounds = await settings.getByRole("img").boundingBox();
@@ -469,28 +521,21 @@ export async function reviewStatus(
       pauseBounds.x + pauseBounds.width + 4 <= settingsBounds.x,
     "Pause stays between the title and Settings with a clear gap",
   );
-  const formattingState = hover.getByRole("img", {
-    name: /^Automatic formatting: (Enabled|Disabled|Mixed)$/,
-  });
-  const stateBounds = await formattingState.boundingBox();
-  assert.ok(stateBounds);
-  assert.ok(Math.abs(center(stateBounds) - center(summaryBounds)) <= 1);
-  assert.ok(
-    stateBounds.x >= summaryBounds.x + summaryBounds.width &&
-      stateBounds.y + stateBounds.height <= flagBounds.y,
-    "Status stays beside Automatic formatting and above its triggers",
-  );
-  assert.equal(
-    await formattingState.getAttribute("title"),
-    statusHelp.formatting,
-  );
-  assert.equal(
-    await formattingState.evaluate((el) => Boolean(el.closest("a"))),
-    false,
-  );
+  const scopeBounds = await scopes.boundingBox();
+  assert.ok(contextBounds && scopeBounds);
+  assert.ok(contextBounds.y + contextBounds.height <= scopeBounds.y);
   assert.match(
-    (await formattingState.getAttribute("alt")) ?? "",
+    (await formattingInfo.getAttribute("alt")) ?? "",
     /Automatic formatting: (Enabled|Disabled|Mixed)/,
+  );
+  assert.equal(
+    await hover
+      .getByRole("img", {
+        name: /^Automatic formatting: (Enabled|Disabled|Mixed)\.$/,
+      })
+      .count(),
+    1,
+    "Status is included once beside Automatic formatting",
   );
   assert.equal(
     await formattingInfo.evaluate((el) => Boolean(el.closest("a"))),
@@ -597,10 +642,8 @@ export async function reviewStatus(
   const originalFlags = await flags.getAttribute("alt");
   for (const action of ["Pause", "Resume"]) {
     const actionLink = hover.getByRole("link", { name: action, exact: true });
-    assert.equal(
-      await actionLink.getAttribute("title"),
-      action === "Pause" ? statusHelp.pause : statusHelp.resume,
-    );
+    assert.equal(await actionLink.getAttribute("title"), null);
+    assert.equal(await actionLink.getByRole("img").getAttribute("title"), null);
     await actionLink.click();
     await picker.waitFor();
     await hover.waitFor({ state: "hidden" });
@@ -665,8 +708,18 @@ export async function reviewStatus(
   };
   await dismiss();
   await openFile(testFiles.settingsFile);
-  await page.keyboard.press(`${modifier}+End`);
-  await page.keyboard.type(" ");
+  // Create the dirty buffer through the test host's public editor API;
+  // this is independent of native keyboard focus and EditContext support.
+  const editRequest = join(directory, "status-edit-settings");
+  writeFileSync(editRequest, "edit");
+  const editDeadline = Date.now() + 10000;
+  while (existsSync(editRequest)) {
+    assert.ok(
+      Date.now() < editDeadline,
+      "Test host creates the unsaved settings edit",
+    );
+    await delay(50);
+  }
   await page
     .locator(".tab.active.dirty")
     .filter({ hasText: "settings.json" })
@@ -760,6 +813,6 @@ export async function reviewStatus(
     .first()
     .waitFor();
   console.log(
-    "Status card verified: smaller text/icons, stable hover/click bounds, native Pause/Resume picker and Command Palette entry, cancellation, fixed status alignment, read-only fields, hover-only info, keyboard access and accessible descriptions.",
+    "Status card verified: smaller text/icons, stable hover/click bounds, native Pause/Resume picker and Command Palette entry, cancellation, fixed status alignment, read-only fields, no explanatory tooltips, keyboard access and accessible descriptions.",
   );
-}
+};

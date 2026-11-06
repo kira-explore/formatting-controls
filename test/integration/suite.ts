@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { setTimeout as delay } from "node:timers/promises";
 import * as vscode from "vscode";
 import type { Response } from "../../shared/protocol";
 import {
@@ -19,11 +20,11 @@ import { profileDashboard } from "./performance";
 import { runStatusTests } from "./status-controls";
 import { MemoryStore, runWorkflowTests } from "./workflows";
 
-async function changeFolders(
+const changeFolders = async (
   start: number,
   deleteCount: number,
   ...folders: { uri: vscode.Uri; name: string }[]
-): Promise<void> {
+): Promise<void> => {
   await new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
       listener.dispose();
@@ -42,8 +43,8 @@ async function changeFolders(
       reject(new Error("Workspace folder update rejected"));
     }
   });
-}
-export async function run(): Promise<void> {
+};
+export const run = async (): Promise<void> => {
   const ext = vscode.extensions.getExtension("rajudhami.formatting-controls");
   assert.ok(ext);
   await ext.activate();
@@ -379,20 +380,38 @@ export async function run(): Promise<void> {
       }
       await vscode.commands.executeCommand("workbench.action.closeSidebar");
       await vscode.commands.executeCommand("workbench.action.closePanel");
+      const editRequest = `${process.env.FORMATTING_CONTROLS_REPORT_DIR}/status-edit-settings`;
+      rmSync(editRequest, { force: true });
       writeFileSync(process.env.FORMATTING_CONTROLS_UI_READY, "ready");
       const deadline = Date.now() + 180000;
       while (!existsSync(process.env.FORMATTING_CONTROLS_UI_DONE)) {
+        if (
+          process.env.FORMATTING_CONTROLS_STATUS_UI &&
+          existsSync(editRequest)
+        ) {
+          const settingsUri = projectSettingsFile(first);
+          assert.ok(settingsUri);
+          const editor = await vscode.window.showTextDocument(
+            await vscode.workspace.openTextDocument(settingsUri),
+          );
+          assert.ok(
+            await editor.edit((edit) =>
+              edit.insert(
+                new vscode.Position(0, 0),
+                "// unsaved settings test\n",
+              ),
+            ),
+          );
+          rmSync(editRequest);
+        }
         if (Date.now() > deadline)
           throw new Error("Dashboard verification timed out");
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await delay(100);
       }
     }
     if (process.env.FORMATTING_CONTROLS_UI_REVIEW)
-      await new Promise((resolve) =>
-        setTimeout(
-          resolve,
-          Number(process.env.FORMATTING_CONTROLS_UI_DURATION ?? 180000),
-        ),
+      await delay(
+        Number(process.env.FORMATTING_CONTROLS_UI_DURATION ?? 180000),
       );
     console.log(
       "Extension-host assertions passed: activation, scope precedence, language override, multi-root isolation, inherited action preservation, reset, stale preview protection, dashboard messages, folder allowlisting and real panel creation.",
@@ -416,4 +435,4 @@ export async function run(): Promise<void> {
       ] as const)
         await write(s, k, undefined);
   }
-}
+};

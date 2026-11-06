@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Kira Formatting Controls</title>
+  <rect x="53" y="72" width="122" height="18" rx="9" fill="#ffffff"/>
+  <rect x="32" y="119" width="184" height="18" rx="9" fill="#00b7ef"/>
+  <rect x="71" y="166" width="130" height="18" rx="9" fill="#ffffff"/>
+  <circle cx="157" cy="128" r="17" fill="#ffffff"/>
+</svg>
