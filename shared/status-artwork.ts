@@ -265,7 +265,8 @@ export const statusArtwork = (
   // Preserve the approved heading width across fallback fonts.
   const formattingHeading =
     `<text x="5" y="14" dominant-baseline="central" font-size="13.5" textLength="135" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>` +
-    statusGlyph(157, 14);
+    statusGlyph(157, 14) +
+    centeredText(171, 14, state, 12.5, p.muted);
   const flagContents = ["save", "paste", "type"]
     .map((label, i) => {
       const y = i * 46;
@@ -345,14 +346,15 @@ export const statusArtwork = (
       28,
       formattingHeading,
       `Automatic formatting: ${state}.`,
-      169,
+      254,
     ),
     summary: image(
       28,
       formattingHeading,
       `Automatic formatting: ${state}.`,
-      220,
+      254,
     ),
+    summaryGap: image(28, "", "", 10),
     formatting: image(
       134,
       flagContents,

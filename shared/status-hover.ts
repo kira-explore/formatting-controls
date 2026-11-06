@@ -37,11 +37,11 @@ export const statusHover = (
     ? `<a href="${link("pause")}">${image(art.pause)}</a>`
     : image(art.pause);
   return `<table width="${art.context.width}"><colgroup><col width="${art.header.width}"><col width="${art.context.width - art.header.width}"></colgroup><tbody>${[
-    `<tr><td>${image(art.header)}</td><td align="right">${pause}&#160;&#160;<a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}">${image(art.settings)}</a></td></tr>`,
+    `<tr><td>${image(art.header)}</td><td align="right"><a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}">${image(art.settings)}</a></td></tr>`,
     fullRow(image(art.context)),
     fullRow(image(art.scopes)),
     fullRow(image(art.formatter)),
-    fullRow(image(art.summary)),
+    fullRow(`${image(art.summary)}${image(art.summaryGap)}${pause}`),
     fullRow(image(art.formatting)),
     fullRow(
       `<a href="command:formattingControls.dashboard">${image(art.dashboard, undefined, "top")}</a>${image(art.footerGap, undefined, "top")}<a href="${issueUrl}">${image(art.issue, undefined, "top")}</a>`,

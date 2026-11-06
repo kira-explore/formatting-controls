@@ -3,6 +3,7 @@
 ## 0.8.0 — Unreleased
 
 - Replace the extension icon with a transparent white-and-blue formatting-controls mark: indented lines and a slider. Use the same mark in the dashboard sidebar and loading view, adapting its foreground to the editor theme.
+- Show Enabled, Disabled or Mixed beside the status icon in the hover/click card. Move the text-only Pause/Resume button to the right of Automatic formatting, keeping its size, native picker flow and the card's fixed width unchanged.
 
 ## 0.7.0
 

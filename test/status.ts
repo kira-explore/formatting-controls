@@ -74,6 +74,8 @@ export const reviewStatus = async (
       summaryIconOffsetY: number;
       summaryIconGap: number;
       summaryIconDiameter: number;
+      summaryLabelOffsetY: number;
+      summaryLabelFits: boolean;
       summaryTop: number;
       triggerBottom: number;
       headerFits: boolean;
@@ -112,6 +114,7 @@ export const reviewStatus = async (
         const summaryText = summary.querySelectorAll("text");
         const summaryHeading = summaryText[0].getBBox();
         const summaryIcon = summary.querySelector('[data-status]').getBBox();
+        const summaryLabel = summaryText[1].getBBox();
         const triggerNote = Array.from(formatting.querySelectorAll("text")).at(-1).getBBox();
         return {
           contextOffsetY: (file.y + lastContextLine.y + lastContextLine.height)/2 - (contextIcon.y + contextIcon.height/2),
@@ -126,6 +129,8 @@ export const reviewStatus = async (
           summaryIconOffsetY: summaryHeading.y + summaryHeading.height/2 - (summaryIcon.y + summaryIcon.height/2),
           summaryIconGap: summaryIcon.x - (summaryHeading.x + summaryHeading.width),
           summaryIconDiameter: summaryIcon.width,
+          summaryLabelOffsetY: summaryLabel.y + summaryLabel.height/2 - (summaryIcon.y + summaryIcon.height/2),
+          summaryLabelFits: summaryLabel.x >= summaryIcon.x + summaryIcon.width + 6 && summaryLabel.x + summaryLabel.width <= art.summary.width,
           summaryTop: summaryHeading.y,
           triggerBottom: triggerNote.y + triggerNote.height,
           headerFits: title.x + title.width <= art.header.width,
@@ -145,12 +150,17 @@ export const reviewStatus = async (
       measurement.pauseOffsetY,
       measurement.summaryHeadingOffsetY,
       measurement.summaryIconOffsetY,
+      measurement.summaryLabelOffsetY,
     ])
       assert.ok(
         Math.abs(offset) <= 1,
         "Status, context and Pause/Resume text stay centered",
       );
     assert.ok(measurement.headerFits, "Full extension name fits");
+    assert.ok(
+      measurement.summaryLabelFits,
+      "Enabled, Disabled and Mixed labels clear the icon and fit before Pause/Resume",
+    );
     assert.ok(
       measurement.contextIconGap >= 10,
       "File context clears its document icon",
@@ -182,8 +192,8 @@ export const reviewStatus = async (
   const loaded = async () => {
     await hover.waitFor({ state: "visible" });
     const images = hover.locator("img");
-    await images.nth(10).waitFor();
-    assert.equal(await images.count(), 11, "All status artwork is rendered");
+    await images.nth(11).waitFor();
+    assert.equal(await images.count(), 12, "All status artwork is rendered");
   };
   const captureCard = async (name: string) => {
     const bounds = await hover.boundingBox();
@@ -513,13 +523,13 @@ export const reviewStatus = async (
     `Automatic formatting has balanced padding (${formattingTopGap}px above, ${formattingBottomGap}px below)`,
   );
   assert.ok(
-    Math.abs(center(pauseBounds) - center(headerBounds)) <= 1,
-    "Pause aligns with the title and Settings",
+    Math.abs(center(pauseBounds) - center(summaryBounds)) <= 1,
+    "Pause aligns with Automatic formatting and its status",
   );
   assert.ok(
-    pauseBounds.x >= headerBounds.x + headerBounds.width &&
-      pauseBounds.x + pauseBounds.width + 4 <= settingsBounds.x,
-    "Pause stays between the title and Settings with a clear gap",
+    pauseBounds.x >= summaryBounds.x + summaryBounds.width + 8 &&
+      pauseBounds.x + pauseBounds.width <= hovered.x + hovered.width,
+    "Pause stays to the right of the status with a clear unlinked gap",
   );
   const scopeBounds = await scopes.boundingBox();
   assert.ok(contextBounds && scopeBounds);

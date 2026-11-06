@@ -155,6 +155,11 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
     assert.equal(art.pause.width, 66);
     assert.equal(art.pause.height, art.settings.height);
     assert.doesNotMatch(art.summary.svg, /<rect\b/);
+    assert.equal(
+      art.summary.width + art.summaryGap.width + art.pause.width,
+      art.context.width,
+      "The status and button fit the fixed card width without shifting",
+    );
   }
   assert.match(variants[4]?.summary.alt ?? "", /Disabled/);
   assert.match(variants[5]?.summary.alt ?? "", /Mixed/);
@@ -191,8 +196,9 @@ test("actions have no tooltip while keeping their labels and click targets", () 
     );
     assert.match(
       rows[0] ?? "",
-      /alt="Kira Formatting Controls".*alt="(?:Pause|Resume)".*alt="Open VS Code Settings"/,
+      /alt="Kira Formatting Controls".*alt="Open VS Code Settings"/,
     );
+    assert.doesNotMatch(rows[0] ?? "", /alt="(?:Pause|Resume)"/);
     assert.doesNotMatch(rows[0] ?? "", /alt="Automatic formatting:/);
     const pauseIndex = rows.findIndex((row) =>
       row.includes(`alt="${paused ? "Resume" : "Pause"}"`),
@@ -200,13 +206,18 @@ test("actions have no tooltip while keeping their labels and click targets", () 
     assert.ok(
       pauseIndex < rows.findIndex((row) => row.includes("Format on type:")),
     );
-    assert.equal(pauseIndex, 0);
+    assert.equal(pauseIndex, 4);
     const statusIndex = rows.findIndex((row) =>
       row.includes("Automatic formatting: Mixed."),
     );
     assert.equal(statusIndex, 4);
     assert.doesNotMatch(rows[1] ?? "", /Automatic formatting: Mixed/);
-    assert.doesNotMatch(rows[statusIndex] ?? "", /<a\b/);
+    assert.equal(pauseIndex, statusIndex);
+    assert.match(
+      rows[statusIndex] ?? "",
+      /^<td colspan="2"><img[^>]*alt="Automatic formatting: Mixed\."/,
+      "The heading remains unlinked; only the Pause/Resume button is linked",
+    );
     for (const row of rows.filter((row) => /alt="Active file:/.test(row)))
       assert.doesNotMatch(row, /<a\b/);
     for (const row of rows.slice(1)) assert.doesNotMatch(row, /title=/);
@@ -329,6 +340,10 @@ test("heading status icons distinguish every flag combination while context keep
         new RegExp(`data-icon="${icon}" data-status="${expected}"`),
       );
       assert.equal(art.summary.alt, `Automatic formatting: ${expected}.`);
+      assert.match(
+        art.summary.svg,
+        new RegExp(`x="171" y="14"[^>]*>${expected}</text>`),
+      );
       assert.match(art.summary.svg, /r="7.2"/);
       assert.match(art.context.svg, /data-icon="file-text"/);
       assert.doesNotMatch(art.context.svg, /data-status=/);

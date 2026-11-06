@@ -12,7 +12,7 @@ Hover or click the status bar to open the same **Kira Formatting Controls** card
 
 ## What you can do
 
-- **Keep a clear summary at the status bar.** Read formatting, scope, source notes and formatter details. Pause/Resume appears beside Settings in the header and preserves save actions. Formatting values remain read-only; long context names reveal their full labels on hover.
+- **Keep a clear summary at the status bar.** Read formatting, scope, source notes and formatter details. Pause/Resume appears to the right of Automatic formatting and preserves save actions. Formatting values remain read-only; long context names reveal their full labels on hover.
 - **Pause through native commands.** Pause/Resume opens a native picker before changing settings. The hover card closes first, avoiding live-update flicker. The same action is available from the Command Palette; Escape cancels it.
 - **See the effective state.** The status bar shows ON when any of Format on Save, Paste or Type is enabled and OFF when all three are disabled. The card distinguishes fully enabled, disabled and mixed settings.
 - **Choose where changes belong.** Write to User, Workspace, or a specific workspace folder. Select a VS Code language ID for language overrides.
@@ -125,7 +125,7 @@ Hover the status-bar item to open the anchored **Kira Formatting Controls** card
 
 The welcome page appears once on first activation. It introduces the workflow and links to settings, documentation, and GitHub; it does not apply a preset automatically.
 
-The blue status icon beside **Automatic formatting** summarizes the three formatting triggers: a circled checkmark for **Enabled**, a circle minus for **Disabled**, and a half-filled circle for **Mixed**. The file box keeps its text-document icon and full text column without a duplicate state label. The status bar uses ON when any trigger is enabled and OFF when all are disabled; the card’s accessible description retains the three-state summary. Active-file labels use full language names. The card keeps a fixed 330px content width; exceptionally long names use ellipses, with full names available on hover. **Scope**, **Language** and **Formatter** appear above Automatic formatting. Pause/Resume and Settings stay in the header; the footer opens the dashboard or a new GitHub issue. [Status-card details and API limits](docs/status-controls.md).
+The blue status icon and label beside **Automatic formatting** summarize the three formatting triggers: a circled checkmark for **Enabled**, a circle minus for **Disabled**, and a half-filled circle for **Mixed**. The file box keeps its text-document icon and full text column without a duplicate state label. The status bar uses ON when any trigger is enabled and OFF when all are disabled; the card’s accessible description retains the three-state summary. Active-file labels use full language names. The card keeps a fixed 330px content width; exceptionally long names use ellipses, with full names available on hover. **Scope**, **Language** and **Formatter** appear above Automatic formatting. The text-only Pause/Resume button sits to the right of that heading, with Settings in the header; the footer opens the dashboard or a new GitHub issue. [Status-card details and API limits](docs/status-controls.md).
 
 ![Native formatting summary above the status bar in Dark Modern](docs/assets/status-card-dark.png)
 
