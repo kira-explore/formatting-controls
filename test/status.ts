@@ -71,6 +71,8 @@ export const reviewStatus = async (
       pauseOffsetX: number;
       pauseOffsetY: number;
       summaryHeadingOffsetY: number;
+      summaryIconOffsetY: number;
+      summaryIconGap: number;
       summaryTop: number;
       triggerBottom: number;
       headerFits: boolean;
@@ -102,12 +104,13 @@ export const reviewStatus = async (
         const contextLines = Array.from(context.querySelectorAll('g[clip-path] text'));
         const file = contextLines[0].getBBox();
         const lastContextLine = contextLines.at(-1).getBBox();
-        const contextIcon = context.querySelector('[data-status]').getBBox();
+        const contextIcon = context.querySelector('[data-icon="file-text"]').getBBox();
         const contextClip = context.querySelector("clipPath rect");
         const pauseText = pause.querySelector("text").getBBox();
         const title = header.querySelector("text").getBBox();
         const summaryText = summary.querySelectorAll("text");
         const summaryHeading = summaryText[0].getBBox();
+        const summaryIcon = summary.querySelector('[data-status]').getBBox();
         const triggerNote = Array.from(formatting.querySelectorAll("text")).at(-1).getBBox();
         return {
           contextOffsetY: (file.y + lastContextLine.y + lastContextLine.height)/2 - (contextIcon.y + contextIcon.height/2),
@@ -119,6 +122,8 @@ export const reviewStatus = async (
           pauseOffsetX: pauseText.x + pauseText.width/2 - art.pause.width/2,
           pauseOffsetY: pauseText.y + pauseText.height/2 - art.pause.height/2,
           summaryHeadingOffsetY: summaryHeading.y + summaryHeading.height/2 - 14,
+          summaryIconOffsetY: summaryHeading.y + summaryHeading.height/2 - (summaryIcon.y + summaryIcon.height/2),
+          summaryIconGap: summaryIcon.x - (summaryHeading.x + summaryHeading.width),
           summaryTop: summaryHeading.y,
           triggerBottom: triggerNote.y + triggerNote.height,
           headerFits: title.x + title.width <= art.header.width,
@@ -137,6 +142,7 @@ export const reviewStatus = async (
       measurement.pauseOffsetX,
       measurement.pauseOffsetY,
       measurement.summaryHeadingOffsetY,
+      measurement.summaryIconOffsetY,
     ])
       assert.ok(
         Math.abs(offset) <= 1,
@@ -145,7 +151,11 @@ export const reviewStatus = async (
     assert.ok(measurement.headerFits, "Full extension name fits");
     assert.ok(
       measurement.contextIconGap >= 10,
-      "File context clears its status icon",
+      "File context clears its document icon",
+    );
+    assert.ok(
+      measurement.summaryIconGap >= 8,
+      "Heading clears its status icon",
     );
     assert.ok(
       measurement.contextFits,
@@ -345,7 +355,7 @@ export const reviewStatus = async (
     "File context has no command",
   );
   const formattingInfo = hover.getByRole("img", {
-    name: /^Automatic formatting$/,
+    name: /^Automatic formatting: (Enabled|Disabled|Mixed)\.$/,
   });
   assert.equal(await formattingInfo.getAttribute("title"), null);
   assert.equal(
@@ -507,17 +517,17 @@ export const reviewStatus = async (
   assert.ok(contextBounds && scopeBounds);
   assert.ok(contextBounds.y + contextBounds.height <= scopeBounds.y);
   assert.match(
-    (await fileInfo.getAttribute("alt")) ?? "",
+    (await formattingInfo.getAttribute("alt")) ?? "",
     /Automatic formatting: (Enabled|Disabled|Mixed)/,
   );
   assert.equal(
     await hover
       .getByRole("img", {
-        name: /^Automatic formatting: (Enabled|Disabled|Mixed)$/,
+        name: /^Automatic formatting: (Enabled|Disabled|Mixed)\.$/,
       })
       .count(),
-    0,
-    "Status is included once in the file section",
+    1,
+    "Status is included once beside Automatic formatting",
   );
   assert.equal(
     await formattingInfo.evaluate((el) => Boolean(el.closest("a"))),

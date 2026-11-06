@@ -231,6 +231,8 @@ export const statusArtwork = (
           : `<path d="M${x} ${y - 8}a8 8 0 0 1 0 16Z" fill="${p.accent}" stroke="none"/>`;
     return `<g data-icon="${icon}" data-status="${state}" fill="none" stroke="${p.accent}" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><circle cx="${x}" cy="${y}" r="8"/>${mark}</g>`;
   };
+  const documentGlyph = (x: number, y: number) =>
+    `<g data-icon="file-text" fill="none" stroke="${p.accent}" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M${x - 7} ${y - 9}h8l6 6v12h-14Z"/><path d="M${x + 1} ${y - 9}v6h6M${x - 3} ${y - 1}h2M${x - 3} ${y + 3}h6M${x - 3} ${y + 6}h6"/></g>`;
   const rect = (
     x: number,
     y: number,
@@ -277,7 +279,9 @@ export const statusArtwork = (
     height,
   });
   // Preserve the approved heading width across fallback fonts.
-  const formattingHeading = `<text x="5" y="14" dominant-baseline="central" font-size="13.5" textLength="135" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>`;
+  const formattingHeading =
+    `<text x="5" y="14" dominant-baseline="central" font-size="13.5" textLength="135" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>` +
+    statusGlyph(157, 14);
   const flagContents = ["save", "paste", "type"]
     .map((label, i) => {
       const y = i * 46;
@@ -327,7 +331,7 @@ export const statusArtwork = (
       76 + contextExtraHeight,
       line(1) +
         rect(5, 12, width - 10, 60 + contextExtraHeight, p.focus, p.info, 6) +
-        statusGlyph(25, contextCenter) +
+        documentGlyph(25, contextCenter) +
         `<defs><clipPath id="context-labels"><rect x="44" y="21" width="${contextTextWidth + 1}" height="${42 + contextExtraHeight}"/></clipPath></defs><g clip-path="url(#context-labels)">` +
         contextLines
           .map((label, index) =>
@@ -341,7 +345,7 @@ export const statusArtwork = (
           )
           .join("") +
         `</g>`,
-      `${file}. ${workspace}.${folder ? ` ${folder}.` : ""} Automatic formatting: ${state}.`,
+      `${file}. ${workspace}.${folder ? ` ${folder}.` : ""}`,
       width,
       truncatedLabels.length ? truncatedLabels.join("\n") : undefined,
     ),
@@ -353,8 +357,18 @@ export const statusArtwork = (
         dropdown(44, language),
       `Scope: ${scope}. Language: ${language}. Read-only.`,
     ),
-    heading: image(28, formattingHeading, "Automatic formatting", 153),
-    summary: image(28, formattingHeading, "Automatic formatting", 220),
+    heading: image(
+      28,
+      formattingHeading,
+      `Automatic formatting: ${state}.`,
+      169,
+    ),
+    summary: image(
+      28,
+      formattingHeading,
+      `Automatic formatting: ${state}.`,
+      220,
+    ),
     formatting: image(
       134,
       flagContents,

@@ -49,8 +49,9 @@ test("reference artwork has live values, accessible descriptions and read-only f
   assert.deepEqual(actions, [[7, "pause"]]);
   assert.match(html, /width="330" height="76"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
-  assert.match(art.context.alt, /Automatic formatting: Mixed/);
-  assert.match(art.context.svg, /data-icon="contrast"/);
+  assert.match(art.summary.alt, /Automatic formatting: Mixed/);
+  assert.match(art.summary.svg, /data-icon="contrast"/);
+  assert.match(art.context.svg, /data-icon="file-text"/);
   assert.match(html, /data:image\/svg\+xml;base64,/);
 });
 
@@ -79,11 +80,11 @@ test("formatting stays visible with context, formatter and footer actions", () =
     /^Resume/,
   );
   assert.match(
-    statusArtwork({ ...context, flags: [true, true, true] }).context.alt,
+    statusArtwork({ ...context, flags: [true, true, true] }).summary.alt,
     /formatting: Enabled/,
   );
   assert.match(
-    statusArtwork({ ...context, flags: [false, false, false] }).context.alt,
+    statusArtwork({ ...context, flags: [false, false, false] }).summary.alt,
     /formatting: Disabled/,
   );
 });
@@ -155,8 +156,8 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
     assert.equal(art.pause.height, art.settings.height);
     assert.doesNotMatch(art.summary.svg, /<rect\b/);
   }
-  assert.match(variants[4]?.context.alt ?? "", /Disabled/);
-  assert.match(variants[5]?.context.alt ?? "", /Mixed/);
+  assert.match(variants[4]?.summary.alt ?? "", /Disabled/);
+  assert.match(variants[5]?.summary.alt ?? "", /Mixed/);
   assert.notEqual(
     variants[0]?.pause.svg,
     variants[3]?.pause.svg,
@@ -209,12 +210,8 @@ test("only Settings and Pause/Resume explain actions while footer links have no 
     const statusIndex = rows.findIndex((row) =>
       row.includes("Automatic formatting: Mixed."),
     );
-    assert.equal(statusIndex, 1);
-    assert.match(rows[statusIndex] ?? "", /alt="Active file:/);
-    assert.doesNotMatch(
-      rows.find((row) => row.includes('alt="Automatic formatting"')) ?? "",
-      /Automatic formatting: Mixed/,
-    );
+    assert.equal(statusIndex, 4);
+    assert.doesNotMatch(rows[1] ?? "", /Automatic formatting: Mixed/);
     assert.doesNotMatch(rows[statusIndex] ?? "", /<a\b/);
     for (const row of rows.filter((row) => /alt="Active file:/.test(row)))
       assert.doesNotMatch(row, /<a\b/);
@@ -309,11 +306,11 @@ test("long context names keep the fixed width and expose full names only when tr
     );
     const html = statusHover(input);
     assert.match(html, /title="(?:Workspace:|Folder:|Active file:)/);
-    assert.doesNotMatch(art.summary.svg, /<circle/);
+    assert.match(art.summary.svg, /data-status="Mixed"/);
   }
 });
 
-test("status icons free the context column and distinguish all flag combinations", () => {
+test("heading status icons distinguish every flag combination while context keeps its document icon", () => {
   for (let mask = 0; mask < 8; mask++) {
     const flags = [0, 1, 2].map((bit) => Boolean(mask & (1 << bit)));
     const expected = mask === 7 ? "Enabled" : mask === 0 ? "Disabled" : "Mixed";
@@ -327,10 +324,12 @@ test("status icons free the context column and distinguish all flag combinations
         workspace: "formatting-controls",
       });
       assert.match(
-        art.context.svg,
+        art.summary.svg,
         new RegExp(`data-icon="${icon}" data-status="${expected}"`),
       );
-      assert.ok(art.context.alt.includes(`Automatic formatting: ${expected}.`));
+      assert.equal(art.summary.alt, `Automatic formatting: ${expected}.`);
+      assert.match(art.context.svg, /data-icon="file-text"/);
+      assert.doesNotMatch(art.context.svg, /data-status=/);
       assert.doesNotMatch(
         art.context.svg,
         />(?:Enabled|Disabled|Mixed)<\/text>/,
