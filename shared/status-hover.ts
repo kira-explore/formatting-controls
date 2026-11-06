@@ -42,7 +42,9 @@ export const statusHover = (
     ? `<a href="${link("pause")}">${image(art.pause)}</a>`
     : image(art.pause);
   return `<table width="${art.context.width}"><colgroup><col width="${art.header.width}"><col width="${art.context.width - art.header.width}"></colgroup><tbody>${[
-    `<tr><td>${image(art.header)}</td><td align="right"><a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}">${image(art.settings)}</a></td></tr>`,
+    fullRow(
+      `${image(art.header)}${pause}${image(art.headerGap)}<a href="command:workbench.action.openSettings?${encodeURIComponent(JSON.stringify(["editor.formatOn"]))}">${image(art.settings)}</a>`,
+    ),
     fullRow(image(art.context)),
     fullRow(
       `${image(art.scopeLabel)}${image(art.scopeInfo)}${image(art.fieldGap)}${image(art.scopeValue)}`,
@@ -53,7 +55,7 @@ export const statusHover = (
     fullRow(
       `${image(art.formatterLabel)}${image(art.formatterInfo)}${image(art.formatterGap)}${image(art.formatterValue)}`,
     ),
-    fullRow(`${image(art.summary)}${image(art.summaryGap)}${pause}`),
+    fullRow(image(art.summary)),
     fullRow(image(art.formatting)),
     ...(context.diagnostic
       ? [

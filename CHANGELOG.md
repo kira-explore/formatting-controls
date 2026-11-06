@@ -1,6 +1,11 @@
 # Changelog
 
-## 0.8.0 — Unreleased
+## 0.9.0 — Unreleased
+
+- Move Pause/Resume into the padded hover/click header immediately before Settings. Keep both buttons 24px tall and reserve the same width for Pause and Resume.
+- Right-align the formatting state icon and Enabled, Disabled or Mixed text together on the Automatic formatting row. Preserve the fixed card width, field information, source notes, warnings and native confirmation flow.
+
+## 0.8.0
 
 - Replace the extension icon with a transparent white-and-blue formatting-controls mark: indented lines and a slider. Use the same mark in the dashboard sidebar and loading view, adapting its foreground to the editor theme.
 - Show Enabled, Disabled or Mixed beside the status icon in the hover/click card. Move the text-only Pause/Resume button to the right of Automatic formatting, keeping its size, native picker flow and the card's fixed width unchanged.

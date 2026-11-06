@@ -548,13 +548,14 @@ export const reviewStatus = async (
     `Automatic formatting has balanced padding (${formattingTopGap}px above, ${formattingBottomGap}px below)`,
   );
   assert.ok(
-    Math.abs(center(pauseBounds) - center(summaryBounds)) <= 1,
-    "Pause aligns with Automatic formatting and its status",
+    Math.abs(center(pauseBounds) - center(headerBounds)) <= 1,
+    "Pause aligns with the header and Settings",
   );
   assert.ok(
-    pauseBounds.x >= summaryBounds.x + summaryBounds.width + 8 &&
-      pauseBounds.x + pauseBounds.width <= hovered.x + hovered.width,
-    "Pause stays to the right of the status with a clear unlinked gap",
+    pauseBounds.x >= headerBounds.x + headerBounds.width &&
+      settingsBounds.x >= pauseBounds.x + pauseBounds.width + 7 &&
+      settingsBounds.x + settingsBounds.width <= hovered.x + hovered.width,
+    "Pause stays before Settings with a clear unlinked gap",
   );
   const scopeBounds = await scopes.boundingBox();
   assert.ok(contextBounds && scopeBounds);

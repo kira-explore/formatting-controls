@@ -273,8 +273,8 @@ export const statusArtwork = (
   // Preserve the approved heading width across fallback fonts.
   const formattingHeading =
     `<text x="5" y="14" dominant-baseline="central" font-size="13.5" textLength="135" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>` +
-    statusGlyph(157, 14) +
-    centeredText(171, 14, state, 12.5, p.muted);
+    statusGlyph(width - 19 - labelWidth(state), 14) +
+    centeredText(width - 5, 14, state, 12.5, p.muted, "end");
   const flagContents = ["save", "paste", "type"]
     .map((label, i) => {
       const y = i * 46;
@@ -409,8 +409,9 @@ export const statusArtwork = (
       36,
       centeredText(5, 18, "Kira Formatting Controls", 13.5),
       "Kira Formatting Controls",
-      220,
+      230,
     ),
+    headerGap: image(24, "", "", 8),
     context: image(
       76 + contextExtraHeight,
       line(1) +
@@ -445,15 +446,14 @@ export const statusArtwork = (
       28,
       formattingHeading,
       `Automatic formatting: ${state}.`,
-      254,
+      width,
     ),
     summary: image(
       28,
       formattingHeading,
       `Automatic formatting: ${state}.`,
-      254,
+      width,
     ),
-    summaryGap: image(28, "", "", 10),
     formatting: image(
       134,
       flagContents,

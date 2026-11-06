@@ -194,10 +194,15 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
     assert.equal(art.pause.height, art.settings.height);
     assert.doesNotMatch(art.summary.svg, /<rect\b/);
     assert.equal(
-      art.summary.width + art.summaryGap.width + art.pause.width,
+      art.header.width +
+        art.pause.width +
+        art.headerGap.width +
+        art.settings.width,
       art.context.width,
-      "The status and button fit the fixed card width without shifting",
+      "The title, action and Settings fit the fixed header width without shifting",
     );
+    assert.equal(art.summary.width, art.context.width);
+    assert.match(art.summary.svg, /x="325"[^>]*text-anchor="end"/);
   }
   assert.match(variants[4]?.summary.alt ?? "", /Disabled/);
   assert.match(variants[5]?.summary.alt ?? "", /Mixed/);
@@ -240,7 +245,10 @@ test("actions have no tooltip while keeping their labels and click targets", () 
       rows[0] ?? "",
       /alt="Kira Formatting Controls".*alt="Open VS Code Settings"/,
     );
-    assert.doesNotMatch(rows[0] ?? "", /alt="(?:Pause|Resume)"/);
+    assert.match(
+      rows[0] ?? "",
+      /alt="(?:Pause|Resume)".*alt="Open VS Code Settings"/,
+    );
     assert.doesNotMatch(rows[0] ?? "", /alt="Automatic formatting:/);
     const pauseIndex = rows.findIndex((row) =>
       row.includes(`alt="${paused ? "Resume" : "Pause"}"`),
@@ -248,17 +256,17 @@ test("actions have no tooltip while keeping their labels and click targets", () 
     assert.ok(
       pauseIndex < rows.findIndex((row) => row.includes("Format on type:")),
     );
-    assert.equal(pauseIndex, 5);
+    assert.equal(pauseIndex, 0);
     const statusIndex = rows.findIndex((row) =>
       row.includes("Automatic formatting: Mixed."),
     );
     assert.equal(statusIndex, 5);
     assert.doesNotMatch(rows[1] ?? "", /Automatic formatting: Mixed/);
-    assert.equal(pauseIndex, statusIndex);
+    assert.doesNotMatch(rows[statusIndex] ?? "", /<a\b/);
     assert.match(
       rows[statusIndex] ?? "",
       /^<td colspan="2"><img[^>]*alt="Automatic formatting: Mixed\."/,
-      "The heading remains unlinked; only the Pause/Resume button is linked",
+      "The full-width formatting heading and status remain unlinked",
     );
     for (const row of rows.filter((row) => /alt="Active file:/.test(row)))
       assert.doesNotMatch(row, /<a\b/);
@@ -384,7 +392,9 @@ test("heading status icons distinguish every flag combination while context keep
       assert.equal(art.summary.alt, `Automatic formatting: ${expected}.`);
       assert.match(
         art.summary.svg,
-        new RegExp(`x="171" y="14"[^>]*>${expected}</text>`),
+        new RegExp(
+          `x="325" y="14"[^>]*text-anchor="end"[^>]*>${expected}</text>`,
+        ),
       );
       assert.match(art.summary.svg, /r="7.2"/);
       assert.match(art.context.svg, /data-icon="file-text"/);
