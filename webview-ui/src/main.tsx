@@ -1,6 +1,7 @@
 import { StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import type { Key, Scope } from "../../shared/protocol";
+import { BrandMark } from "./BrandMark";
 import { actionNames, descriptions, display, labels, pages } from "./catalog";
 import { useEditor } from "./useEditor";
 import { WorkflowPages } from "./WorkflowPages";
@@ -32,7 +33,7 @@ const App = () => {
   if (!state)
     return (
       <main className="loading">
-        <div className="brand-mark">≋</div>
+        <BrandMark />
         <h1>Formatting Controls</h1>
         <p role="status">Connecting to your editor…</p>
         {error && <p role="alert">{error}</p>}
@@ -194,7 +195,7 @@ const App = () => {
             setPage("overview");
           }}
         >
-          <span className="brand-mark">≋</span>
+          <BrandMark />
           <span>
             Formatting
             <br /> <strong>Controls</strong>

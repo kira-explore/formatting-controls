@@ -1,12 +1,14 @@
 # Release preparation
 
-Development version: 0.7.0. Display name: Kira Formatting Controls. Publisher: rajudhami. Identifier: rajudhami.formatting-controls. Node 24 LTS and Bun from packageManager are build tools; users do not need Bun to install the VSIX. VS Code supplies the extension-host runtime.
+Development version: 0.8.0. Display name: Kira Formatting Controls. Publisher: rajudhami. Identifier: rajudhami.formatting-controls. Node 24 LTS and Bun from packageManager are build tools; users do not need Bun to install the VSIX. VS Code supplies the extension-host runtime.
 
 ## Validate a candidate
 
 Use `bun install --frozen-lockfile`, then run typecheck, lint, test, test:integration, test:multi-window, test:remote, test:ui, security:check and package through `bun run`. Build before running `bun run test/run-integration.ts --empty` and `bun run test/run-integration.ts --status-ui` for empty-window and status-card coverage. `VSCODE_VERSION` selects stable or the minimum supported 1.140.0. `FORMATTING_CONTROLS_UI_THEME` selects Dark Modern, Light Modern or Default High Contrast. Tests isolate user settings and extensions. CPU profiles, warm snapshot metrics, accessibility reports and screenshots go to ignored `test-results/`. See [validation commands and coverage](validation.md).
 
 Packaging reopens the final VSIX after vscode:prepublish and verifies required files, installer/package identity, excludes authored sources/tests/tooling/environment files, enforces host/UI/archive size budgets and emits a SHA-256 sidecar. Keep the PNG icon, README gallery, support/security documents, MIT license, third-party notices and changelog current. Version badges describe development tooling, not requirements for extension users.
+
+The transparent 256px extension icon is exported from `assets/icon.svg` to `assets/icon.png`. The dashboard uses the same indented-line and slider geometry in `webview-ui/src/BrandMark.tsx`, with theme-aware foreground lines for readability. The vector source stays in the repository; the PNG and bundled dashboard mark ship in the VSIX.
 
 ## Release draft workflow
 

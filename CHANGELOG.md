@@ -1,6 +1,10 @@
 # Changelog
 
-## 0.7.0 — Unreleased
+## 0.8.0 — Unreleased
+
+- Replace the extension icon with a transparent white-and-blue formatting-controls mark: indented lines and a slider. Use the same mark in the dashboard sidebar and loading view, adapting its foreground to the editor theme.
+
+## 0.7.0
 
 - Show full active-file language names such as JavaScript, TypeScript and Python instead of shortened labels.
 

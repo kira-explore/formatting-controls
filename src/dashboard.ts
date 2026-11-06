@@ -68,6 +68,11 @@ export class Dashboard implements vscode.Disposable {
       { enableScripts: true, localResourceRoots: [root] },
     );
     this.panel = panel;
+    panel.iconPath = vscode.Uri.joinPath(
+      this.extensionUri,
+      "assets",
+      "icon.png",
+    );
     const nonce = randomBytes(24).toString("base64");
     const js = panel.webview.asWebviewUri(
       vscode.Uri.joinPath(root, "dashboard.js"),

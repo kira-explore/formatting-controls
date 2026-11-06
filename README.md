@@ -30,7 +30,7 @@ No telemetry, remote analytics, or source-code transmission. Settings stay in VS
 
 ## Dark theme previews
 
-Screenshots are captured from version **0.7.0** running in VS Code’s **Dark Modern** theme. Overview is shown above; expand the sections below to see the other seven dashboard tabs.
+Screenshots are captured from version **0.8.0** running in VS Code’s **Dark Modern** theme. Overview is shown above; expand the sections below to see the other seven dashboard tabs.
 
 <details>
 <summary>Formatting controls and effective values</summary>
@@ -107,7 +107,7 @@ Open the folder in VS Code and press **F5** to launch the Extension Development 
 bun run package
 ```
 
-In VS Code, run **Extensions: Install from VSIX…** and select `formatting-controls-0.7.0.vsix`. A successful GitHub Actions run also provides the VSIX artifact. No Marketplace credentials are required.
+In VS Code, run **Extensions: Install from VSIX…** and select `formatting-controls-0.8.0.vsix`. A successful GitHub Actions run also provides the VSIX artifact. No Marketplace credentials are required.
 
 ## Find your flow
 
