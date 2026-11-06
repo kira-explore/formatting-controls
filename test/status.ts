@@ -75,6 +75,7 @@ export const reviewStatus = async (
       summaryIconGap: number;
       summaryIconDiameter: number;
       summaryLabelOffsetY: number;
+      summaryLabelGap: number;
       summaryLabelFits: boolean;
       summaryTop: number;
       triggerBottom: number;
@@ -130,7 +131,8 @@ export const reviewStatus = async (
           summaryIconGap: summaryIcon.x - (summaryHeading.x + summaryHeading.width),
           summaryIconDiameter: summaryIcon.width,
           summaryLabelOffsetY: summaryLabel.y + summaryLabel.height/2 - (summaryIcon.y + summaryIcon.height/2),
-          summaryLabelFits: summaryLabel.x >= summaryIcon.x + summaryIcon.width + 6 && summaryLabel.x + summaryLabel.width <= art.summary.width,
+          summaryLabelGap: summaryLabel.x - (summaryIcon.x + summaryIcon.width),
+          summaryLabelFits: summaryLabel.x >= summaryIcon.x + summaryIcon.width + 5.9 && summaryLabel.x + summaryLabel.width <= art.summary.width,
           summaryTop: summaryHeading.y,
           triggerBottom: triggerNote.y + triggerNote.height,
           headerFits: title.x + title.width <= art.header.width,
@@ -159,7 +161,11 @@ export const reviewStatus = async (
     assert.ok(measurement.headerFits, "Full extension name fits");
     assert.ok(
       measurement.summaryLabelFits,
-      "Enabled, Disabled and Mixed labels clear the icon and fit before Pause/Resume",
+      "Enabled, Disabled and Mixed labels clear the icon and fit the right edge",
+    );
+    assert.ok(
+      Math.abs(measurement.summaryLabelGap - 6) < 0.1,
+      "Every status label keeps a compact 6px gap from its icon",
     );
     assert.ok(
       measurement.contextIconGap >= 10,

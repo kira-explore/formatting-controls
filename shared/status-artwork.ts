@@ -270,11 +270,13 @@ export const statusArtwork = (
     width: imageWidth,
     height,
   });
+  // Bound the three short labels so their icon gap stays 6px across host fonts.
+  const stateTextWidth = { Enabled: 44, Disabled: 47, Mixed: 33 }[state];
   // Preserve the approved heading width across fallback fonts.
   const formattingHeading =
     `<text x="5" y="14" dominant-baseline="central" font-size="13.5" textLength="135" lengthAdjust="spacingAndGlyphs" fill="${p.fg}">Automatic formatting</text>` +
-    statusGlyph(width - 19 - labelWidth(state), 14) +
-    centeredText(width - 5, 14, state, 12.5, p.muted, "end");
+    statusGlyph(width - 18.2 - stateTextWidth, 14) +
+    `<text x="${width - 5}" y="14" font-size="12.5" fill="${p.muted}" text-anchor="end" dominant-baseline="central" textLength="${stateTextWidth}" lengthAdjust="spacingAndGlyphs">${state}</text>`;
   const flagContents = ["save", "paste", "type"]
     .map((label, i) => {
       const y = i * 46;

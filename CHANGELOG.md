@@ -3,7 +3,7 @@
 ## 0.9.0 — Unreleased
 
 - Move Pause/Resume into the padded hover/click header immediately before Settings. Keep both buttons 24px tall and reserve the same width for Pause and Resume.
-- Right-align the formatting state icon and Enabled, Disabled or Mixed text together on the Automatic formatting row. Preserve the fixed card width, field information, source notes, warnings and native confirmation flow.
+- Right-align the formatting state icon and Enabled, Disabled or Mixed text together on the Automatic formatting row with a consistent 6px icon-to-text gap. Preserve the fixed card width, field information, source notes, warnings and native confirmation flow.
 
 ## 0.8.0
 

@@ -8,7 +8,7 @@ The padded header shows **Kira Formatting Controls**, text-only Pause/Resume and
 
 ## Read-only formatting summary
 
-The Automatic formatting heading uses a circled checkmark for Enabled, a circle minus for Disabled, or a half-filled circle for Mixed. Each vector status icon has the same 14.4px diameter and is vertically centered with the heading. The text-document icon is centered across the file box’s two or three context lines. Neither icon has an explanatory tooltip or click action.
+The Automatic formatting heading uses a circled checkmark for Enabled, a circle minus for Disabled, or a half-filled circle for Mixed. Each vector status icon has the same 14.4px diameter, a consistent 6px gap before its status text, and is vertically centered with the heading. The text-document icon is centered across the file box’s two or three context lines. Neither icon has an explanatory tooltip or click action.
 
 - The file/workspace box identifies the editor whose effective settings are shown, using full language names such as JavaScript and TypeScript. Multi-root workspaces also name its folder.
 - **Scope** and **Language** identify the selected destination, rather than changing the file's language mode. Use the dashboard or optional Quick Controls command to change them.
