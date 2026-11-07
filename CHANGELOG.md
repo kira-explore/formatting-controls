@@ -2,6 +2,11 @@
 
 ## 0.9.0 — Unreleased
 
+- Redesign the dashboard around five main sections: Formatting, Save actions, Language rules, Profiles and Diagnostics, with Help & setup separate. Formatting is the default page; formatter tools move inside it and Auto Save moves to Save actions.
+- Share active-file context, Scope and Language across sections. Use effective-source notes, real themed checkboxes, expandable advanced controls and a diagnostics source table. Preserve provider controls, custom IDs/actions, profiles and recovery.
+- Connect dashboard Automatic formatting Pause/Resume to the three-trigger workflow without changing save actions. Keep the existing broader pause under advanced Profiles controls.
+- Add a disabled Reset… placeholder to the status card. Reset behavior remains deferred.
+
 - Move Pause/Resume into the padded hover/click header immediately before Settings. Keep both buttons 24px tall and reserve the same width for Pause and Resume.
 - Right-align the formatting state icon and Enabled, Disabled or Mixed text together on the Automatic formatting row with a consistent 6px icon-to-text gap. Preserve the fixed card width, field information, source notes, warnings and native confirmation flow.
 

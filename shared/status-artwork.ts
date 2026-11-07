@@ -1,3 +1,7 @@
+import { languageName } from "./language";
+
+export { languageName } from "./language";
+
 import { statusHelp } from "./status-help";
 import type { HoverContext } from "./status-hover";
 
@@ -100,35 +104,6 @@ const shortened = (value: string, limit: number): string => {
   }
   return result;
 };
-export const languageName = (id: string): string =>
-  ({
-    typescript: "TypeScript",
-    javascript: "JavaScript",
-    typescriptreact: "TypeScript React",
-    javascriptreact: "JavaScript React",
-    json: "JSON",
-    jsonc: "JSON with Comments",
-    markdown: "Markdown",
-    python: "Python",
-    html: "HTML",
-    css: "CSS",
-    scss: "SCSS",
-    less: "Less",
-    yaml: "YAML",
-    xml: "XML",
-    shellscript: "Shell Script",
-    plaintext: "Plain Text",
-    c: "C",
-    cpp: "C++",
-    csharp: "C#",
-    java: "Java",
-    go: "Go",
-    rust: "Rust",
-    ruby: "Ruby",
-    php: "PHP",
-    sql: "SQL",
-  })[id] ?? id;
-
 // SVG text is rendered in the workbench, where host-side font metrics are
 // unavailable. Reserve conservative glyph widths rather than scaling text.
 const labelWidth = (value: string): number =>
@@ -498,6 +473,14 @@ export const statusArtwork = (
       centeredText(12, 22, pauseCaption, 12.5, p.muted),
       pauseCaption,
       309,
+    ),
+    reset: image(
+      34,
+      line(1) +
+        rect(5.5, 5.5, 61, 23, p.border, p.input) +
+        centeredText(36, 17, "Reset…", 12.5, p.muted, "middle") +
+        centeredText(78, 17, "Not available yet", 11.5, p.muted),
+      "Reset… Not available yet. Reset behavior is deferred.",
     ),
     dashboard: image(
       36,

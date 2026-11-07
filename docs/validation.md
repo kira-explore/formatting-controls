@@ -32,14 +32,14 @@ These runners use isolated profiles and temporary workspaces rather than maintai
 
 Set `VSCODE_VERSION=1.140.0` for the minimum host or `stable` for the current host. Set `FORMATTING_CONTROLS_UI_THEME` to `Dark Modern`, `Light Modern` or `Default High Contrast` for UI checks. Run one UI review at a time on debug port 9333. Reports, screenshots and CPU profiles are written to ignored `test-results/`; review private paths before sharing them.
 
-| Suite        | Coverage                                                                                                                                                                 |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Integration  | Activation, commands, real configuration precedence, folder/language isolation, stale edits, source-action preservation, profile import/export and recovery              |
-| Empty window | Activation and dashboard creation without folders, User workflows and rejected project writes                                                                            |
-| Two windows  | Shared settings, simultaneous/stale profile mutations, overlapping pause and preserving another window's edits                                                           |
-| Dashboard UI | All eight pages at wide/narrow sizes, axe scans, keyboard focus, reduced motion, CSP and text escaping                                                                   |
-| Status UI    | Loaded artwork, identical hover/click content and bounds, pinning, keyboard/Escape, read-only fields, help text, formatting-only pause and separate dashboard navigation |
-| Remote SSH   | Linux-host scopes/storage/file round trips, persisted pause and recovery after client reconnect                                                                          |
+| Suite        | Coverage                                                                                                                                                                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Integration  | Activation, commands, real configuration precedence, folder/language isolation, stale edits, source-action preservation, all eight formatting Pause/Resume combinations, profile import/export and recovery |
+| Empty window | Activation and dashboard creation without folders, User workflows and rejected project writes                                                                                                               |
+| Two windows  | Shared settings, simultaneous/stale profile mutations, overlapping pause and preserving another window's edits                                                                                              |
+| Dashboard UI | Five sections and Help & setup at wide/narrow sizes, axe scans, keyboard focus, selector and checkbox changes, CSP and text escaping                                                                        |
+| Status UI    | Loaded artwork, identical hover/click content and bounds, pinning, keyboard/Escape, read-only fields, help text, formatting-only pause and separate dashboard navigation                                    |
+| Remote SSH   | Linux-host scopes/storage/file round trips, persisted pause and recovery after client reconnect                                                                                                             |
 
 CI runs the editor suite on Linux minimum/stable, macOS stable and Windows stable. Dashboard/status UI jobs run in three themes; the Remote SSH job runs on Linux stable. Local status-card checks have also been performed on VS Code 1.144.0. Detailed remote and concurrent-window evidence and limits live in [remote-workspace.md](remote-workspace.md) and [multi-window.md](multi-window.md).
 

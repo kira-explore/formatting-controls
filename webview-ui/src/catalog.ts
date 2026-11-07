@@ -1,12 +1,9 @@
 export const pages = [
-  { id: "overview", name: "Overview", glyph: "◈" },
-  { id: "formatting", name: "Formatting", glyph: "⌘" },
-  { id: "actions", name: "Code actions", glyph: "↗" },
-  { id: "formatters", name: "Formatters", glyph: "⊞" },
-  { id: "rules", name: "Language rules", glyph: "⌁" },
-  { id: "diagnostics", name: "Diagnostics", glyph: "◉" },
-  { id: "profiles", name: "Profiles", glyph: "▤" },
-  { id: "welcome", name: "Getting started", glyph: "◎" },
+  { id: "formatting", name: "Formatting", glyph: "sliders" },
+  { id: "actions", name: "Save actions", glyph: "save" },
+  { id: "rules", name: "Language rules", glyph: "code" },
+  { id: "profiles", name: "Profiles", glyph: "layers" },
+  { id: "diagnostics", name: "Diagnostics", glyph: "scan" },
 ] as const;
 export const labels: Record<string, string> = {
   "editor.formatOnSave": "Format on save",

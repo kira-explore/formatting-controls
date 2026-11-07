@@ -200,7 +200,7 @@ export const reviewStatus = async (
     const images = hover.locator("img");
     await images.nth(21).waitFor();
     assert.ok(
-      [22, 24].includes(await images.count()),
+      [23, 25].includes(await images.count()),
       "All status artwork is rendered, including any conditional warning",
     );
   };
@@ -547,8 +547,18 @@ export const reviewStatus = async (
   assert.ok(formatterBounds && alignment[0]);
   const formattingTopGap =
     summaryBounds.y + alignment[0].summaryTop - (formatterBounds.y + 46);
+  const reset = hover.getByRole("img", { name: /^Reset… Not available yet/ });
+  const resetBounds = await reset.boundingBox();
+  assert.ok(resetBounds);
+  assert.equal(
+    await reset.evaluate((element) => !!element.closest("a")),
+    false,
+  );
+  await reset.click();
+  assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
+  assert.deepEqual(await hover.boundingBox(), hovered);
   const formattingBottomGap =
-    dashboardBounds.y + 1 - (flagBounds.y + alignment[0].triggerBottom);
+    resetBounds.y + 1 - (flagBounds.y + alignment[0].triggerBottom);
   assert.ok(
     Math.abs(formattingTopGap - formattingBottomGap) <= 1,
     `Automatic formatting has balanced padding (${formattingTopGap}px above, ${formattingBottomGap}px below)`,

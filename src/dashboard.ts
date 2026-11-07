@@ -31,7 +31,7 @@ export class Dashboard implements vscode.Disposable {
   private navigation = 0;
   private scope: Scope = { target: "user" };
   private active = vscode.window.activeTextEditor?.document;
-  private page: Snapshot["page"] = "overview";
+  private page: Snapshot["page"] = "formatting";
   private focusFinding: string | undefined;
   private queue = Promise.resolve();
   constructor(
@@ -66,7 +66,11 @@ export class Dashboard implements vscode.Disposable {
       this.revision++;
     }
     this.reconcileScope();
-    this.page = diagnostics ? "diagnostics" : welcome ? "welcome" : "overview";
+    this.page = diagnostics
+      ? "diagnostics"
+      : welcome
+        ? "welcome"
+        : "formatting";
     this.focusFinding = diagnostics?.finding;
     this.navigation++;
     this.active =
@@ -256,12 +260,29 @@ export class Dashboard implements vscode.Disposable {
         .filter(Boolean)
         .join("; ");
     }
+    const activeDocument = this.active?.isClosed ? undefined : this.active;
+    const activeFolder =
+      activeDocument && vscode.workspace.getWorkspaceFolder(activeDocument.uri);
     return {
       ...(vscode.env.remoteName ? { remoteName: vscode.env.remoteName } : {}),
       revision: this.revision,
       navigation: this.navigation,
       scope: this.scope,
       page: this.page,
+      ...(activeDocument
+        ? {
+            activeFile: {
+              name:
+                activeDocument.uri.path.split("/").at(-1) ||
+                activeDocument.fileName,
+              language: activeDocument.languageId,
+              ...(activeFolder ? { folder: activeFolder.name } : {}),
+            },
+          }
+        : {}),
+      ...(vscode.workspace.name
+        ? { workspaceName: vscode.workspace.name }
+        : {}),
       ...(this.focusFinding ? { focusFinding: this.focusFinding } : {}),
       activeLanguage:
         this.scope.language ?? this.active?.languageId ?? "All languages",
@@ -385,6 +406,17 @@ export class Dashboard implements vscode.Disposable {
         throw new Error(
           "Settings changed. Review the refreshed values and try again.",
         );
+      if (request.type === "formattingPause") {
+        if (!this.workflows)
+          throw new Error("Workflow storage is unavailable.");
+        const message =
+          this.workflows.recovery()?.kind === "pause"
+            ? await this.workflows.resumePause()
+            : await this.workflows.pauseFormatting(selection, this.scope);
+        this.revision++;
+        await this.publish(request.id, message);
+        return;
+      }
       if (request.type === "profile" || request.type === "pause") {
         if (!this.workflows)
           throw new Error("Workflow storage is unavailable.");

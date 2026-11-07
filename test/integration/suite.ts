@@ -319,6 +319,96 @@ export const run = async (): Promise<void> => {
       "Changing language mode must refresh the dashboard context",
     );
 
+    // Exercise the new dashboard message against real VS Code settings,
+    // independently of the legacy pause that also includes save actions.
+    const pauseReplies: Response[] = [];
+    const pauseWorkflows = new Workflows(
+      new MemoryStore(),
+      new MemoryStore(),
+      async () => true,
+    );
+    const pauseDashboard = new Dashboard(
+      ext.extensionUri,
+      (reply) => {
+        pauseReplies.push(reply);
+      },
+      pauseWorkflows,
+    );
+    const pauseScope = {
+      target: "folder" as const,
+      folder: folder.uri.toString(),
+    };
+    const pauseKeys = [
+      "editor.formatOnSave",
+      "editor.formatOnPaste",
+      "editor.formatOnType",
+    ] as const;
+    const originalFlags = pauseKeys.map((key) => own(first, key));
+    const originalActions = structuredClone(
+      own(first, "editor.codeActionsOnSave"),
+    );
+    try {
+      await pauseDashboard.handle({
+        id: "pause-context",
+        type: "read",
+        scope: pauseScope,
+      });
+      for (let mask = 0; mask < 8; mask++) {
+        const before = pauseKeys.map((_, index) => !!(mask & (1 << index)));
+        for (const [index, key] of pauseKeys.entries())
+          await write(first, key, before[index]);
+        let revision = (await pauseDashboard.snapshot()).revision;
+        await pauseDashboard.handle({
+          id: `formatting-pause-${mask}`,
+          type: "formattingPause",
+          scope: pauseScope,
+          revision,
+        });
+        if (mask === 0) {
+          assert.equal(
+            pauseWorkflows.recovery(),
+            null,
+            "Already-disabled settings need no restore record",
+          );
+          continue;
+        }
+        assert.equal(pauseWorkflows.recovery()?.kind, "pause");
+        assert.deepEqual(
+          pauseKeys.map((key) => own(first, key)),
+          [false, false, false],
+        );
+        assert.deepEqual(
+          own(first, "editor.codeActionsOnSave"),
+          originalActions,
+        );
+        revision = (await pauseDashboard.snapshot()).revision;
+        await pauseDashboard.handle({
+          id: `formatting-resume-${mask}`,
+          type: "formattingPause",
+          scope: pauseScope,
+          revision,
+        });
+        assert.equal(pauseWorkflows.recovery(), null);
+        assert.deepEqual(
+          pauseKeys.map((key) => own(first, key)),
+          before,
+        );
+        assert.deepEqual(
+          own(first, "editor.codeActionsOnSave"),
+          originalActions,
+        );
+      }
+      assert.equal(
+        pauseReplies.filter((reply) => reply.type === "error").length,
+        0,
+      );
+    } finally {
+      for (const [index, key] of pauseKeys.entries())
+        await write(first, key, originalFlags[index]);
+      pauseDashboard.dispose();
+      pauseWorkflows.dispose();
+    }
+
     const navigation = (await dashboard.snapshot()).navigation;
     await dashboard.open(false, {
       finding: "formatter-unavailable",
@@ -330,7 +420,7 @@ export const run = async (): Promise<void> => {
     assert.equal(diagnosticNavigation.focusFinding, "formatter-unavailable");
     assert.equal(diagnosticNavigation.scope.folder, folder.uri.toString());
     await dashboard.open();
-    assert.equal((await dashboard.snapshot()).page, "overview");
+    assert.equal((await dashboard.snapshot()).page, "formatting");
     assert.equal((await dashboard.snapshot()).focusFinding, undefined);
     assert.ok((await dashboard.snapshot()).navigation > navigation);
     await assert.rejects(

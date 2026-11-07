@@ -139,26 +139,24 @@ export const reviewDashboard = async (
     assert.match(scripts ?? "", /^script-src 'nonce-[^']+'$/);
     await evaluate(axe.source);
     const names = [
-      "Overview",
       "Formatting",
-      "Code actions",
-      "Formatters",
+      "Save actions",
       "Language rules",
-      "Diagnostics",
       "Profiles",
-      "Getting started",
+      "Diagnostics",
+      "Help & setup",
     ];
     const reports: object[] = [];
     mkdirSync(directory, { recursive: true });
     await evaluate(
-      `[...document.querySelectorAll('nav button')].find(b=>b.textContent.includes('Getting started')).click()`,
+      `[...document.querySelectorAll('nav button, .help-setup, .help-button')].find(b=>b.textContent.includes('Help & setup')).click()`,
     );
-    await wait(`document.querySelector('h1').textContent==='Getting started'`);
+    await wait(`document.querySelector('h1').textContent==='Help & setup'`);
     for (const narrow of [false, true]) {
       await page.setViewportSize({ width: narrow ? 460 : 1600, height: 1100 });
       for (const name of names) {
         await evaluate(
-          `[...document.querySelectorAll('nav button')].find(b=>b.textContent.includes(${JSON.stringify(name)})).click()`,
+          `[...document.querySelectorAll('nav button, .help-setup, .help-button')].find(b=>b.textContent.includes(${JSON.stringify(name)})).click()`,
         );
         await wait(
           `document.querySelector('h1').textContent===${JSON.stringify(name)}&&document.activeElement.tagName==='H1'`,
@@ -177,7 +175,7 @@ export const reviewDashboard = async (
           join(directory, "accessibility.json"),
           JSON.stringify(reports, null, 2),
         );
-        if (!narrow || name === "Overview") {
+        if (!narrow || name === "Formatting") {
           await evaluate(
             "new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))",
           );
@@ -204,14 +202,57 @@ export const reviewDashboard = async (
     }
     await page.emulateMedia({ reducedMotion: "reduce" });
     await evaluate(
-      `[...document.querySelectorAll('nav button')].find(b=>b.textContent.includes('Formatting')).click()`,
+      `[...document.querySelectorAll('nav button, .help-setup, .help-button')].find(b=>b.textContent.includes('Formatting')).click()`,
     );
     assert.equal(
-      await evaluate<string>(
-        'getComputedStyle(document.querySelector(".switch span"),"::after").transitionDuration',
-      ),
-      "0s",
+      await evaluate<number>('document.querySelectorAll("nav button").length'),
+      5,
     );
+    assert.equal(
+      await evaluate<number>(
+        'document.querySelectorAll(".trigger-row input[type=checkbox]").length',
+      ),
+      3,
+    );
+    assert.ok(
+      await evaluate<boolean>(
+        'document.querySelector(".disclosure").textContent.includes("Installed formatter tools")',
+      ),
+    );
+    // The redesigned shared selectors must still reach the host with the
+    // exact folder URI, and real checkbox changes must round-trip back.
+    const choose = async (selector: string, value: string) => {
+      await evaluate(
+        `(()=>{const select=document.querySelector(${JSON.stringify(selector)});select.value=${JSON.stringify(value)};select.dispatchEvent(new Event('change',{bubbles:true}));})()`,
+      );
+      await wait(
+        `!document.querySelector(${JSON.stringify(selector)}).disabled`,
+      );
+    };
+    const folderValue = await evaluate<string>(
+      `document.querySelector('.scope-bar select option[value^="folder:"]').value`,
+    );
+    await choose(".scope-bar select", folderValue);
+    await wait(
+      `document.querySelector('.scope-description').textContent.includes('folder')`,
+    );
+    await choose(".scope-bar label:nth-child(2) select", "javascript");
+    await wait(
+      `document.querySelector('.scope-description').textContent.includes('JavaScript')`,
+    );
+    const beforeChecked = await evaluate<boolean>(
+      'document.querySelector(".trigger-row input").checked',
+    );
+    await evaluate('document.querySelector(".trigger-row input").click()');
+    await wait(
+      `!document.querySelector('.trigger-row input').disabled && document.querySelector('.trigger-row input').checked === ${!beforeChecked}`,
+    );
+    await evaluate('document.querySelector(".trigger-row input").click()');
+    await wait(
+      `!document.querySelector('.trigger-row input').disabled && document.querySelector('.trigger-row input').checked === ${beforeChecked}`,
+    );
+    await choose(".scope-bar label:nth-child(2) select", "");
+    await choose(".scope-bar select", "user");
     await evaluate('document.querySelector(".skip-link").focus()');
     await send("Input.dispatchKeyEvent", {
       type: "keyDown",
@@ -232,7 +273,7 @@ export const reviewDashboard = async (
       "Tab must reach the dashboard brand",
     );
     await evaluate(
-      `[...document.querySelectorAll('nav button')].find(b=>b.textContent.includes('Profiles')).click()`,
+      `[...document.querySelectorAll('nav button, .help-setup, .help-button')].find(b=>b.textContent.includes('Profiles')).click()`,
     );
     const payload = "<img src=x onerror=alert(1)>";
     await evaluate(

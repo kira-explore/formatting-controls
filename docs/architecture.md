@@ -30,7 +30,7 @@ Hover and click show the same anchored Markdown card; click focuses and pins it 
 
 The status bar shows ON when any Save/Paste/Type formatting trigger is enabled, and OFF when all three are disabled. The card’s vector status icon distinguishes Enabled, Disabled and Mixed. They do not guarantee formatter availability or source-action execution. The status-card pause preserves save actions; the Profiles pause includes them. [Workflows and recovery](workflows.md) explains both and their restoration limits.
 
-The dashboard is an editor `WebviewPanel` with Overview, Formatting, Code Actions, Formatters, Language Rules, Diagnostics, Profiles and Getting Started pages. It uses typed controls and explicit scope/language selection. First activation opens Getting Started once; opening it changes no preferences. Test mode suppresses that automatic opening.
+The dashboard is an editor `WebviewPanel` with five main sections: Formatting, Save actions, Language rules, Profiles and Diagnostics. Formatting opens first and includes expandable formatter tools and advanced settings. Save actions includes Auto Save and code actions. Help & setup sits outside the main navigation and opens once on first activation. Shared file context, scope and language selection stay visible across sections. Opening a page changes no preferences. Test mode suppresses automatic onboarding.
 
 ## Host/browser boundary
 
@@ -52,3 +52,5 @@ Pure tests run in Node. Isolated real-editor suites exercise configuration, the 
 - [Settings precedence](https://code.visualstudio.com/docs/configure/settings): ordinary and language overrides.
 - [Code-action save modes](https://code.visualstudio.com/updates/v1_85): explicit/always/never; execution depends on the provider and save type.
 - [Webview security](https://code.visualstudio.com/api/extension-guides/webview#security): resource isolation and CSP.
+
+The dashboard’s `formattingPause` request uses the same three-trigger pause/recovery workflow as the status card, with a native preview before pausing. It leaves save actions unchanged. The existing broader workspace pause remains under advanced Profiles controls. The status-card Reset artwork is an unlinked, unavailable placeholder; no new reset command or mutation is registered.

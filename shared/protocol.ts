@@ -31,6 +31,7 @@ export type Operation =
   | { type: "reset"; key: Key; revision: number }
   | { type: "providerSettings"; provider: string }
   | { type: "pause"; revision: number }
+  | { type: "formattingPause"; revision: number }
   | {
       type: "profile";
       action:
@@ -73,7 +74,9 @@ export interface Snapshot {
   revision: number;
   navigation: number;
   scope: Scope;
-  page: "overview" | "welcome" | "diagnostics";
+  page: "overview" | "formatting" | "welcome" | "diagnostics";
+  workspaceName?: string;
+  activeFile?: { name: string; language: string; folder?: string };
   focusFinding?: string;
   activeLanguage: string;
   resource: string;
@@ -161,7 +164,8 @@ export const parseRequest = (raw: unknown): Request => {
     return raw as Request;
   if (!Number.isSafeInteger(raw.revision) || Number(raw.revision) < 0)
     throw new Error("Invalid settings revision.");
-  if (raw.type === "pause") return raw as Request;
+  if (raw.type === "pause" || raw.type === "formattingPause")
+    return raw as Request;
   if (
     raw.type === "profile" &&
     typeof raw.action === "string" &&

@@ -63,6 +63,7 @@ export const statusHover = (
           fullRow(`<a href="${link("diagnostics")}">${image(art.review)}</a>`),
         ]
       : []),
+    fullRow(image(art.reset, undefined, "top")),
     fullRow(
       `<a href="command:formattingControls.dashboard">${image(art.dashboard, undefined, "top")}</a>${image(art.footerGap, undefined, "top")}<a href="${issueUrl}">${image(art.issue, undefined, "top")}</a>`,
     ),

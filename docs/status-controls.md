@@ -25,7 +25,7 @@ Small information icons beside **Scope**, **Language** and **Formatter** expose 
 
 The card adds a warning only for verified evidence: a configured formatter missing from the current extension host, an explicit provider setting that disables formatting, or a failed status-card Pause/Resume action. With no active file it does not infer a formatter failure. No default formatter, intentionally disabled triggers and an adapter's incomplete language list do not produce a status warning.
 
-**Review in dashboard** opens the existing Diagnostics page with the card's file and scope and focuses the matching finding. Formatter findings link to the existing Formatters page; Pause/Resume failures offer recovery review in Profiles when a pause record exists. An unsaved-settings failure clears after that document is saved; other action failures clear after a successful retry. Failed-action details are held only for the current extension session and shown only for their original scope. The dashboard navigation and Getting Started page retain their current design.
+**Review in dashboard** opens the existing Diagnostics page with the card's file and scope and focuses the matching finding. Formatter findings link to Formatting, which now contains formatter tools; Pause/Resume failures offer recovery review in Profiles when a pause record exists. An unsaved-settings failure clears after that document is saved; other action failures clear after a successful retry. Failed-action details are held only for the current extension session and shown only for their original scope. The dashboard has five main sections; Help & setup is a separate destination.
 
 ![Conditional Pause/Resume warning with a link to Diagnostics](assets/status-warning-dark.png)
 
@@ -70,3 +70,7 @@ Sources: [StatusBarItem](https://code.visualstudio.com/api/references/vscode-api
 Pause and Diagnostics command links carry a revision. Changes to settings/editor context invalidate stale actions; equivalent notifications retain the active tooltip/revision. Setting workflows are serialized. XML/HTML text is escaped, command URIs are allowlisted and the issue URL is fixed.
 
 The separate dashboard retains its validated message protocol and nonce-based content security policy. **Formatting Controls: Quick Controls** keeps its formatting-only native picker; **Native Quick Controls** keeps the full settings picker. No command opens a docked Formatting Controls view.
+
+## Deferred Reset shortcut
+
+The card includes an unlinked **Reset…** placeholder with **Not available yet** beside it. It does not open a picker, navigate or change settings. The future reset flow remains deferred. Existing per-setting dashboard resets still require preview confirmation.

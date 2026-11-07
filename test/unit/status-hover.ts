@@ -47,6 +47,8 @@ test("reference artwork has live values, accessible descriptions and read-only f
     JSON.parse(decodeURIComponent(match[1] ?? "")),
   );
   assert.deepEqual(actions, [[7, "pause"]]);
+  assert.match(art.reset.alt, /Not available yet/);
+  assert.doesNotMatch(html, /statusControl[^"]*reset/);
   assert.match(html, /width="330" height="76"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
   assert.match(art.summary.alt, /Automatic formatting: Mixed/);

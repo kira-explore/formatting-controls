@@ -8,7 +8,7 @@ A control center for VS Code formatting, save actions and language settings. Rea
 
 Hover or click the status bar to open the same **Kira Formatting Controls** card. Its checkbox and dropdown displays are read-only; use **Open dashboard** or the **Quick Controls** command to edit settings. Click pins the card; Escape dismisses it.
 
-![Formatting Controls Overview in VS Code Dark Modern](docs/assets/dashboard.png)
+![Formatting dashboard in VS Code Dark Modern](docs/assets/dashboard.png)
 
 ## What you can do
 
@@ -30,33 +30,19 @@ No telemetry, remote analytics, or source-code transmission. Settings stay in VS
 
 ## Dark theme previews
 
-Screenshots are captured from version **0.8.0** running in VS Code’s **Dark Modern** theme. Overview is shown above; expand the sections below to see the other seven dashboard tabs.
-
-<details>
-<summary>Formatting controls and effective values</summary>
-
-![Formatting controls and effective values in Dark Modern](docs/assets/dashboard-dark-formatting.png)
-
-</details>
+Screenshots show version **0.9.0** in VS Code’s **Dark Modern** theme. Formatting opens first. Five main sections share file context and scope selection, with Help & setup available separately.
 
 <details>
 <summary>Code actions on save</summary>
 
-![Code Actions page with individual run modes in Dark Modern](docs/assets/dashboard-dark-code-actions.png)
+![Save actions page with Auto Save and individual run modes in Dark Modern](docs/assets/dashboard-dark-code-actions.png)
 
 </details>
 
 <details>
-<summary>Formatters and known integrations</summary>
+<summary>Help & setup</summary>
 
-![Formatters page showing known integrations and availability in Dark Modern](docs/assets/dashboard-dark-formatters.png)
-
-</details>
-
-<details>
-<summary>Getting Started and welcome</summary>
-
-![Getting Started page explaining scope selection and setup in Dark Modern](docs/assets/dashboard-dark-getting-started.png)
+![Help & setup explaining scope selection and setup in Dark Modern](docs/assets/dashboard-dark-getting-started.png)
 
 </details>
 
@@ -133,20 +119,20 @@ Hover the information icons beside **Scope**, **Language** and **Formatter** to 
 
 ### Dashboard
 
-| Page                | What it shows                                                                      |
-| ------------------- | ---------------------------------------------------------------------------------- |
-| **Overview**        | Effective formatting flags, configured formatter, and save-action summary          |
-| **Formatting**      | Searchable typed controls, scope values, overrides, and source inspection          |
-| **Code actions**    | Common source-action identifiers, existing custom entries, and run modes           |
-| **Formatters**      | Known installed integrations and built-in language extensions                      |
-| **Language rules**  | Explicit language overrides and their configured scopes                            |
-| **Diagnostics**     | Verified configuration facts, possible conflicts, and provider limitations         |
-| **Profiles**        | Presets, named profiles, import/export, preview/apply, temporary pause and restore |
-| **Getting started** | A short setup guide with scope and language selection                              |
+| Section            | What it shows                                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| **Formatting**     | Formatter selection, installed tools, automatic formatting, Pause/Resume and advanced settings/source inspection |
+| **Save actions**   | Auto Save, delay, common source actions, provider-specific actions and custom entries                            |
+| **Language rules** | Explicit language overrides, their sources and an entry point to add or edit a rule                              |
+| **Profiles**       | Presets, named profiles, import/export, preview/apply and recovery                                               |
+| **Diagnostics**    | Configuration findings, review links and a table of setting sources                                              |
+| **Help & setup**   | Setup guidance outside the main five-section navigation                                                          |
 
-Choose **Write to** and **Language** before changing a control. Values shown on controls are effective for the selected language, or the last active file’s language when All languages is selected. The value written still belongs only to the scope you selected. An override may therefore keep the effective value unchanged; the Formatting page shows that difference.
+Choose **Scope** and **Language** before changing a control. Values are effective for the selected language, or the last active file’s language when All languages is selected. Each change writes only to the selected scope. An override may keep the effective value unchanged; source notes explain why.
 
-For a multi-root project, choose **Workspace folder** and select the intended folder explicitly. Auto Save settings apply across languages and are disabled when editing language-specific settings.
+For multi-root projects, choose **Folder: name** explicitly. Auto Save is disabled while editing language-specific settings. Formatter tools and advanced controls are expandable inside Formatting. Auto Save and provider-specific source actions are grouped in Save actions.
+
+The status card’s **Reset…** placeholder is disabled and marked **Not available yet**. Its behavior is deferred; existing per-setting dashboard resets remain available under advanced controls and remove only the selected override.
 
 ### Formatting and source actions are separate
 
