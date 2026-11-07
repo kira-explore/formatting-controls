@@ -21,6 +21,7 @@ export type ActionValue = "explicit" | "always" | "never";
 export type Operation =
   | { type: "ready" }
   | { type: "read" }
+  | { type: "runDiagnostics"; revision: number }
   | {
       type: "set";
       key: Key;
@@ -31,6 +32,7 @@ export type Operation =
   | { type: "reset"; key: Key; revision: number }
   | { type: "providerSettings"; provider: string }
   | { type: "pause"; revision: number }
+  | { type: "formattingPause"; revision: number }
   | {
       type: "profile";
       action:
@@ -46,7 +48,7 @@ export type Operation =
     }
   | {
       type: "open";
-      destination: "settings" | "github" | "docs" | "quickControls";
+      destination: "settings" | "github" | "docs" | "quickControls" | "issues";
     };
 export type Request = { id: string; scope: Scope } & Operation;
 export interface Setting {
@@ -68,12 +70,33 @@ export interface LanguageRule {
   keys: Key[];
   sources: string[];
 }
+export interface DiagnosticValue {
+  value: boolean | string | number | null;
+  source: string;
+}
+export interface DiagnosticReport {
+  id: string;
+  createdAt: number;
+  scopeLabel: string;
+  selectedLanguage?: string;
+  language: string;
+  fileName?: string;
+  status: Snapshot["status"];
+  formatterName: string;
+  settings: (DiagnosticValue & { key: Key })[];
+  actions: (DiagnosticValue & { id: string })[];
+  legacyActions: string[];
+  findings: Finding[];
+}
 export interface Snapshot {
   remoteName?: string;
   revision: number;
   navigation: number;
   scope: Scope;
-  page: "overview" | "welcome";
+  page: "overview" | "formatting" | "welcome" | "diagnostics";
+  workspaceName?: string;
+  activeFile?: { name: string; language: string; folder?: string };
+  focusFinding?: string;
   activeLanguage: string;
   resource: string;
   folders: { name: string; uri: string }[];
@@ -85,7 +108,7 @@ export interface Snapshot {
   profiles: ProfileSummary[];
   recovery: Recovery | null;
   workflowError: string | null;
-  findings: Finding[];
+  diagnosticHistory: DiagnosticReport[];
   rules: LanguageRule[];
 }
 export type Response =
@@ -147,7 +170,7 @@ export const parseRequest = (raw: unknown): Request => {
   if (
     raw.type === "open" &&
     typeof raw.destination === "string" &&
-    ["settings", "github", "docs", "quickControls"].includes(
+    ["settings", "github", "docs", "quickControls", "issues"].includes(
       String(raw.destination),
     )
   )
@@ -160,7 +183,12 @@ export const parseRequest = (raw: unknown): Request => {
     return raw as Request;
   if (!Number.isSafeInteger(raw.revision) || Number(raw.revision) < 0)
     throw new Error("Invalid settings revision.");
-  if (raw.type === "pause") return raw as Request;
+  if (
+    raw.type === "pause" ||
+    raw.type === "formattingPause" ||
+    raw.type === "runDiagnostics"
+  )
+    return raw as Request;
   if (
     raw.type === "profile" &&
     typeof raw.action === "string" &&

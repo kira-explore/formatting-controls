@@ -1,8 +1,17 @@
 import { setTimeout as delay } from "node:timers/promises";
 import * as vscode from "vscode";
+import type { Finding } from "../shared/diagnostics";
+import type { Scope, Setting } from "../shared/protocol";
 import { adapters } from "../shared/providers";
 import { settingSource } from "../shared/setting-source";
-import { own, type Selection, write } from "./configuration";
+import { languageName } from "../shared/status-artwork";
+import { formatterSource, formatterWarning } from "../shared/status-details";
+import {
+  own,
+  type Selection,
+  UnsavedSettingsError,
+  write,
+} from "./configuration";
 import { flags, statusLabel } from "./model";
 import { providersFor } from "./providers";
 import { statusTooltip } from "./status-hover";
@@ -43,11 +52,20 @@ export class StatusControls {
   private pending = false;
   private applyingPause = false;
   private pausePicker = false;
+  private currentDiagnostic: Finding | undefined;
+  private failure:
+    | { finding: Finding; scope: Scope; settingsUri?: vscode.Uri }
+    | undefined;
   constructor(
     private readonly item: vscode.StatusBarItem,
     private readonly document: () => vscode.TextDocument | undefined,
     private readonly workflows?: Workflows,
     private readonly pausePrompt: PausePrompt = choosePause,
+    private readonly reviewDiagnostics?: (
+      finding: string,
+      scope: Scope,
+      document?: vscode.TextDocument,
+    ) => Promise<void>,
   ) {
     item.name = "Formatting Controls";
     item.command = "workbench.action.showHover";
@@ -88,6 +106,41 @@ export class StatusControls {
         : undefined,
     );
   }
+  private scopeFor(selection: Selection): Scope {
+    const folder =
+      selection.uri && vscode.workspace.getWorkspaceFolder(selection.uri);
+    return {
+      target:
+        selection.target === vscode.ConfigurationTarget.Global
+          ? "user"
+          : selection.target === vscode.ConfigurationTarget.Workspace
+            ? "workspace"
+            : "folder",
+      ...(selection.target === vscode.ConfigurationTarget.WorkspaceFolder &&
+      folder
+        ? { folder: folder.uri.toString() }
+        : {}),
+      ...(selection.language ? { language: selection.language } : {}),
+    };
+  }
+  diagnostics(scope?: Scope): Finding[] {
+    if (
+      this.failure?.settingsUri &&
+      !vscode.workspace.textDocuments.some(
+        (document) =>
+          document.uri.toString() === this.failure?.settingsUri?.toString() &&
+          document.isDirty,
+      )
+    )
+      this.failure = undefined;
+    return this.failure &&
+      (!scope ||
+        (scope.target === this.failure.scope.target &&
+          scope.folder === this.failure.scope.folder &&
+          scope.language === this.failure.scope.language))
+      ? [this.failure.finding]
+      : [];
+  }
   refresh(): void {
     // A confirmed pause batch publishes only its completed settings snapshot.
     // While the picker is open, refreshes still invalidate stale choices.
@@ -113,6 +166,25 @@ export class StatusControls {
       /* The dashboard reports invalid recovery storage. */
     }
     const owned = flags.map((key) => own(selection, key));
+    const selectedScope = this.scopeFor(selection);
+    const formatterSetting: Setting = {
+      key: "editor.defaultFormatter",
+      configured: own(selection, "editor.defaultFormatter") !== undefined,
+      owned: own(selection, "editor.defaultFormatter") ?? null,
+      effective: formatter ?? null,
+      sources: (effective.inspect("editor.defaultFormatter") ??
+        {}) as unknown as Record<string, unknown>,
+    };
+    const failure = this.diagnostics(selectedScope)[0];
+    const diagnostic =
+      failure ??
+      (document
+        ? formatterWarning(
+            [formatterSetting],
+            providersFor(effective, document.languageId, formatter),
+          )
+        : undefined);
+    this.currentDiagnostic = diagnostic;
     const sources = flags.map((key, index) =>
       settingSource(
         {
@@ -134,6 +206,17 @@ export class StatusControls {
       ),
     );
     const context = {
+      ...(diagnostic ? { diagnostic } : {}),
+      formatterInfo: formatterSource(
+        formatterSetting,
+        {
+          ...selectedScope,
+          ...(selection.language
+            ? { language: languageName(selection.language) }
+            : {}),
+        },
+        document ? languageName(document.languageId) : undefined,
+      ),
       paused,
       canPause:
         !!this.workflows &&
@@ -205,9 +288,34 @@ export class StatusControls {
     this.assertCurrent(revision);
     if (this.pending)
       throw new Error("Finish the current formatting control first.");
+    if (action === "diagnostics") {
+      const diagnostic = this.currentDiagnostic;
+      if (diagnostic && this.reviewDiagnostics)
+        await this.reviewDiagnostics(
+          diagnostic.id,
+          this.scopeFor(this.selection()),
+          this.document(),
+        );
+      return;
+    }
     this.pending = true;
     try {
       await this.applyControl(revision, action);
+    } catch (error) {
+      if (action === "pause")
+        this.failure = {
+          finding: {
+            id: "pause-failed",
+            confidence: "verified",
+            title: "Pause / Resume could not complete",
+            detail: error instanceof Error ? error.message : String(error),
+          },
+          scope: this.scopeFor(this.selection()),
+          ...(error instanceof UnsavedSettingsError
+            ? { settingsUri: error.uri }
+            : {}),
+        };
+      throw error;
     } finally {
       this.applyingPause = false;
       if (this.pausePicker) {
@@ -278,6 +386,7 @@ export class StatusControls {
           "background",
         );
       }
+      this.failure = undefined;
     } else if (action === "scope") {
       const document = this.document();
       const choices = [

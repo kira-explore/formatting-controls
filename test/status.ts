@@ -74,6 +74,9 @@ export const reviewStatus = async (
       summaryIconOffsetY: number;
       summaryIconGap: number;
       summaryIconDiameter: number;
+      summaryLabelOffsetY: number;
+      summaryLabelGap: number;
+      summaryLabelFits: boolean;
       summaryTop: number;
       triggerBottom: number;
       headerFits: boolean;
@@ -112,6 +115,7 @@ export const reviewStatus = async (
         const summaryText = summary.querySelectorAll("text");
         const summaryHeading = summaryText[0].getBBox();
         const summaryIcon = summary.querySelector('[data-status]').getBBox();
+        const summaryLabel = summaryText[1].getBBox();
         const triggerNote = Array.from(formatting.querySelectorAll("text")).at(-1).getBBox();
         return {
           contextOffsetY: (file.y + lastContextLine.y + lastContextLine.height)/2 - (contextIcon.y + contextIcon.height/2),
@@ -126,6 +130,9 @@ export const reviewStatus = async (
           summaryIconOffsetY: summaryHeading.y + summaryHeading.height/2 - (summaryIcon.y + summaryIcon.height/2),
           summaryIconGap: summaryIcon.x - (summaryHeading.x + summaryHeading.width),
           summaryIconDiameter: summaryIcon.width,
+          summaryLabelOffsetY: summaryLabel.y + summaryLabel.height/2 - (summaryIcon.y + summaryIcon.height/2),
+          summaryLabelGap: summaryLabel.x - (summaryIcon.x + summaryIcon.width),
+          summaryLabelFits: summaryLabel.x >= summaryIcon.x + summaryIcon.width + 5.9 && summaryLabel.x + summaryLabel.width <= art.summary.width,
           summaryTop: summaryHeading.y,
           triggerBottom: triggerNote.y + triggerNote.height,
           headerFits: title.x + title.width <= art.header.width,
@@ -145,12 +152,21 @@ export const reviewStatus = async (
       measurement.pauseOffsetY,
       measurement.summaryHeadingOffsetY,
       measurement.summaryIconOffsetY,
+      measurement.summaryLabelOffsetY,
     ])
       assert.ok(
         Math.abs(offset) <= 1,
         "Status, context and Pause/Resume text stay centered",
       );
     assert.ok(measurement.headerFits, "Full extension name fits");
+    assert.ok(
+      measurement.summaryLabelFits,
+      "Enabled, Disabled and Mixed labels clear the icon and fit the right edge",
+    );
+    assert.ok(
+      Math.abs(measurement.summaryLabelGap - 6) < 0.1,
+      "Every status label keeps a compact 6px gap from its icon",
+    );
     assert.ok(
       measurement.contextIconGap >= 10,
       "File context clears its document icon",
@@ -182,8 +198,11 @@ export const reviewStatus = async (
   const loaded = async () => {
     await hover.waitFor({ state: "visible" });
     const images = hover.locator("img");
-    await images.nth(10).waitFor();
-    assert.equal(await images.count(), 11, "All status artwork is rendered");
+    await images.nth(21).waitFor();
+    assert.ok(
+      [23, 25].includes(await images.count()),
+      "All status artwork is rendered, including any conditional warning",
+    );
   };
   const captureCard = async (name: string) => {
     const bounds = await hover.boundingBox();
@@ -208,6 +227,14 @@ export const reviewStatus = async (
   await button.waitFor();
   await page.mouse.move(10, 200);
   await button.hover();
+  try {
+    await hover.waitFor({ state: "visible", timeout: 5000 });
+  } catch {
+    // A startup workbench focus transfer can cancel the first native hover.
+    // Re-enter through the status item; do not replace this with click-to-pin.
+    await page.mouse.move(10, 200);
+    await button.hover();
+  }
   await loaded();
   const hovered = await hover.boundingBox();
   const anchor = await button.boundingBox();
@@ -342,9 +369,23 @@ export const reviewStatus = async (
       false,
       "Read-only values have no command",
     );
-  await scopes.click({ position: { x: 300, y: 45 } });
+  await scopes.click({ position: { x: 200, y: 20 } });
   await flags.click({ position: { x: 14, y: 18 } });
-  await formatter.click({ position: { x: 320, y: 26 } });
+  await formatter.click({ position: { x: 200, y: 26 } });
+  for (const name of [
+    "Scope information",
+    "Language information",
+    "Formatter information",
+  ]) {
+    const icon = hover.getByRole("img", { name, exact: true });
+    assert.ok(await icon.getAttribute("title"));
+    assert.equal(
+      await icon.evaluate((element) => !!element.closest("a")),
+      false,
+    );
+    await icon.click();
+    assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
+  }
   assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
   assert.deepEqual(await hover.boundingBox(), hovered);
 
@@ -506,20 +547,31 @@ export const reviewStatus = async (
   assert.ok(formatterBounds && alignment[0]);
   const formattingTopGap =
     summaryBounds.y + alignment[0].summaryTop - (formatterBounds.y + 46);
+  const reset = hover.getByRole("img", { name: /^Reset\. Not available yet/ });
+  const resetBounds = await reset.boundingBox();
+  assert.ok(resetBounds);
+  assert.equal(
+    await reset.evaluate((element) => !!element.closest("a")),
+    false,
+  );
+  await reset.click();
+  assert.equal(await page.locator(".quick-input-widget:visible").count(), 0);
+  assert.deepEqual(await hover.boundingBox(), hovered);
   const formattingBottomGap =
-    dashboardBounds.y + 1 - (flagBounds.y + alignment[0].triggerBottom);
+    resetBounds.y + 1 - (flagBounds.y + alignment[0].triggerBottom);
   assert.ok(
     Math.abs(formattingTopGap - formattingBottomGap) <= 1,
     `Automatic formatting has balanced padding (${formattingTopGap}px above, ${formattingBottomGap}px below)`,
   );
   assert.ok(
     Math.abs(center(pauseBounds) - center(headerBounds)) <= 1,
-    "Pause aligns with the title and Settings",
+    "Pause aligns with the header and Settings",
   );
   assert.ok(
     pauseBounds.x >= headerBounds.x + headerBounds.width &&
-      pauseBounds.x + pauseBounds.width + 4 <= settingsBounds.x,
-    "Pause stays between the title and Settings with a clear gap",
+      settingsBounds.x >= pauseBounds.x + pauseBounds.width + 7 &&
+      settingsBounds.x + settingsBounds.width <= hovered.x + hovered.width,
+    "Pause stays before Settings with a clear unlinked gap",
   );
   const scopeBounds = await scopes.boundingBox();
   assert.ok(contextBounds && scopeBounds);
@@ -693,13 +745,26 @@ export const reviewStatus = async (
   ) as { settingsFile: string; activeFile: string };
   const modifier = process.platform === "darwin" ? "Meta" : "Control";
   const openFile = async (path: string) => {
+    const existing = page
+      .getByRole("tab")
+      .filter({ hasText: basename(path) })
+      .first();
+    if (await existing.isVisible()) {
+      await existing.click();
+      await page
+        .locator(".tab.active")
+        .filter({ hasText: basename(path) })
+        .waitFor();
+      return;
+    }
     await page.keyboard.press(`${modifier}+P`);
     await picker.locator("input").fill(path);
     await picker
       .locator(".monaco-list-row")
       .filter({ hasText: basename(path) })
       .first()
-      .click();
+      .waitFor({ state: "visible" });
+    await page.keyboard.press("Enter");
     await picker.waitFor({ state: "hidden" });
     await page
       .locator(".tab.active")
@@ -733,6 +798,26 @@ export const reviewStatus = async (
     hasText: "has unsaved changes. Save the file, then try again.",
   });
   await warning.waitFor();
+  await reopen();
+  const review = hover.getByRole("link", {
+    name: "Review in dashboard · Diagnostics",
+    exact: true,
+  });
+  await review.waitFor();
+  await captureCard("status-diagnostic-warning.png");
+  await review.click();
+  await page
+    .getByRole("tab", { name: /Formatting Controls/ })
+    .first()
+    .waitFor();
+  // Close the newly opened webview before driving Quick Open: initial webview
+  // focus can otherwise dismiss the picker while its first frame loads.
+  const diagnosticTab = page
+    .getByRole("tab", { name: /Formatting Controls/ })
+    .first();
+  await diagnosticTab.click();
+  await page.keyboard.press(`${modifier}+W`);
+  await diagnosticTab.waitFor({ state: "hidden" });
   // Start elsewhere so the next tab transition confirms that the warning's
   // asynchronous Open action finished before saving and opening another file.
   await openFile(testFiles.activeFile);
@@ -749,6 +834,16 @@ export const reviewStatus = async (
   await openFile(testFiles.activeFile);
   await reopen();
   assert.equal(await flags.getAttribute("alt"), originalFlags);
+  assert.equal(
+    await hover
+      .getByRole("link", {
+        name: "Review in dashboard · Diagnostics",
+        exact: true,
+      })
+      .count(),
+    0,
+    "Saving the destination clears the unsaved-settings finding",
+  );
 
   await dismiss();
   await openFile(testFiles.settingsFile);
@@ -813,6 +908,6 @@ export const reviewStatus = async (
     .first()
     .waitFor();
   console.log(
-    "Status card verified: smaller text/icons, stable hover/click bounds, native Pause/Resume picker and Command Palette entry, cancellation, fixed status alignment, read-only fields, no explanatory tooltips, keyboard access and accessible descriptions.",
+    "Status card verified: stable hover/click bounds, native Pause/Resume picker, hover-only field details, conditional failure warning and Diagnostics link, cancellation, fixed status alignment, read-only fields, keyboard access and accessible descriptions.",
   );
 };

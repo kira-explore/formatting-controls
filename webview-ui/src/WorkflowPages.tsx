@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { languageName } from "../../shared/language";
 import type { Operation, Snapshot } from "../../shared/protocol";
 
 interface Props {
@@ -16,6 +17,8 @@ export const WorkflowPages = ({
   selectLanguage,
 }: Props) => {
   const [name, setName] = useState("");
+  const [addingRule, setAddingRule] = useState(false);
+  const [ruleLanguage, setRuleLanguage] = useState("");
   const profile = (
     action:
       | "save"
@@ -33,73 +36,61 @@ export const WorkflowPages = ({
       ...(profileName ? { name: profileName } : {}),
       revision: state.revision,
     });
-  if (page === "diagnostics")
-    return (
-      <>
-        <div className="section-header">
-          <div>
-            <h2>Understand your formatting setup</h2>
-            <p>Verified settings, possible conflicts, and honest limits.</p>
-          </div>
-        </div>
-        <div className="callout">
-          <span aria-hidden="true">◎</span>
-          <div>
-            <strong>Evidence, not guesswork</strong>
-            <p>
-              These checks read effective settings and installed extension
-              metadata. They cannot inspect arbitrary provider servers or
-              guarantee action availability.
-            </p>
-          </div>
-        </div>
-        <section className="settings-list">
-          {state.findings.map((f) => (
-            <article className="finding" key={f.id}>
-              <div className="provider-heading">
-                <h3>{f.title}</h3>
-                <span
-                  className={`tag ${f.confidence === "verified" ? "installed" : ""}`}
-                >
-                  {f.confidence}
-                </span>
-              </div>
-              <p>{f.detail}</p>
-            </article>
-          ))}
-          {!state.findings.length && (
-            <p className="empty">
-              No findings for the selected context. This is not a guarantee of
-              provider execution.
-            </p>
-          )}
-        </section>
-      </>
-    );
   if (page === "rules")
     return (
       <>
         <div className="section-header">
           <div>
-            <h2>Explicit language overrides</h2>
-            <p>Configured languages in the current resource context.</p>
-          </div>
-        </div>
-        <div className="callout">
-          <span aria-hidden="true">⌘</span>
-          <div>
-            <strong>Language settings can win across scopes</strong>
+            <h2>Language rules in this context</h2>
             <p>
-              Use the source inspector in Formatting to review the values behind
-              each override. Combined language blocks are resolved by VS Code.
+              Language rules override general settings. Source notes identify
+              where each rule is saved.
             </p>
           </div>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => setAddingRule(!addingRule)}
+          >
+            + Add language rule
+          </button>
         </div>
+        {addingRule && (
+          <form
+            className="custom-action"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (ruleLanguage) selectLanguage(ruleLanguage);
+            }}
+          >
+            <label>
+              Language for the new rule
+              <select
+                value={ruleLanguage}
+                onChange={(event) => setRuleLanguage(event.target.value)}
+                required
+                disabled={disabled}
+              >
+                <option value="" disabled>
+                  Choose language
+                </option>
+                {state.languages.map((language) => (
+                  <option key={language} value={language}>
+                    {languageName(language)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="submit" disabled={disabled || !ruleLanguage}>
+              Edit rule
+            </button>
+          </form>
+        )}
         <section className="settings-list">
           {state.rules.map((rule) => (
             <article className="action-row" key={rule.language}>
               <div>
-                <h3>{rule.language}</h3>
+                <h3>{languageName(rule.language)}</h3>
                 <p>{rule.sources.join(" · ")}</p>
                 <code>{rule.keys.join(", ")}</code>
               </div>
@@ -126,6 +117,53 @@ export const WorkflowPages = ({
     );
   const pending = disabled;
   disabled = disabled || !!state.workflowError;
+  const profileCard = (p: Snapshot["profiles"][number]) => (
+    <article key={p.name}>
+      <div className="provider-heading">
+        <h3>{p.name}</h3>
+        <span className="tag">{p.builtin ? "Preset" : "Saved"}</span>
+      </div>
+      <p>{p.description}</p>
+      <small>
+        {p.count} setting groups · {p.language ?? "Any selected language"}
+      </small>
+      <div className="button-row">
+        <button
+          type="button"
+          disabled={
+            disabled ||
+            !p.count ||
+            !!(p.language && p.language !== state.scope.language) ||
+            state.recovery?.kind === "pause" ||
+            (!!state.recovery && state.recovery.phase !== "applied")
+          }
+          aria-label={`Preview & apply ${p.name}`}
+          onClick={() => profile("apply", p.name)}
+        >
+          Preview & apply
+        </button>
+        <button
+          type="button"
+          disabled={disabled || !p.count}
+          aria-label={`Export ${p.name}`}
+          onClick={() => profile("export", p.name)}
+        >
+          Export
+        </button>
+        {!p.builtin && (
+          <button
+            type="button"
+            className="text-button"
+            disabled={disabled}
+            aria-label={`Delete ${p.name}`}
+            onClick={() => profile("delete", p.name)}
+          >
+            Delete
+          </button>
+        )}
+      </div>
+    </article>
+  );
   return (
     <>
       {state.workflowError && (
@@ -136,141 +174,34 @@ export const WorkflowPages = ({
       )}
       <div className="section-header">
         <div>
-          <h2>Reusable preferences</h2>
-          <p>Save explicit values, preview changes, and restore safely.</p>
+          <h2>Saved profiles</h2>
+          <p>
+            Preview changes before applying a profile to the selected scope.
+          </p>
         </div>
-        <div className="button-row">
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => send({ type: "read" })}
-          >
-            Refresh profiles
-          </button>
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => profile("import")}
-          >
-            Import JSON
-          </button>
-        </div>
+        <button
+          type="button"
+          className="primary"
+          disabled={disabled}
+          onClick={() =>
+            document
+              .querySelector<HTMLInputElement>(
+                '[aria-label="New profile name"]',
+              )
+              ?.focus()
+          }
+        >
+          + Save current settings
+        </button>
       </div>
-      {state.recovery && (
-        <section className="recovery-card">
-          <div className="provider-heading">
-            <h3>
-              {state.recovery.kind === "pause"
-                ? "Temporary pause / recovery"
-                : "Previous profile restore point"}
-            </h3>
-            <span className="tag installed">{state.recovery.phase}</span>
-          </div>
+      <section className="provider-grid profile-list">
+        {state.profiles.filter((p) => !p.builtin).map(profileCard)}
+        {!state.profiles.some((p) => !p.builtin) && (
           <p>
-            {state.recovery.name} · {state.recovery.count} values ·{" "}
-            {state.recovery.scope.target}
-            {state.recovery.scope.language
-              ? ` / ${state.recovery.scope.language}`
-              : " / all languages"}
+            No saved profiles yet. Save your explicit settings or import a
+            profile.
           </p>
-          <code>{state.recovery.scope.folder}</code>
-          <p>
-            Restore only values still matching this change. Externally edited
-            preferences stay untouched; conflicts remain available for review.
-          </p>
-          <div className="button-row">
-            <button
-              type="button"
-              className="primary"
-              disabled={pending}
-              onClick={() => profile("restore")}
-            >
-              {state.recovery.kind === "pause"
-                ? "Resume / restore"
-                : "Restore previous values"}
-            </button>
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => profile("discard")}
-            >
-              Keep current values
-            </button>
-          </div>
-        </section>
-      )}
-      <div className="callout">
-        <span aria-hidden="true">Ⅱ</span>
-        <div>
-          <strong>Pause at an explicit workspace scope</strong>
-          <p>
-            Pause changes real formatting flags and currently configured source
-            actions. Choose Workspace or Workspace folder. It stays in effect
-            until resumed, including across reloads. Language or narrower
-            overrides may still run.
-          </p>
-          <button
-            type="button"
-            disabled={
-              disabled ||
-              state.scope.target === "user" ||
-              state.recovery?.kind === "pause" ||
-              (!!state.recovery && state.recovery.phase !== "applied")
-            }
-            onClick={() => send({ type: "pause", revision: state.revision })}
-          >
-            Preview temporary pause
-          </button>
-        </div>
-      </div>
-      <section className="provider-grid">
-        {state.profiles.map((p) => (
-          <article key={p.name}>
-            <div className="provider-heading">
-              <h3>{p.name}</h3>
-              <span className="tag">{p.builtin ? "Preset" : "Saved"}</span>
-            </div>
-            <p>{p.description}</p>
-            <small>
-              {p.count} setting groups · {p.language ?? "Any selected language"}
-            </small>
-            <div className="button-row">
-              <button
-                type="button"
-                disabled={
-                  disabled ||
-                  !p.count ||
-                  !!(p.language && p.language !== state.scope.language) ||
-                  state.recovery?.kind === "pause" ||
-                  (!!state.recovery && state.recovery.phase !== "applied")
-                }
-                aria-label={`Preview & apply ${p.name}`}
-                onClick={() => profile("apply", p.name)}
-              >
-                Preview & apply
-              </button>
-              <button
-                type="button"
-                disabled={disabled || !p.count}
-                aria-label={`Export ${p.name}`}
-                onClick={() => profile("export", p.name)}
-              >
-                Export
-              </button>
-              {!p.builtin && (
-                <button
-                  type="button"
-                  className="text-button"
-                  disabled={disabled}
-                  aria-label={`Delete ${p.name}`}
-                  onClick={() => profile("delete", p.name)}
-                >
-                  Delete
-                </button>
-              )}
-            </div>
-          </article>
-        ))}
+        )}
       </section>
       <form
         className="custom-action"
@@ -298,6 +229,106 @@ export const WorkflowPages = ({
           Save profile
         </button>
       </form>
+      <div className="button-row">
+        <button
+          type="button"
+          className="text-button"
+          disabled={disabled}
+          onClick={() => profile("import")}
+        >
+          Import profile
+        </button>
+        <button
+          type="button"
+          className="text-button"
+          disabled={pending}
+          onClick={() => send({ type: "read" })}
+        >
+          Refresh profiles
+        </button>
+      </div>
+      <details className="disclosure">
+        <summary>Built-in presets</summary>
+        <section className="provider-grid profile-list">
+          {state.profiles.filter((p) => p.builtin).map(profileCard)}
+        </section>
+      </details>
+      <section className="disclosure">
+        <h2>Restore previous settings</h2>
+        {state.recovery && (
+          <section className="recovery-card">
+            <div className="provider-heading">
+              <h3>
+                {state.recovery.kind === "pause"
+                  ? "Temporary pause / recovery"
+                  : "Previous profile restore point"}
+              </h3>
+              <span className="tag installed">{state.recovery.phase}</span>
+            </div>
+            <p>
+              {state.recovery.name} · {state.recovery.count} values ·{" "}
+              {state.recovery.scope.target}
+              {state.recovery.scope.language
+                ? ` / ${state.recovery.scope.language}`
+                : " / all languages"}
+            </p>
+            <code>{state.recovery.scope.folder}</code>
+            <p>
+              Restore only values still matching this change. Externally edited
+              preferences stay untouched; conflicts remain available for review.
+            </p>
+            <div className="button-row">
+              <button
+                type="button"
+                className="primary"
+                disabled={pending}
+                onClick={() => profile("restore")}
+              >
+                {state.recovery.kind === "pause"
+                  ? "Resume / restore"
+                  : "Restore previous values"}
+              </button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => profile("discard")}
+              >
+                Keep current values
+              </button>
+            </div>
+          </section>
+        )}
+        {!state.recovery && (
+          <p>A restore point becomes available after applying a profile.</p>
+        )}
+      </section>
+      <details className="disclosure">
+        <summary>Advanced workspace pause</summary>
+        <div className="callout">
+          <span aria-hidden="true">Ⅱ</span>
+          <div>
+            <strong>Pause at an explicit workspace scope</strong>
+            <p>
+              This advanced pause changes formatting flags and currently
+              configured source actions. Choose Workspace or Workspace folder.
+              It stays in effect until resumed, including across reloads.
+              Language or narrower overrides may still run.
+            </p>
+            <button
+              type="button"
+              disabled={
+                disabled ||
+                state.scope.target === "user" ||
+                state.recovery?.kind === "pause" ||
+                (!!state.recovery && state.recovery.phase !== "applied")
+              }
+              onClick={() => send({ type: "pause", revision: state.revision })}
+            >
+              Preview temporary pause
+            </button>
+          </div>
+        </div>
+      </details>
       <p className="workflow-note">
         Importing saves a profile without applying it. Native previews show
         exact setting/action changes and require confirmation. Applying another

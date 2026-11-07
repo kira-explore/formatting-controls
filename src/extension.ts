@@ -27,7 +27,13 @@ export const activate = (context: vscode.ExtensionContext): void => {
     undefined,
     profiles,
   );
-  const dashboard = new Dashboard(context.extensionUri, undefined, workflows);
+  const dashboard = new Dashboard(
+    context.extensionUri,
+    undefined,
+    workflows,
+    (scope) => controls.diagnostics(scope),
+    context.workspaceState,
+  );
   const item = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
     100,
@@ -37,6 +43,13 @@ export const activate = (context: vscode.ExtensionContext): void => {
     item,
     () => (activeDocument?.isClosed ? undefined : activeDocument),
     workflows,
+    undefined,
+    (finding, scope, document) =>
+      dashboard.open(false, {
+        finding,
+        scope,
+        ...(document ? { document } : {}),
+      }),
   );
   const scope = (): Selection => {
     const document = vscode.window.activeTextEditor?.document ?? activeDocument;
@@ -297,6 +310,7 @@ export const activate = (context: vscode.ExtensionContext): void => {
       if (document === activeDocument) refresh();
     }),
     vscode.workspace.onDidChangeConfiguration(refresh),
+    vscode.workspace.onDidSaveTextDocument(refresh),
     vscode.workspace.onDidChangeWorkspaceFolders(refresh),
     vscode.extensions.onDidChange(refresh),
     vscode.window.onDidChangeWindowState(({ focused }) => {

@@ -139,30 +139,60 @@ export const reviewDashboard = async (
     assert.match(scripts ?? "", /^script-src 'nonce-[^']+'$/);
     await evaluate(axe.source);
     const names = [
-      "Overview",
       "Formatting",
-      "Code actions",
-      "Formatters",
+      "Save actions",
       "Language rules",
-      "Diagnostics",
       "Profiles",
-      "Getting started",
+      "Diagnostics",
+      "Help & setup",
     ];
     const reports: object[] = [];
     mkdirSync(directory, { recursive: true });
     await evaluate(
-      `[...document.querySelectorAll('nav button')].find(b=>b.textContent.includes('Getting started')).click()`,
+      `[...document.querySelectorAll('nav button, .help-setup, .help-button')].find(b=>b.textContent.includes('Help & setup')).click()`,
     );
-    await wait(`document.querySelector('h1').textContent==='Getting started'`);
+    await wait(`document.querySelector('h1').textContent==='Help & setup'`);
     for (const narrow of [false, true]) {
       await page.setViewportSize({ width: narrow ? 460 : 1600, height: 1100 });
       for (const name of names) {
         await evaluate(
-          `[...document.querySelectorAll('nav button')].find(b=>b.textContent.includes(${JSON.stringify(name)})).click()`,
+          `[...document.querySelectorAll('nav button, .help-setup, .help-button')].find(b=>b.textContent.includes(${JSON.stringify(name)})).click()`,
         );
         await wait(
           `document.querySelector('h1').textContent===${JSON.stringify(name)}&&document.activeElement.tagName==='H1'`,
         );
+        if (name === "Diagnostics") {
+          if (!narrow) {
+            assert.equal(
+              await evaluate("!!document.querySelector('#diagnostic-report')"),
+              false,
+            );
+            await evaluate(
+              "document.querySelector('.diagnostic-run button').click()",
+            );
+            await wait(
+              "document.querySelectorAll('.diagnostic-history button').length === 1",
+            );
+          }
+          await evaluate(
+            "document.querySelector('.diagnostic-run button').click()",
+          );
+          await wait(
+            `document.querySelectorAll('.diagnostic-history button').length === ${narrow ? 3 : 2}`,
+          );
+          await evaluate(
+            "document.querySelector('.diagnostic-history li:last-child button').click()",
+          );
+          await wait(
+            "document.querySelector('#diagnostic-report-title').textContent.trim() === 'Selected run results'",
+          );
+          assert.equal(
+            await evaluate(
+              "document.querySelector('.diagnostic-history li:last-child button').getAttribute('aria-pressed')",
+            ),
+            "true",
+          );
+        }
         const result = await evaluate<{
           violations: { id: string; nodes: { target: string[] }[] }[];
           incomplete: unknown[];
@@ -177,7 +207,7 @@ export const reviewDashboard = async (
           join(directory, "accessibility.json"),
           JSON.stringify(reports, null, 2),
         );
-        if (!narrow || name === "Overview") {
+        if (!narrow || name === "Formatting") {
           await evaluate(
             "new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))",
           );
@@ -200,18 +230,194 @@ export const reviewDashboard = async (
           layout.scrollWidth <= layout.width + 1,
           `${name} overflows horizontally: ${JSON.stringify(layout)}`,
         );
+        if (name === "Diagnostics") {
+          assert.ok(
+            await evaluate<boolean>(
+              "document.querySelector('.diagnostics-summary').textContent.includes('of 3 triggers enabled')",
+            ),
+          );
+          assert.ok(
+            await evaluate<boolean>(
+              `[...document.querySelectorAll('.diagnostic-actions dl > div')].some(row =>
+                row.querySelector('dt code')?.textContent === 'source.fixAll.veryLongProviderActionForDashboardDiagnostics' &&
+                row.querySelector('dd').textContent === 'Manual save' &&
+                row.querySelector('.diagnostic-source').textContent.includes('Workspace') &&
+                row.scrollWidth <= row.clientWidth + 1)`,
+            ),
+            "Long save-action IDs must show the mode and source without overflowing",
+          );
+        }
+        if (name === "Formatting") {
+          assert.equal(
+            await evaluate<number>(
+              "document.querySelector('.feedback').getBoundingClientRect().height",
+            ),
+            0,
+            "An empty feedback region must not reserve a row",
+          );
+          for (const [index, control] of [
+            [0, ".formatter-tool .button-row button"],
+            [1, 'select[aria-label="Save formatting mode"]'],
+          ] as const) {
+            await evaluate(
+              `document.querySelectorAll('.formatting-disclosure > summary')[${index}].click()`,
+            );
+            assert.ok(
+              await evaluate<boolean>(
+                `[...document.querySelectorAll(${JSON.stringify(control)})].some(control => control.getClientRects().length > 0)`,
+              ),
+              "The expanded section must expose its controls",
+            );
+            assert.ok(
+              await evaluate<boolean>(
+                "document.documentElement.scrollWidth <= innerWidth + 1",
+              ),
+              "Expanded formatting settings must fit the viewport",
+            );
+            if (!narrow) {
+              await evaluate(
+                `document.querySelectorAll('.formatting-disclosure')[${index}].scrollIntoView(); new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))`,
+              );
+              const clip = await page.locator("iframe").first().boundingBox();
+              assert.ok(clip);
+              await page.screenshot({
+                path: join(
+                  directory,
+                  index === 0
+                    ? "formatter-tools.png"
+                    : "advanced-formatting.png",
+                ),
+                clip,
+              });
+            }
+            await evaluate(
+              `document.querySelectorAll('.formatting-disclosure > summary')[${index}].click()`,
+            );
+          }
+        }
+        if (narrow) {
+          assert.ok(
+            await evaluate<boolean>(
+              `(() => {
+                const heading = document.querySelector('.page-heading');
+                return heading.scrollWidth <= heading.clientWidth + 1;
+              })()`,
+            ),
+            `${name} heading must fit inside the content area`,
+          );
+        }
       }
     }
     await page.emulateMedia({ reducedMotion: "reduce" });
     await evaluate(
-      `[...document.querySelectorAll('nav button')].find(b=>b.textContent.includes('Formatting')).click()`,
+      `[...document.querySelectorAll('nav button, .help-setup, .help-button')].find(b=>b.textContent.includes('Formatting')).click()`,
+    );
+    assert.equal(
+      await evaluate<number>('document.querySelectorAll("nav button").length'),
+      5,
+    );
+    assert.equal(
+      await evaluate<number>(
+        'document.querySelectorAll(".trigger-row input[type=checkbox]").length',
+      ),
+      3,
+    );
+    assert.ok(
+      await evaluate<boolean>(
+        'document.querySelector(".disclosure").textContent.includes("Installed formatter tools")',
+      ),
+    );
+    // The redesigned shared selectors must still reach the host with the
+    // exact folder URI, and real checkbox changes must round-trip back.
+    const choose = async (selector: string, value: string) => {
+      const reply = await send("Runtime.callFunctionOn", {
+        executionContextId: contextId,
+        functionDeclaration: `function (selector, value) {
+          const select = document.querySelector(selector);
+          select.value = value;
+          select.dispatchEvent(new Event("change", { bubbles: true }));
+        }`,
+        arguments: [{ value: selector }, { value }],
+      });
+      assert.equal(reply.result?.exceptionDetails, undefined);
+      await wait('!document.querySelector(".scope-bar select:disabled")');
+    };
+    const folderValue = await evaluate<string>(
+      `document.querySelector('.scope-bar select option[value^="folder:"]').value`,
+    );
+    await choose(".scope-bar select", folderValue);
+    await wait(
+      `document.querySelector('.scope-description').textContent.includes('folder')`,
+    );
+    await choose(".scope-bar label:nth-child(2) select", "javascript");
+    await wait(
+      `document.querySelector('.scope-description').textContent.includes('JavaScript')`,
+    );
+    await evaluate("document.querySelector('.help-button').click()");
+    await wait("document.querySelector('h1').textContent === 'Help & setup'");
+    assert.equal(
+      await evaluate<number>(
+        "document.querySelectorAll('.setup-steps li').length",
+      ),
+      4,
+    );
+    assert.equal(
+      await evaluate<number>(
+        "document.querySelectorAll('.active-context, .scope-bar').length",
+      ),
+      0,
+      "Help is a guide without configuration selectors",
+    );
+    assert.equal(
+      await evaluate<number>(
+        "document.querySelectorAll('.sidebar-footer p br').length",
+      ),
+      1,
+    );
+    for (const question of [1, 2, 0]) {
+      await evaluate(
+        `document.querySelectorAll('.common-questions summary')[${question}].click()`,
+      );
+      assert.ok(
+        await evaluate<boolean>(
+          `document.querySelectorAll('.common-questions details[open]').length === 1 && document.querySelectorAll('.common-questions details')[${question}].open`,
+        ),
+        "Opening a help question closes the previous answer",
+      );
+    }
+    await evaluate("document.querySelector('.help-answer button').click()");
+    await wait("document.querySelector('h1').textContent === 'Diagnostics'");
+    await evaluate("document.querySelector('.help-button').click()");
+    await wait("document.querySelector('h1').textContent === 'Help & setup'");
+    await evaluate("document.querySelector('.setup-guide button').click()");
+    await wait("document.querySelector('h1').textContent === 'Formatting'");
+    assert.equal(
+      await evaluate<string>(
+        "document.querySelector('.scope-bar select').value",
+      ),
+      folderValue,
+      "Help navigation preserves the selected scope",
     );
     assert.equal(
       await evaluate<string>(
-        'getComputedStyle(document.querySelector(".switch span"),"::after").transitionDuration',
+        "document.querySelector('.scope-bar label:nth-child(2) select').value",
       ),
-      "0s",
+      "javascript",
+      "Help navigation preserves the selected language",
     );
+    const beforeChecked = await evaluate<boolean>(
+      'document.querySelector(".trigger-row input").checked',
+    );
+    await evaluate('document.querySelector(".trigger-row input").click()');
+    await wait(
+      `!document.querySelector('.trigger-row input').disabled && document.querySelector('.trigger-row input').checked === ${!beforeChecked}`,
+    );
+    await evaluate('document.querySelector(".trigger-row input").click()');
+    await wait(
+      `!document.querySelector('.trigger-row input').disabled && document.querySelector('.trigger-row input').checked === ${beforeChecked}`,
+    );
+    await choose(".scope-bar label:nth-child(2) select", "");
+    await choose(".scope-bar select", "user");
     await evaluate('document.querySelector(".skip-link").focus()');
     await send("Input.dispatchKeyEvent", {
       type: "keyDown",
@@ -232,7 +438,7 @@ export const reviewDashboard = async (
       "Tab must reach the dashboard brand",
     );
     await evaluate(
-      `[...document.querySelectorAll('nav button')].find(b=>b.textContent.includes('Profiles')).click()`,
+      `[...document.querySelectorAll('nav button, .help-setup, .help-button')].find(b=>b.textContent.includes('Profiles')).click()`,
     );
     const payload = "<img src=x onerror=alert(1)>";
     await evaluate(

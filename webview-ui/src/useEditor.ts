@@ -16,7 +16,7 @@ const api =
 
 export const useEditor = () => {
   const [state, setState] = useState<Snapshot>();
-  const [page, setPage] = useState<string>("overview");
+  const [page, setPage] = useState<string>("formatting");
   const [pending, setPending] = useState<string>();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -60,7 +60,7 @@ export const useEditor = () => {
         setState(next);
         if (initial.current || navigation.current !== next.navigation) {
           navigation.current = next.navigation;
-          setPage(next.page);
+          setPage(next.page === "overview" ? "formatting" : next.page);
           initial.current = false;
         }
         if (event.data.message) setNotice(event.data.message);

@@ -8,11 +8,11 @@ A control center for VS Code formatting, save actions and language settings. Rea
 
 Hover or click the status bar to open the same **Kira Formatting Controls** card. Its checkbox and dropdown displays are read-only; use **Open dashboard** or the **Quick Controls** command to edit settings. Click pins the card; Escape dismisses it.
 
-![Formatting Controls Overview in VS Code Dark Modern](docs/assets/dashboard.png)
+![Formatting dashboard in VS Code Dark Modern](docs/assets/dashboard.png)
 
 ## What you can do
 
-- **Keep a clear summary at the status bar.** Read formatting, scope, source notes and formatter details. Pause/Resume appears beside Settings in the header and preserves save actions. Formatting values remain read-only; long context names reveal their full labels on hover.
+- **Keep a clear summary at the status bar.** Read formatting, scope, source notes and formatter details. Pause/Resume appears in the header before Settings and preserves save actions. Formatting values remain read-only; long context names reveal their full labels on hover.
 - **Pause through native commands.** Pause/Resume opens a native picker before changing settings. The hover card closes first, avoiding live-update flicker. The same action is available from the Command Palette; Escape cancels it.
 - **See the effective state.** The status bar shows ON when any of Format on Save, Paste or Type is enabled and OFF when all three are disabled. The card distinguishes fully enabled, disabled and mixed settings.
 - **Choose where changes belong.** Write to User, Workspace, or a specific workspace folder. Select a VS Code language ID for language overrides.
@@ -30,33 +30,19 @@ No telemetry, remote analytics, or source-code transmission. Settings stay in VS
 
 ## Dark theme previews
 
-Screenshots are captured from version **0.8.0** running in VS Code’s **Dark Modern** theme. Overview is shown above; expand the sections below to see the other seven dashboard tabs.
-
-<details>
-<summary>Formatting controls and effective values</summary>
-
-![Formatting controls and effective values in Dark Modern](docs/assets/dashboard-dark-formatting.png)
-
-</details>
+Screenshots show version **0.9.0** in VS Code’s **Dark Modern** theme. Formatting opens first. Five main sections share file context and scope selection, with Help & setup available separately.
 
 <details>
 <summary>Code actions on save</summary>
 
-![Code Actions page with individual run modes in Dark Modern](docs/assets/dashboard-dark-code-actions.png)
+![Save actions page with Auto Save and individual run modes in Dark Modern](docs/assets/dashboard-dark-code-actions.png)
 
 </details>
 
 <details>
-<summary>Formatters and known integrations</summary>
+<summary>Help & setup</summary>
 
-![Formatters page showing known integrations and availability in Dark Modern](docs/assets/dashboard-dark-formatters.png)
-
-</details>
-
-<details>
-<summary>Getting Started and welcome</summary>
-
-![Getting Started page explaining scope selection and setup in Dark Modern](docs/assets/dashboard-dark-getting-started.png)
+![Help & setup with four setup steps and expandable common questions in Dark Modern](docs/assets/dashboard-dark-getting-started.png)
 
 </details>
 
@@ -107,7 +93,7 @@ Open the folder in VS Code and press **F5** to launch the Extension Development 
 bun run package
 ```
 
-In VS Code, run **Extensions: Install from VSIX…** and select `formatting-controls-0.8.0.vsix`. A successful GitHub Actions run also provides the VSIX artifact. No Marketplace credentials are required.
+In VS Code, run **Extensions: Install from VSIX…** and select `formatting-controls-0.9.0.vsix`. A successful GitHub Actions run also provides the VSIX artifact. No Marketplace credentials are required.
 
 ## Find your flow
 
@@ -123,28 +109,30 @@ Hover the status-bar item to open the anchored **Kira Formatting Controls** card
 | **Formatting Controls: Restore Previous Settings**           | Restore untouched values from the latest batch in this workspace     |
 | **Formatting Controls: Getting Started**                     | Reopen the welcome page                                              |
 
-The welcome page appears once on first activation. It introduces the workflow and links to settings, documentation, and GitHub; it does not apply a preset automatically.
+Help & setup appears once on first activation. Its four-step guide covers scope, language, formatter and formatting triggers. Common questions open one answer at a time and link to Diagnostics or Save actions. The footer links to documentation and the GitHub issue form.
 
-The blue status icon beside **Automatic formatting** summarizes the three formatting triggers: a circled checkmark for **Enabled**, a circle minus for **Disabled**, and a half-filled circle for **Mixed**. The file box keeps its text-document icon and full text column without a duplicate state label. The status bar uses ON when any trigger is enabled and OFF when all are disabled; the card’s accessible description retains the three-state summary. Active-file labels use full language names. The card keeps a fixed 330px content width; exceptionally long names use ellipses, with full names available on hover. **Scope**, **Language** and **Formatter** appear above Automatic formatting. Pause/Resume and Settings stay in the header; the footer opens the dashboard or a new GitHub issue. [Status-card details and API limits](docs/status-controls.md).
+The blue status icon and label align together at the right of **Automatic formatting** and summarize the three formatting triggers: a circled checkmark for **Enabled**, a circle minus for **Disabled**, and a half-filled circle for **Mixed**. The file box keeps its text-document icon and full text column without a duplicate state label. The status bar uses ON when any trigger is enabled and OFF when all are disabled; the card’s accessible description retains the three-state summary. Active-file labels use full language names. The card keeps a fixed 330px content width; exceptionally long names use ellipses, with full names available on hover. **Scope**, **Language** and **Formatter** appear above Automatic formatting. The text-only Pause/Resume button sits in the header immediately before Settings; the footer opens the dashboard or a new GitHub issue. The status-card screenshot below shows version 0.9.0. [Status-card details and API limits](docs/status-controls.md).
 
 ![Native formatting summary above the status bar in Dark Modern](docs/assets/status-card-dark.png)
 
+Hover the information icons beside **Scope**, **Language** and **Formatter** to see where changes apply and which settings supply the formatter. These icons have no click action. Confirmed formatter problems or a failed Pause/Resume action add a compact warning; **Review in dashboard** opens Diagnostics with the card’s file and scope ready to inspect. Select **Run diagnostics** to check the current settings. Saving a blocked settings file or successfully retrying clears the corresponding failure warning. Leaving the default formatter unconfigured does not cause a warning.
+
 ### Dashboard
 
-| Page                | What it shows                                                                      |
-| ------------------- | ---------------------------------------------------------------------------------- |
-| **Overview**        | Effective formatting flags, configured formatter, and save-action summary          |
-| **Formatting**      | Searchable typed controls, scope values, overrides, and source inspection          |
-| **Code actions**    | Common source-action identifiers, existing custom entries, and run modes           |
-| **Formatters**      | Known installed integrations and built-in language extensions                      |
-| **Language rules**  | Explicit language overrides and their configured scopes                            |
-| **Diagnostics**     | Verified configuration facts, possible conflicts, and provider limitations         |
-| **Profiles**        | Presets, named profiles, import/export, preview/apply, temporary pause and restore |
-| **Getting started** | A short setup guide with scope and language selection                              |
+| Section            | What it shows                                                                                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| **Formatting**     | Formatter selection, installed tools, automatic formatting, Pause/Resume and advanced settings/source inspection |
+| **Save actions**   | Auto Save, delay, common source actions, provider-specific actions and custom entries                            |
+| **Language rules** | Explicit language overrides, their sources and an entry point to add or edit a rule                              |
+| **Profiles**       | Presets, named profiles, import/export, preview/apply and recovery                                               |
+| **Diagnostics**    | On-demand findings, grouped setting sources and workspace run history                                            |
+| **Help & setup**   | Four setup steps, expandable common questions, documentation and issue reporting                                 |
 
-Choose **Write to** and **Language** before changing a control. Values shown on controls are effective for the selected language, or the last active file’s language when All languages is selected. The value written still belongs only to the scope you selected. An override may therefore keep the effective value unchanged; the Formatting page shows that difference.
+Choose **Scope** and **Language** before changing a control. Values are effective for the selected language, or the last active file’s language when All languages is selected. Each change writes only to the selected scope. An override may keep the effective value unchanged; source notes explain why.
 
-For a multi-root project, choose **Workspace folder** and select the intended folder explicitly. Auto Save settings apply across languages and are disabled when editing language-specific settings.
+For multi-root projects, choose **Folder: name** explicitly. Auto Save is disabled while editing language-specific settings. Formatter tools and advanced controls are expandable inside Formatting. Auto Save and provider-specific source actions are grouped in Save actions.
+
+The status card’s **Reset** placeholder is disabled and marked **Not available yet**. Existing per-setting dashboard resets under advanced controls remove the selected override.
 
 ### Formatting and source actions are separate
 

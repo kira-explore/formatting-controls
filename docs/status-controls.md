@@ -2,13 +2,13 @@
 
 Hover and click open the same anchored card above the Formatting status-bar item. Click focuses and pins it; Escape dismisses it. Enter on the focused status item opens it. A normal status click creates neither a docked Panel view nor an editor tab.
 
-The padded header shows **Kira Formatting Controls**, Pause/Resume, and a two-slider Settings icon inside a fixed 26px by 24px box. A blue status icon sits beside Automatic formatting; a text-document icon identifies the file section. The status bar shows ON when at least one formatting trigger is enabled and OFF when all three are disabled. Version details remain in the Extensions listing. The app icon appears in that listing; the card has no app logo. The package ID remains `rajudhami.formatting-controls`.
+The padded header shows **Kira Formatting Controls**, text-only Pause/Resume and a two-slider Settings icon inside a fixed 26px by 24px box. Pause/Resume sits immediately before Settings at the same height. A blue status icon and Enabled/Disabled/Mixed label align together at the right of Automatic formatting. A text-document icon identifies the file section. The status bar shows ON when at least one formatting trigger is enabled and OFF when all three are disabled. Version details remain in the Extensions listing. The app icon appears in that listing; the card has no app logo. The package ID remains `rajudhami.formatting-controls`.
 
 ![Anchored formatting controls](assets/status-card-dark.png)
 
 ## Read-only formatting summary
 
-The Automatic formatting heading uses a circled checkmark for Enabled, a circle minus for Disabled, or a half-filled circle for Mixed. Each vector status icon has the same 14.4px diameter and is vertically centered with the heading. The text-document icon is centered across the file box’s two or three context lines. Neither icon has an explanatory tooltip or click action.
+The Automatic formatting heading uses a circled checkmark for Enabled, a circle minus for Disabled, or a half-filled circle for Mixed. Each vector status icon has the same 14.4px diameter, a consistent 6px gap before its status text, and is vertically centered with the heading. The text-document icon is centered across the file box’s two or three context lines. Neither icon has an explanatory tooltip or click action.
 
 - The file/workspace box identifies the editor whose effective settings are shown, using full language names such as JavaScript and TypeScript. Multi-root workspaces also name its folder.
 - **Scope** and **Language** identify the selected destination, rather than changing the file's language mode. Use the dashboard or optional Quick Controls command to change them.
@@ -18,6 +18,16 @@ The Automatic formatting heading uses a circled checkmark for Enabled, a circle 
 - The footer provides **Open dashboard ↗** and **Report an issue ↗**. Issue reporting opens [this repository's new-issue form](https://github.com/kira-explore/formatting-controls/issues/new); it does not submit an issue or upload diagnostics automatically.
 
 The file box and Automatic formatting heading are passive images with no explanatory tooltip or click action. Long context labels use ellipses; a hover title reveals only the full labels that were shortened. Neither row is a link or a keyboard focus target. Settings and Pause/Resume have no hover tooltip; their accessible labels and native picker flow remain available. Open dashboard and Report an issue remain transparent blue borderless actions with a native hand cursor and no tooltip. Full values also remain in image alternatives.
+
+## Field information and conditional warnings
+
+Small information icons beside **Scope**, **Language** and **Formatter** expose native hover titles. Scope describes the selected destination; Language identifies all-language or language-specific rules. Formatter names its saved, inherited or effective source, including a higher-precedence override even when both values match. Only the icon image carries the explanatory title; it has no command link. Existing checkbox source notes remain visible.
+
+The card adds a warning only for verified evidence: a configured formatter missing from the current extension host, an explicit provider setting that disables formatting, or a failed status-card Pause/Resume action. With no active file it does not infer a formatter failure. No default formatter, intentionally disabled triggers and an adapter's incomplete language list do not produce a status warning.
+
+**Review in dashboard** opens Diagnostics with the card’s file and scope ready to inspect. Select **Run diagnostics** to capture the current findings. Formatter findings link to Formatting, which now contains formatter tools; Pause/Resume failures offer recovery review in Profiles when a pause record exists. An unsaved-settings failure clears after that document is saved; other action failures clear after a successful retry. The live failed-action warning is held for the current extension session and shown only for its original scope. A diagnostic run can include it in a saved report. The dashboard has five main sections; Help & setup is a separate destination.
+
+![Conditional Pause/Resume warning with a link to Diagnostics](assets/status-warning-dark.png)
 
 ## Manual Pause/Resume
 
@@ -45,9 +55,9 @@ Dashboard/profile workflows and the Restore Previous Settings command retain the
 
 Read-only dropdowns use standard outlined fields with normal text and arrows. Checkboxes use neutral outlines and ticks rather than a disabled gray fill. Footer actions retain transparent, borderless 36px-high image hit areas. Blue labels and external arrows have no underline. Each complete button, including its horizontal padding, is linked and uses the hand cursor. The gap between them is unlinked artwork, so it neither shows an action cursor nor opens the dashboard. Separate image alignment preserves the footer's vertical spacing.
 
-VS Code's public `StatusBarItem.tooltip` accepts Markdown, images and command links; arbitrary form styling is sanitized. Locally generated inert SVG images preserve the approved layout, with native links for actions and hover-only titles for shortened context labels. No scripts, external images, rendering network calls or rendering files are used.
+VS Code's public `StatusBarItem.tooltip` accepts Markdown, images and command links; arbitrary form styling is sanitized. Locally generated inert SVG images preserve the approved layout, with native links for actions and hover-only titles for field information icons and shortened context labels. No scripts, external images, rendering network calls or rendering files are used.
 
-The content width stays at 330px (approximately 354px including the native hover frame and insets). Each file, workspace and folder label stays on its own line; long names use an ellipsis rather than widening or wrapping the card. The title and section heading use 13.5px regular text and body/control text 12.5px. The text-document icon is vertically centered on the left, with the former right-hand status column returned to file/workspace text. The state icon is centered beside Automatic formatting. Conservative font-width allowances keep labels within their wider column, including wide letters and emoji. The Scope, Language and Formatter rows retain 28px outlined fields. Formatting rows retain the 46px rhythm and neutral outlined checkboxes. Automatic formatting has one state icon, with no information icon or duplicate status label. Pause/Resume stays in the header, with identical 66px by 24px dimensions and the Settings button’s height. Pause is neutral gray; Resume has a soft blue background with the same foreground text. Both keep their native picker flow without hover tooltips. The footer retains separate 139px and 133px borderless hit areas, separated by an unlinked 58px gutter.
+The content width stays at 330px (approximately 354px including the native hover frame and insets). Each file, workspace and folder label stays on its own line; long names use an ellipsis rather than widening or wrapping the card. The title and section heading use 13.5px regular text and body/control text 12.5px. The text-document icon is vertically centered on the left, with the former right-hand status column returned to file/workspace text. The state icon and Enabled/Disabled/Mixed label are vertically centered with Automatic formatting and right-aligned within that full-width row. Conservative font-width allowances keep labels within their wider column, including wide letters and emoji. The Scope, Language and Formatter rows retain 28px outlined fields. Formatting rows retain the 46px rhythm and neutral outlined checkboxes. The text-only Pause/Resume button sits in the header, separated from Settings by an unlinked 8px gutter. Both labels use identical 66px by 24px dimensions and the Settings button’s height. Pause is neutral gray; Resume has a soft blue background with the same foreground text. Both keep their native picker flow without hover tooltips. The footer retains separate 139px and 133px borderless hit areas, separated by an unlinked 58px gutter.
 
 Transparent artwork reveals the native hover surface. Dark, light, high-contrast and high-contrast-light palettes follow the theme kind; arbitrary custom theme colors/fonts are not available inside the image renderer. Native links follow the editor's own hover/focus styling. The public Markdown tooltip cannot reproduce Copilot's custom grey icon-button hover fill or enforce a custom hover underline. This limitation does not change layout or actions.
 
@@ -57,6 +67,10 @@ Sources: [StatusBarItem](https://code.visualstudio.com/api/references/vscode-api
 
 ## Safety
 
-Pause command links carry a revision. Changes to settings/editor context invalidate stale actions; equivalent notifications retain the active tooltip/revision. Setting workflows are serialized. XML/HTML text is escaped, command URIs are allowlisted and the issue URL is fixed.
+Pause and Diagnostics command links carry a revision. Changes to settings/editor context invalidate stale actions; equivalent notifications retain the active tooltip/revision. Setting workflows are serialized. XML/HTML text is escaped, command URIs are allowlisted and the issue URL is fixed.
 
 The separate dashboard retains its validated message protocol and nonce-based content security policy. **Formatting Controls: Quick Controls** keeps its formatting-only native picker; **Native Quick Controls** keeps the full settings picker. No command opens a docked Formatting Controls view.
+
+## Deferred Reset shortcut
+
+The card includes a disabled **Reset** placeholder with **Not available yet** beside it. Existing per-setting dashboard resets still require preview confirmation.

@@ -41,6 +41,7 @@ export const runStatusTests = async (uri: vscode.Uri): Promise<void> => {
   let acceptPause = true;
   let pendingChoice: Promise<boolean> | undefined;
   let promptOpened: (() => void) | undefined;
+  let reviewedFinding: string | undefined;
   const controls = new StatusControls(
     item,
     () => document,
@@ -49,6 +50,9 @@ export const runStatusTests = async (uri: vscode.Uri): Promise<void> => {
       pausePrompts++;
       promptOpened?.();
       return pendingChoice ?? acceptPause;
+    },
+    async (finding) => {
+      reviewedFinding = finding;
     },
   );
   const selection = { target: vscode.ConfigurationTarget.WorkspaceFolder, uri };
@@ -83,7 +87,7 @@ export const runStatusTests = async (uri: vscode.Uri): Promise<void> => {
       [],
       "The shipped extension must not register custom-editor bridge commands.",
     );
-    const tooltip = item.tooltip as vscode.MarkdownString;
+    let tooltip = item.tooltip as vscode.MarkdownString;
     assert.equal(tooltip.supportHtml, true);
     assert.equal(tooltip.supportThemeIcons, false);
     assert.deepEqual(tooltip.isTrusted, {
@@ -94,6 +98,23 @@ export const runStatusTests = async (uri: vscode.Uri): Promise<void> => {
       ],
     });
     assert.match(tooltip.value, /Overridden by/);
+    for (const label of [
+      "Scope information",
+      "Language information",
+      "Formatter information",
+    ])
+      assert.ok(tooltip.value.includes(label));
+    await write(language, "editor.defaultFormatter", "missing.formatter-test");
+    controls.refresh();
+    assert.match(
+      (item.tooltip as vscode.MarkdownString).value,
+      /Configured formatter is unavailable/,
+    );
+    await controls.control(revision(), "diagnostics");
+    assert.equal(reviewedFinding, "formatter-unavailable");
+    await write(language, "editor.defaultFormatter", originalLanguageFormatter);
+    controls.refresh();
+    tooltip = item.tooltip as vscode.MarkdownString;
     const stale = revision();
     controls.refresh();
     assert.equal(
@@ -176,6 +197,9 @@ export const runStatusTests = async (uri: vscode.Uri): Promise<void> => {
       /storage unavailable/,
     );
     workspaceStore.fail = false;
+    assert.equal(controls.diagnostics()[0]?.id, "pause-failed");
+    await controls.control(revision(), "diagnostics");
+    assert.equal(reviewedFinding, "pause-failed");
     assert.deepEqual(
       flags.map((flag) => own(selection, flag)),
       beforeFailure,
@@ -185,6 +209,7 @@ export const runStatusTests = async (uri: vscode.Uri): Promise<void> => {
     await dirtySettingsFailure("Pause");
     assert.equal(workflows.recovery(), null);
     await transition("Pause");
+    assert.deepEqual(controls.diagnostics(), []);
     assert.equal(own(selection, "editor.formatOnSave"), false);
     assert.equal(own(selection, "editor.formatOnPaste"), false);
     assert.equal(own(selection, "editor.formatOnType"), false);
@@ -450,6 +475,7 @@ export const runStatusTests = async (uri: vscode.Uri): Promise<void> => {
           error.uri.toString() === settings.uri.toString(),
         "A dirty settings file blocks both Pause and Resume",
       );
+      assert.equal(controls.diagnostics()[0]?.id, "pause-failed");
       assert.deepEqual(
         workflows.journal(),
         recovery,
@@ -471,6 +497,7 @@ export const runStatusTests = async (uri: vscode.Uri): Promise<void> => {
     } finally {
       // Only this disposable integration workspace is saved for the retry.
       assert.ok(await settings.save());
+      assert.deepEqual(controls.diagnostics(), []);
     }
   }
   async function transition(label: string): Promise<void> {

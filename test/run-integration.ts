@@ -138,6 +138,9 @@ import { reviewDashboard } from "./dashboard";
               await delay(100);
             }
             await reviewDashboard(report, statusUi);
+          } catch (error) {
+            console.error("UI verification failed:", error);
+            throw error;
           } finally {
             fs.writeFileSync(done, "done");
           }

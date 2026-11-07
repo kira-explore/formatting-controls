@@ -319,10 +319,190 @@ export const run = async (): Promise<void> => {
       "Changing language mode must refresh the dashboard context",
     );
 
+    // Exercise the new dashboard message against real VS Code settings,
+    // independently of the legacy pause that also includes save actions.
+    const pauseReplies: Response[] = [];
+    const pauseWorkflows = new Workflows(
+      new MemoryStore(),
+      new MemoryStore(),
+      async () => true,
+    );
+    const pauseDashboard = new Dashboard(
+      ext.extensionUri,
+      (reply) => {
+        pauseReplies.push(reply);
+      },
+      pauseWorkflows,
+    );
+    const pauseScope = {
+      target: "folder" as const,
+      folder: folder.uri.toString(),
+    };
+    const pauseKeys = [
+      "editor.formatOnSave",
+      "editor.formatOnPaste",
+      "editor.formatOnType",
+    ] as const;
+    const originalFlags = pauseKeys.map((key) => own(first, key));
+    const originalActions = structuredClone(
+      own(first, "editor.codeActionsOnSave"),
+    );
+    try {
+      await pauseDashboard.handle({
+        id: "pause-context",
+        type: "read",
+        scope: pauseScope,
+      });
+      for (let mask = 0; mask < 8; mask++) {
+        const before = pauseKeys.map((_, index) => !!(mask & (1 << index)));
+        for (const [index, key] of pauseKeys.entries())
+          await write(first, key, before[index]);
+        let revision = (await pauseDashboard.snapshot()).revision;
+        await pauseDashboard.handle({
+          id: `formatting-pause-${mask}`,
+          type: "formattingPause",
+          scope: pauseScope,
+          revision,
+        });
+        if (mask === 0) {
+          assert.equal(
+            pauseWorkflows.recovery(),
+            null,
+            "Already-disabled settings need no restore record",
+          );
+          continue;
+        }
+        assert.equal(pauseWorkflows.recovery()?.kind, "pause");
+        assert.deepEqual(
+          pauseKeys.map((key) => own(first, key)),
+          [false, false, false],
+        );
+        assert.deepEqual(
+          own(first, "editor.codeActionsOnSave"),
+          originalActions,
+        );
+        revision = (await pauseDashboard.snapshot()).revision;
+        await pauseDashboard.handle({
+          id: `formatting-resume-${mask}`,
+          type: "formattingPause",
+          scope: pauseScope,
+          revision,
+        });
+        assert.equal(pauseWorkflows.recovery(), null);
+        assert.deepEqual(
+          pauseKeys.map((key) => own(first, key)),
+          before,
+        );
+        assert.deepEqual(
+          own(first, "editor.codeActionsOnSave"),
+          originalActions,
+        );
+      }
+      assert.equal(
+        pauseReplies.filter((reply) => reply.type === "error").length,
+        0,
+      );
+    } finally {
+      for (const [index, key] of pauseKeys.entries())
+        await write(first, key, originalFlags[index]);
+      pauseDashboard.dispose();
+      pauseWorkflows.dispose();
+    }
+
     const navigation = (await dashboard.snapshot()).navigation;
+    await dashboard.open(false, {
+      finding: "formatter-unavailable",
+      scope: { target: "folder", folder: folder.uri.toString() },
+      document: vscode.window.activeTextEditor?.document ?? activeDocument,
+    });
+    const diagnosticNavigation = await dashboard.snapshot();
+    assert.equal(diagnosticNavigation.page, "diagnostics");
+    assert.equal(diagnosticNavigation.focusFinding, "formatter-unavailable");
+    assert.equal(diagnosticNavigation.scope.folder, folder.uri.toString());
     await dashboard.open();
-    assert.equal((await dashboard.snapshot()).page, "overview");
+    assert.equal((await dashboard.snapshot()).page, "formatting");
+    assert.equal((await dashboard.snapshot()).focusFinding, undefined);
     assert.ok((await dashboard.snapshot()).navigation > navigation);
+
+    await dashboard.handle({
+      id: "inspect-active-language",
+      type: "read",
+      scope: { target: "user" },
+    });
+    await vscode.window.showTextDocument(activeDocument);
+    assert.equal((await dashboard.snapshot()).activeFile?.name, "sample.ts");
+    await vscode.commands.executeCommand("workbench.action.closeActiveEditor");
+    const closedContext = await dashboard.snapshot();
+    assert.equal(closedContext.activeFile, undefined);
+    assert.equal(closedContext.activeLanguage, "All languages");
+    assert.equal(closedContext.resource, "No active file");
+    await dashboard.handle({
+      id: "inspect-explicit-language",
+      type: "read",
+      scope: { target: "user", language: "typescript" },
+    });
+    assert.equal((await dashboard.snapshot()).activeLanguage, "typescript");
+
+    const diagnosticStore = new MemoryStore();
+    const diagnostics = new Dashboard(
+      ext.extensionUri,
+      (message) => replies.push(message),
+      undefined,
+      undefined,
+      diagnosticStore,
+    );
+    const inspectionScope = { target: "workspace" as const };
+    const originalSave = own(workspace, "editor.formatOnSave");
+    try {
+      await diagnostics.handle({
+        id: "diagnostic-scope",
+        type: "read",
+        scope: inspectionScope,
+      });
+      assert.deepEqual((await diagnostics.snapshot()).diagnosticHistory, []);
+      const run = async () => {
+        const { revision } = await diagnostics.snapshot();
+        await diagnostics.handle({
+          id: "diagnostic-run",
+          type: "runDiagnostics",
+          scope: inspectionScope,
+          revision,
+        });
+        assert.equal(replies.at(-1)?.type, "state");
+      };
+      await write(workspace, "editor.formatOnSave", false);
+      await run();
+      const firstReport = (await diagnostics.snapshot()).diagnosticHistory[0];
+      assert.ok(firstReport);
+      assert.equal(firstReport.scopeLabel, "Workspace");
+      assert.ok(firstReport.findings.some(({ id }) => id === "save-off"));
+      await write(workspace, "editor.formatOnSave", true);
+      assert.deepEqual((await diagnostics.snapshot()).diagnosticHistory, [
+        firstReport,
+      ]);
+      await run();
+      const history = (await diagnostics.snapshot()).diagnosticHistory;
+      assert.equal(history.length, 2);
+      assert.equal(
+        history[0]?.settings.find(({ key }) => key === "editor.formatOnSave")
+          ?.value,
+        true,
+      );
+      assert.deepEqual(history[1], firstReport);
+      assert.equal(own(workspace, "editor.formatOnSave"), true);
+      const reopened = new Dashboard(
+        ext.extensionUri,
+        undefined,
+        undefined,
+        undefined,
+        diagnosticStore,
+      );
+      assert.deepEqual((await reopened.snapshot()).diagnosticHistory, history);
+    } finally {
+      diagnostics.dispose();
+      await write(workspace, "editor.formatOnSave", originalSave);
+    }
+
     await assert.rejects(
       write({ ...first, language: "typescript" }, "files.autoSave", "off"),
       /not language-overridable/,
@@ -376,6 +556,11 @@ export const run = async (): Promise<void> => {
           }),
         );
       } else {
+        await setAction(
+          workspace,
+          "source.fixAll.veryLongProviderActionForDashboardDiagnostics",
+          "explicit",
+        );
         await dashboard.open();
       }
       await vscode.commands.executeCommand("workbench.action.closeSidebar");
