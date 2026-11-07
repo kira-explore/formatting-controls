@@ -1,6 +1,7 @@
+import { useState } from "react";
+import { diagnosticScopeLabel } from "../../shared/diagnostic-context";
 import { languageName } from "../../shared/language";
-import type { Key, Snapshot } from "../../shared/protocol";
-import { formatterSource, settingForAction } from "../../shared/status-details";
+import type { DiagnosticReport, Key, Snapshot } from "../../shared/protocol";
 import { actionNames, display, labels, saveModeLabels } from "./catalog";
 import { Icon } from "./Icon";
 
@@ -14,7 +15,7 @@ const actionMode = (value: unknown): string => {
   switch (value) {
     case "explicit":
     case true:
-      return "Explicit save";
+      return "Manual save";
     case "always":
       return "Always";
     case "never":
@@ -43,9 +44,14 @@ const settingValue = (
     case "files.autoSave":
       return autoSaveLabels[String(value)] ?? display(value);
     case "files.autoSaveDelay":
-      return typeof value === "number"
-        ? `${value.toLocaleString()} ms`
-        : display(value);
+      if (typeof value !== "number") return display(value);
+      return value % 1000 === 0
+        ? new Intl.NumberFormat(undefined, {
+            style: "unit",
+            unit: "second",
+            unitDisplay: "long",
+          }).format(value / 1000)
+        : `${value.toLocaleString()} ms`;
     default:
       return typeof value === "boolean"
         ? value
@@ -55,52 +61,174 @@ const settingValue = (
   }
 };
 
+const runTime = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "medium",
+});
+const runContext = (report: DiagnosticReport) =>
+  [report.scopeLabel, languageName(report.language)].join(" · ");
+
 export const Diagnostics = ({
   state,
   navigate,
+  run,
+  pending,
 }: {
   state: Snapshot;
   navigate: (page: string) => void;
+  run: () => void;
+  pending: boolean;
 }) => {
-  const formatter = state.settings.find(
-    (setting) => setting.key === "editor.defaultFormatter",
-  )?.effective;
-  const formatterName =
-    typeof formatter === "string"
-      ? (state.providers.find(
-          (provider) => provider.id.toLowerCase() === formatter.toLowerCase(),
-        )?.name ?? formatter)
-      : "Not configured";
-  const saveActions = state.settings.find(
-    (setting) => setting.key === "editor.codeActionsOnSave",
+  const [selection, setSelection] = useState<{ id: string; latest: string }>();
+  const latest = state.diagnosticHistory[0];
+  const report =
+    (selection && selection.latest === latest?.id
+      ? state.diagnosticHistory.find((entry) => entry.id === selection.id)
+      : undefined) ?? latest;
+
+  return (
+    <div className="diagnostics">
+      <div className="diagnostic-run">
+        <button
+          type="button"
+          className="primary"
+          disabled={pending}
+          onClick={run}
+        >
+          <Icon name="scan" />
+          Run diagnostics
+        </button>
+        <p role="status">
+          {latest
+            ? `Last run ${runTime.format(latest.createdAt)} · ${latest.findings.length === 0 ? "No findings" : `${latest.findings.length} ${latest.findings.length === 1 ? "finding" : "findings"}`}`
+            : "No diagnostics run yet."}
+        </p>
+      </div>
+      {state.focusFinding && (
+        <p className="diagnostic-context-note">
+          Run diagnostics to check the issue reported in the status bar.
+        </p>
+      )}
+      {latest && report && (
+        <>
+          <section
+            className="diagnostics-section"
+            aria-labelledby="diagnostic-history"
+          >
+            <h2 id="diagnostic-history">Run history</h2>
+            <ul className="diagnostic-history">
+              {state.diagnosticHistory.map((entry) => (
+                <li key={entry.id}>
+                  <button
+                    type="button"
+                    aria-pressed={report.id === entry.id}
+                    aria-controls="diagnostic-report"
+                    onClick={() =>
+                      setSelection({ id: entry.id, latest: latest.id })
+                    }
+                  >
+                    <span>
+                      {runTime.format(entry.createdAt)} ·{" "}
+                      {entry.fileName ?? "No active file"}
+                    </span>
+                    <small>
+                      {runContext(entry)}
+                      {entry.id === latest.id && " · Latest"}
+                    </small>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section
+            id="diagnostic-report"
+            className="diagnostics-section"
+            aria-labelledby="diagnostic-report-title"
+          >
+            <h2 id="diagnostic-report-title">
+              {report.id === latest.id
+                ? "Last run results"
+                : "Selected run results"}
+            </h2>
+            <p>
+              {report.fileName ?? "No active file"} · {runContext(report)}
+            </p>
+            {(report.scopeLabel !== diagnosticScopeLabel(state) ||
+              report.selectedLanguage !== state.scope.language ||
+              report.language !== state.activeLanguage ||
+              report.fileName !== state.activeFile?.name) && (
+              <p className="diagnostic-context-note">
+                This report was captured for a different file, scope, or
+                language.
+              </p>
+            )}
+            <Report
+              key={report.id}
+              report={report}
+              navigate={navigate}
+              canReviewPause={state.recovery?.kind === "pause"}
+            />
+          </section>
+        </>
+      )}
+    </div>
   );
-  const rawActions = saveActions?.effective;
-  const actions =
-    rawActions && typeof rawActions === "object" && !Array.isArray(rawActions)
-      ? Object.entries(rawActions)
-      : [];
-  const status = formattingStatus[state.status];
-  const triggerCount = state.settings.filter(
+};
+
+const Report = ({
+  report,
+  navigate,
+  canReviewPause,
+}: {
+  report: DiagnosticReport;
+  navigate: (page: string) => void;
+  canReviewPause: boolean;
+}) => {
+  const { actions, formatterName, legacyActions, settings } = report;
+  const status = formattingStatus[report.status];
+  const triggerCount = settings.filter(
     (setting) =>
       (setting.key === "editor.formatOnSave" ||
         setting.key === "editor.formatOnPaste" ||
         setting.key === "editor.formatOnType") &&
-      setting.effective === true,
+      setting.value === true,
   ).length;
-  const source = (setting: Snapshot["settings"][number]) =>
-    formatterSource(setting, state.scope, languageName(state.activeLanguage));
+  const formatRows = settings.filter(({ key }) => key.startsWith("editor."));
+  const savingRows = settings.filter(({ key }) => key.startsWith("files."));
+  const actionCounts = Map.groupBy(actions, ({ value }) => actionMode(value));
+  const actionSummary = (
+    [
+      ["Manual save", "on manual save"],
+      ["Always", "set to Always"],
+      ["Never", "set to Never"],
+    ] as const
+  )
+    .flatMap(([mode, label]) => {
+      const count = actionCounts.get(mode)?.length;
+      return count ? [`${count} ${label}`] : [];
+    })
+    .join(" · ");
+  const sourceRows = (rows: DiagnosticReport["settings"]) =>
+    rows.map(({ key, value, source }) => (
+      <SourceRow
+        key={key}
+        label={labels[key]}
+        value={settingValue(key, value, formatterName)}
+        source={source}
+      />
+    ));
   return (
-    <div className="diagnostics">
+    <>
       <section
         className="diagnostics-section"
         aria-labelledby="diagnostics-summary"
       >
-        <h2 id="diagnostics-summary">What applies now</h2>
+        <h3 id="diagnostics-summary">What applied at this run</h3>
         <ul className="diagnostics-summary">
           <li>
             <Icon name={status.icon} />
             <div>
-              <h3>Automatic formatting · {status.label}</h3>
+              <h4>Automatic formatting · {status.label}</h4>
               <p>
                 {triggerCount} of 3 triggers enabled across save, paste, and
                 type.
@@ -117,7 +245,7 @@ export const Diagnostics = ({
           <li>
             <Icon name="sliders" />
             <div>
-              <h3>Default formatter · {formatterName}</h3>
+              <h4>Default formatter · {formatterName}</h4>
               <p>
                 {formatterName === "Not configured"
                   ? "VS Code may use an available formatter for this language."
@@ -128,7 +256,7 @@ export const Diagnostics = ({
           <li>
             <Icon name="save" />
             <div>
-              <h3>Save actions run separately</h3>
+              <h4>Save actions run separately</h4>
               <p>
                 Fixes and import actions can still change the file when
                 formatting is off.
@@ -144,30 +272,20 @@ export const Diagnostics = ({
           </li>
         </ul>
       </section>
-      {(state.findings.length > 0 || state.focusFinding) && (
+      {report.findings.length > 0 && (
         <section
           className="diagnostics-section"
           aria-labelledby="diagnostics-findings"
         >
-          <h2 id="diagnostics-findings">Findings</h2>
-          {state.focusFinding &&
-            !state.findings.some(
-              (finding) => finding.id === state.focusFinding,
-            ) && (
-              <p role="status">
-                The previously reported problem is no longer detected.
-              </p>
-            )}
-          {state.findings.map((finding) => (
+          <h3 id="diagnostics-findings">Findings</h3>
+          {report.findings.map((finding) => (
             <article
-              className={`finding${state.focusFinding === finding.id ? " finding-focused" : ""}`}
+              className="finding"
               key={finding.id}
-              id={`finding-${finding.id}`}
-              tabIndex={-1}
               aria-label={finding.title}
             >
               <div className="provider-heading">
-                <h3>{finding.title}</h3>
+                <h4>{finding.title}</h4>
                 <span className="tag">
                   {
                     {
@@ -188,12 +306,11 @@ export const Diagnostics = ({
                   Review formatter
                 </button>
               )}
-              {finding.id === "pause-failed" &&
-                state.recovery?.kind === "pause" && (
-                  <button type="button" onClick={() => navigate("profiles")}>
-                    Review pause recovery
-                  </button>
-                )}
+              {finding.id === "pause-failed" && canReviewPause && (
+                <button type="button" onClick={() => navigate("profiles")}>
+                  Review pause recovery
+                </button>
+              )}
             </article>
           ))}
         </section>
@@ -202,58 +319,79 @@ export const Diagnostics = ({
         className="diagnostics-section"
         aria-labelledby="diagnostics-sources"
       >
-        <h2 id="diagnostics-sources">Setting sources</h2>
-        <p>See the effective value and where it comes from.</p>
-        <div
-          className="diagnostic-columns diagnostic-column-headings"
-          aria-hidden="true"
-        >
-          <span>Setting</span>
-          <span>Effective value</span>
-          <span>Source</span>
+        <h3 id="diagnostics-sources">Setting sources</h3>
+        <div className="diagnostic-group">
+          <h4>Formatting</h4>
+          <dl className="diagnostic-values">{sourceRows(formatRows)}</dl>
         </div>
-        <dl className="diagnostic-values">
-          {state.settings
-            .filter((setting) => setting.key !== "editor.codeActionsOnSave")
-            .map((setting) => (
-              <div className="diagnostic-columns" key={setting.key}>
-                <dt>{labels[setting.key]}</dt>
-                <dd>
-                  {settingValue(setting.key, setting.effective, formatterName)}
-                </dd>
-                <dd className="diagnostic-source">{source(setting)}</dd>
-              </div>
-            ))}
-        </dl>
-        {saveActions && (
-          <details className="formatting-disclosure diagnostic-actions">
-            <summary>Code actions on save</summary>
+        <div className="diagnostic-group">
+          <h4>Saving</h4>
+          <dl className="diagnostic-values">{sourceRows(savingRows)}</dl>
+        </div>
+        <div className="diagnostic-group diagnostic-actions">
+          <h4>Code actions on save</h4>
+          <div className="diagnostic-group-content">
+            {actionSummary && <p>{actionSummary}</p>}
+            <p>
+              VS Code starts with no code actions on save. When configured,
+              fixes and import organization can run even with Format on save
+              off.
+            </p>
             {actions.length > 0 ? (
               <dl className="diagnostic-values">
-                {actions.map(([id, value]) => (
-                  <div className="diagnostic-columns" key={id}>
-                    <dt>
-                      {Object.hasOwn(actionNames, id) ? (
+                {actions.map(({ id, value, source }) => (
+                  <SourceRow
+                    key={id}
+                    label={
+                      Object.hasOwn(actionNames, id) ? (
                         actionNames[id]
                       ) : (
                         <code>{id}</code>
-                      )}
-                    </dt>
-                    <dd>{actionMode(value)}</dd>
-                    <dd className="diagnostic-source">
-                      {source(settingForAction(saveActions, id, value))}
-                    </dd>
-                  </div>
+                      )
+                    }
+                    value={actionMode(value)}
+                    source={source}
+                  />
                 ))}
               </dl>
-            ) : Array.isArray(rawActions) ? (
-              <pre>{JSON.stringify(rawActions, null, 2)}</pre>
+            ) : legacyActions.length > 0 ? (
+              <p>Legacy actions: {legacyActions.join(", ")}</p>
             ) : (
               <p>No code actions configured.</p>
             )}
-          </details>
-        )}
+            {actions.length > 0 && (
+              <details className="diagnostic-action-ids">
+                <summary>Show action IDs</summary>
+                <ul>
+                  {actions.map(({ id }) => (
+                    <li key={id}>
+                      <code>{id}</code>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+        </div>
       </section>
-    </div>
+    </>
   );
 };
+
+const SourceRow = ({
+  label,
+  value,
+  source,
+}: {
+  label: React.ReactNode;
+  value: string;
+  source: string;
+}) => (
+  <div className="diagnostic-value">
+    <dt>
+      {label}
+      <small className="diagnostic-source">{source}</small>
+    </dt>
+    <dd>{value}</dd>
+  </div>
+);

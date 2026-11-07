@@ -443,6 +443,66 @@ export const run = async (): Promise<void> => {
     });
     assert.equal((await dashboard.snapshot()).activeLanguage, "typescript");
 
+    const diagnosticStore = new MemoryStore();
+    const diagnostics = new Dashboard(
+      ext.extensionUri,
+      (message) => replies.push(message),
+      undefined,
+      undefined,
+      diagnosticStore,
+    );
+    const inspectionScope = { target: "workspace" as const };
+    const originalSave = own(workspace, "editor.formatOnSave");
+    try {
+      await diagnostics.handle({
+        id: "diagnostic-scope",
+        type: "read",
+        scope: inspectionScope,
+      });
+      assert.deepEqual((await diagnostics.snapshot()).diagnosticHistory, []);
+      const run = async () => {
+        const { revision } = await diagnostics.snapshot();
+        await diagnostics.handle({
+          id: "diagnostic-run",
+          type: "runDiagnostics",
+          scope: inspectionScope,
+          revision,
+        });
+        assert.equal(replies.at(-1)?.type, "state");
+      };
+      await write(workspace, "editor.formatOnSave", false);
+      await run();
+      const firstReport = (await diagnostics.snapshot()).diagnosticHistory[0];
+      assert.ok(firstReport);
+      assert.equal(firstReport.scopeLabel, "Workspace");
+      assert.ok(firstReport.findings.some(({ id }) => id === "save-off"));
+      await write(workspace, "editor.formatOnSave", true);
+      assert.deepEqual((await diagnostics.snapshot()).diagnosticHistory, [
+        firstReport,
+      ]);
+      await run();
+      const history = (await diagnostics.snapshot()).diagnosticHistory;
+      assert.equal(history.length, 2);
+      assert.equal(
+        history[0]?.settings.find(({ key }) => key === "editor.formatOnSave")
+          ?.value,
+        true,
+      );
+      assert.deepEqual(history[1], firstReport);
+      assert.equal(own(workspace, "editor.formatOnSave"), true);
+      const reopened = new Dashboard(
+        ext.extensionUri,
+        undefined,
+        undefined,
+        undefined,
+        diagnosticStore,
+      );
+      assert.deepEqual((await reopened.snapshot()).diagnosticHistory, history);
+    } finally {
+      diagnostics.dispose();
+      await write(workspace, "editor.formatOnSave", originalSave);
+    }
+
     await assert.rejects(
       write({ ...first, language: "typescript" }, "files.autoSave", "off"),
       /not language-overridable/,

@@ -696,19 +696,55 @@ summary {
   font-size: 0.93rem;
   margin: 8px 0 12px;
 }
-.finding-focused {
-  outline: 1px solid var(--focus);
-  outline-offset: 4px;
-}
 .diagnostics {
   overflow-wrap: anywhere;
 }
-.diagnostics-section {
-  padding-top: 24px;
+.diagnostic-run,
+.diagnostic-run button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
-.diagnostics-section + .diagnostics-section {
+.diagnostic-run {
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+.diagnostic-run p {
+  margin: 0;
+}
+.diagnostic-context-note {
+  margin: 12px 0 0;
+}
+.diagnostics-section {
   border-top: 1px solid var(--border);
-  margin-top: 22px;
+  margin-top: 24px;
+  padding-top: 20px;
+}
+.diagnostic-history {
+  list-style: none;
+  max-height: 18rem;
+  overflow: auto;
+  margin: 12px 0 0;
+  padding: 4px;
+  display: grid;
+  gap: 6px;
+}
+.diagnostic-history button {
+  width: 100%;
+  text-align: start;
+}
+.diagnostic-history button[aria-pressed="true"] {
+  background: var(--vscode-list-activeSelectionBackground, #264f78);
+  color: var(--vscode-list-activeSelectionForeground, #fff);
+}
+.diagnostic-history small {
+  color: inherit;
+  margin: 2px 0 0;
+}
+.diagnostics h4 {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0 0 6px;
 }
 .diagnostics-summary,
 .diagnostic-values {
@@ -749,30 +785,39 @@ summary {
   flex-wrap: wrap;
   align-items: center;
 }
-.diagnostic-columns {
+.diagnostic-group {
+  margin-top: 20px;
+}
+.diagnostic-group > dl,
+.diagnostic-group-content {
+  margin-inline-start: 14px;
+}
+.diagnostic-value {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 1.35fr);
-  align-items: start;
-  gap: 8px 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+  align-items: center;
+  gap: 6px 18px;
   border-bottom: 1px solid var(--border);
-  padding: 13px 0;
+  padding: 12px 0;
 }
-.diagnostic-column-headings,
-.diagnostic-source {
-  color: var(--muted);
-}
-.diagnostic-values dt {
-  font-weight: 500;
-}
-.diagnostic-values dd {
+.diagnostic-value dd {
   margin: 0;
+  text-align: end;
+  max-width: 22ch;
 }
 .diagnostic-source {
+  margin-top: 2px;
   white-space: pre-line;
 }
-.diagnostic-actions > p,
-.diagnostic-actions > pre {
-  margin-bottom: 0;
+.diagnostic-group-content > p {
+  margin: 6px 0;
+}
+.diagnostic-action-ids {
+  margin-top: 14px;
+}
+.diagnostic-action-ids summary {
+  color: var(--accent);
+  cursor: pointer;
 }
 .diagnostics-page > footer {
   margin-top: 18px;
@@ -965,12 +1010,12 @@ footer button:hover {
   .action-row select {
     max-width: 100%;
   }
-  .diagnostic-columns {
+  .diagnostic-value {
     grid-template-columns: minmax(0, 1fr);
-    gap: 3px;
   }
-  .diagnostic-column-headings {
-    display: none;
+  .diagnostic-value dd {
+    text-align: start;
+    max-width: none;
   }
   footer {
     flex-wrap: wrap;

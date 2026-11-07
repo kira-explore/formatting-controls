@@ -115,7 +115,7 @@ The blue status icon and label align together at the right of **Automatic format
 
 ![Native formatting summary above the status bar in Dark Modern](docs/assets/status-card-dark.png)
 
-Hover the information icons beside **Scope**, **Language** and **Formatter** to see where changes apply and which settings supply the formatter. These icons have no click action. Confirmed formatter problems or a failed Pause/Resume action add a compact warning; **Review in dashboard** opens the existing Diagnostics page at the relevant finding. Saving a blocked settings file or successfully retrying clears the corresponding failure warning. Leaving the default formatter unconfigured does not cause a warning.
+Hover the information icons beside **Scope**, **Language** and **Formatter** to see where changes apply and which settings supply the formatter. These icons have no click action. Confirmed formatter problems or a failed Pause/Resume action add a compact warning; **Review in dashboard** opens Diagnostics with the card’s file and scope ready to inspect. Select **Run diagnostics** to check the current settings. Saving a blocked settings file or successfully retrying clears the corresponding failure warning. Leaving the default formatter unconfigured does not cause a warning.
 
 ### Dashboard
 
@@ -125,7 +125,7 @@ Hover the information icons beside **Scope**, **Language** and **Formatter** to 
 | **Save actions**   | Auto Save, delay, common source actions, provider-specific actions and custom entries                            |
 | **Language rules** | Explicit language overrides, their sources and an entry point to add or edit a rule                              |
 | **Profiles**       | Presets, named profiles, import/export, preview/apply and recovery                                               |
-| **Diagnostics**    | Configuration findings, review links and a table of setting sources                                              |
+| **Diagnostics**    | On-demand findings, grouped setting sources and workspace run history                                            |
 | **Help & setup**   | Four setup steps, expandable common questions, documentation and issue reporting                                 |
 
 Choose **Scope** and **Language** before changing a control. Values are effective for the selected language, or the last active file’s language when All languages is selected. Each change writes only to the selected scope. An override may keep the effective value unchanged; source notes explain why.

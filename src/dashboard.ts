@@ -1,8 +1,9 @@
 import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
-import { diagnose, type Finding } from "../shared/diagnostics";
+import type { Finding } from "../shared/diagnostics";
 import {
   correlationId,
+  type DiagnosticReport,
   type LanguageRule,
   parseRequest,
   type Request,
@@ -21,9 +22,13 @@ import {
   setAction,
   write,
 } from "./configuration";
+import { createDiagnosticReport } from "./diagnostic-report";
 import { flags, status } from "./model";
 import { providersFor } from "./providers";
-import type { Workflows } from "./workflows";
+import type { Store, Workflows } from "./workflows";
+
+const diagnosticHistoryKey = "formattingControls.diagnostics.v1";
+const diagnosticHistoryLimit = 20;
 
 export class Dashboard implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
@@ -34,6 +39,7 @@ export class Dashboard implements vscode.Disposable {
   private active = vscode.window.activeTextEditor?.document;
   private page: Snapshot["page"] = "formatting";
   private focusFinding: string | undefined;
+  private diagnosticHistory: DiagnosticReport[];
   private queue = Promise.resolve();
   private get activeDocument(): vscode.TextDocument | undefined {
     return this.active?.isClosed ? undefined : this.active;
@@ -43,7 +49,11 @@ export class Dashboard implements vscode.Disposable {
     private readonly onResponse?: (message: Response) => unknown,
     private readonly workflows?: Workflows,
     private readonly extraFindings: (scope: Scope) => Finding[] = () => [],
-  ) {}
+    private readonly workspaceState?: Store,
+  ) {
+    this.diagnosticHistory =
+      workspaceState?.get<DiagnosticReport[]>(diagnosticHistoryKey) ?? [];
+  }
   private reconcileScope(): void {
     try {
       this.selection(this.scope);
@@ -319,10 +329,7 @@ export class Dashboard implements vscode.Disposable {
       languages,
       settings,
       providers: detected,
-      findings: [
-        ...this.extraFindings(this.scope),
-        ...diagnose(settings, detected),
-      ],
+      diagnosticHistory: this.diagnosticHistory,
       rules,
       profiles,
       recovery,
@@ -433,6 +440,28 @@ export class Dashboard implements vscode.Disposable {
         throw new Error(
           "Settings changed. Review the refreshed values and try again.",
         );
+      if (request.type === "runDiagnostics") {
+        const state = await this.snapshot();
+        if (state.revision !== request.revision)
+          throw new Error(
+            "The inspection context changed. Run diagnostics again.",
+          );
+        const report = createDiagnosticReport(
+          state,
+          this.extraFindings(state.scope),
+        );
+        const history = [report, ...this.diagnosticHistory].slice(
+          0,
+          diagnosticHistoryLimit,
+        );
+        if (state.hasWorkspace)
+          await this.workspaceState?.update(diagnosticHistoryKey, history);
+        this.diagnosticHistory = history;
+        if (state.navigation === this.navigation) this.focusFinding = undefined;
+        this.revision++;
+        await this.publish(request.id);
+        return;
+      }
       if (request.type === "formattingPause") {
         if (!this.workflows)
           throw new Error("Workflow storage is unavailable.");

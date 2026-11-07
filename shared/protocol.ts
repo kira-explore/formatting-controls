@@ -21,6 +21,7 @@ export type ActionValue = "explicit" | "always" | "never";
 export type Operation =
   | { type: "ready" }
   | { type: "read" }
+  | { type: "runDiagnostics"; revision: number }
   | {
       type: "set";
       key: Key;
@@ -69,6 +70,24 @@ export interface LanguageRule {
   keys: Key[];
   sources: string[];
 }
+export interface DiagnosticValue {
+  value: boolean | string | number | null;
+  source: string;
+}
+export interface DiagnosticReport {
+  id: string;
+  createdAt: number;
+  scopeLabel: string;
+  selectedLanguage?: string;
+  language: string;
+  fileName?: string;
+  status: Snapshot["status"];
+  formatterName: string;
+  settings: (DiagnosticValue & { key: Key })[];
+  actions: (DiagnosticValue & { id: string })[];
+  legacyActions: string[];
+  findings: Finding[];
+}
 export interface Snapshot {
   remoteName?: string;
   revision: number;
@@ -89,7 +108,7 @@ export interface Snapshot {
   profiles: ProfileSummary[];
   recovery: Recovery | null;
   workflowError: string | null;
-  findings: Finding[];
+  diagnosticHistory: DiagnosticReport[];
   rules: LanguageRule[];
 }
 export type Response =
@@ -164,7 +183,11 @@ export const parseRequest = (raw: unknown): Request => {
     return raw as Request;
   if (!Number.isSafeInteger(raw.revision) || Number(raw.revision) < 0)
     throw new Error("Invalid settings revision.");
-  if (raw.type === "pause" || raw.type === "formattingPause")
+  if (
+    raw.type === "pause" ||
+    raw.type === "formattingPause" ||
+    raw.type === "runDiagnostics"
+  )
     return raw as Request;
   if (
     raw.type === "profile" &&

@@ -32,6 +32,7 @@ export const activate = (context: vscode.ExtensionContext): void => {
     undefined,
     workflows,
     (scope) => controls.diagnostics(scope),
+    context.workspaceState,
   );
   const item = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,

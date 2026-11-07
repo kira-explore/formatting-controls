@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
+import { StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { languageName } from "../../shared/language";
 import type { Key, Scope, Setting } from "../../shared/protocol";
@@ -36,20 +36,12 @@ const App = () => {
   );
   const effectiveDelay = settingsByKey.get("files.autoSaveDelay")?.effective;
   useEffect(() => setDelay(String(effectiveDelay ?? 1000)), [effectiveDelay]);
-  const ready = !!state;
-  const focusedNavigation = useRef(-1);
+  const navigation = state?.navigation;
   useEffect(() => {
-    if (!ready) return;
+    if (navigation === undefined) return;
     document.getElementById(`page-${page}`)?.focus({ preventScroll: true });
     window.scrollTo(0, 0);
-    if (page === "diagnostics" && state?.focusFinding) {
-      if (focusedNavigation.current === state.navigation) return;
-      focusedNavigation.current = state.navigation;
-      const finding = document.getElementById(`finding-${state.focusFinding}`);
-      finding?.focus({ preventScroll: true });
-      finding?.scrollIntoView({ block: "center" });
-    }
-  }, [page, ready, state?.focusFinding, state?.navigation]);
+  }, [page, navigation]);
   if (!state)
     return (
       <main className="loading">
@@ -496,7 +488,11 @@ const App = () => {
             </>
           )}
           <div aria-live="polite" className="feedback">
-            {pending ? "Updating editor…" : notice}
+            {pending
+              ? page === "diagnostics"
+                ? "Working…"
+                : "Updating editor…"
+              : notice}
           </div>
           {error && (
             <div className="error" role="alert">
@@ -524,7 +520,15 @@ const App = () => {
               </div>
             )}
           {page === "diagnostics" && (
-            <Diagnostics state={state} navigate={setPage} />
+            <Diagnostics
+              key={navigation}
+              state={state}
+              navigate={setPage}
+              pending={disabled}
+              run={() =>
+                send({ type: "runDiagnostics", revision: state.revision })
+              }
+            />
           )}
           {["rules", "profiles"].includes(page) && (
             <WorkflowPages
