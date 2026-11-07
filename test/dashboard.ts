@@ -192,6 +192,12 @@ export const reviewDashboard = async (
             ),
             "true",
           );
+          assert.equal(
+            await evaluate(
+              "document.querySelector('.diagnostic-history-section').nextElementSibling.className",
+            ),
+            "diagnostic-run",
+          );
         }
         const result = await evaluate<{
           violations: { id: string; nodes: { target: string[] }[] }[];
@@ -246,6 +252,30 @@ export const reviewDashboard = async (
             ),
             "Long save-action IDs must show the mode and source without overflowing",
           );
+          if (narrow) {
+            await evaluate(
+              "document.querySelector('.diagnostic-history-actions button').click()",
+            );
+            await wait("!!document.querySelector('#diagnostic-clear-note')");
+            await evaluate(
+              "document.querySelector('.diagnostic-history-actions button').click()",
+            );
+            assert.equal(
+              await evaluate(
+                "document.querySelectorAll('.diagnostic-history li').length",
+              ),
+              3,
+            );
+            await evaluate(
+              "document.querySelector('.diagnostic-history-actions button').click()",
+            );
+            await evaluate(
+              "document.querySelector('.diagnostic-history-actions button:last-child').click()",
+            );
+            await wait(
+              "!document.querySelector('#diagnostic-report') && document.querySelector('.diagnostic-run [role=status]').textContent === 'No diagnostics run yet.'",
+            );
+          }
         }
         if (name === "Formatting") {
           assert.equal(

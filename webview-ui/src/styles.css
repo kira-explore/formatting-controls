@@ -192,6 +192,13 @@ nav button.active {
   color: inherit;
   font-size: 1rem;
 }
+:is(nav button, .sidebar-footer .help-setup):not([aria-current="page"]):hover {
+  background: var(
+    --vscode-list-hoverBackground,
+    var(--vscode-toolbar-hoverBackground, #333)
+  );
+  color: var(--vscode-list-hoverForeground, var(--vscode-foreground, #ccc));
+}
 .sidebar-footer .help-setup[aria-current="page"] {
   background: var(--vscode-list-activeSelectionBackground, #203844);
   color: var(--vscode-list-activeSelectionForeground, #fff);
@@ -712,6 +719,25 @@ summary {
 .diagnostic-run p {
   margin: 0;
 }
+.diagnostic-history-section {
+  margin-bottom: 20px;
+}
+.diagnostic-history-heading,
+.diagnostic-history-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.diagnostic-history-heading {
+  justify-content: space-between;
+}
+.diagnostic-history-heading h2 {
+  margin: 0;
+}
+.diagnostic-history-section > p {
+  margin: 8px 0 0;
+}
 .diagnostic-context-note {
   margin: 12px 0 0;
 }
@@ -722,7 +748,7 @@ summary {
 }
 .diagnostic-history {
   list-style: none;
-  max-height: 18rem;
+  max-height: 12rem;
   overflow: auto;
   margin: 12px 0 0;
   padding: 4px;

@@ -498,6 +498,22 @@ export const run = async (): Promise<void> => {
         diagnosticStore,
       );
       assert.deepEqual((await reopened.snapshot()).diagnosticHistory, history);
+      await diagnostics.handle({
+        id: "diagnostic-clear",
+        type: "clearDiagnosticHistory",
+        scope: inspectionScope,
+        revision: (await diagnostics.snapshot()).revision,
+      });
+      assert.deepEqual((await diagnostics.snapshot()).diagnosticHistory, []);
+      const afterClear = new Dashboard(
+        ext.extensionUri,
+        undefined,
+        undefined,
+        undefined,
+        diagnosticStore,
+      );
+      assert.deepEqual((await afterClear.snapshot()).diagnosticHistory, []);
+      assert.equal(own(workspace, "editor.formatOnSave"), true);
     } finally {
       diagnostics.dispose();
       await write(workspace, "editor.formatOnSave", originalSave);

@@ -528,6 +528,12 @@ const App = () => {
               run={() =>
                 send({ type: "runDiagnostics", revision: state.revision })
               }
+              clear={() =>
+                send({
+                  type: "clearDiagnosticHistory",
+                  revision: state.revision,
+                })
+              }
             />
           )}
           {["rules", "profiles"].includes(page) && (

@@ -21,7 +21,7 @@ export type ActionValue = "explicit" | "always" | "never";
 export type Operation =
   | { type: "ready" }
   | { type: "read" }
-  | { type: "runDiagnostics"; revision: number }
+  | { type: "runDiagnostics" | "clearDiagnosticHistory"; revision: number }
   | {
       type: "set";
       key: Key;
@@ -186,7 +186,8 @@ export const parseRequest = (raw: unknown): Request => {
   if (
     raw.type === "pause" ||
     raw.type === "formattingPause" ||
-    raw.type === "runDiagnostics"
+    raw.type === "runDiagnostics" ||
+    raw.type === "clearDiagnosticHistory"
   )
     return raw as Request;
   if (

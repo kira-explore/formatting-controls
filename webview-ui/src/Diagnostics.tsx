@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { diagnosticScopeLabel } from "../../shared/diagnostic-context";
 import { languageName } from "../../shared/language";
 import type { DiagnosticReport, Key, Snapshot } from "../../shared/protocol";
@@ -10,6 +10,12 @@ const autoSaveLabels: Record<string, string> = {
   afterDelay: "After a delay",
   onFocusChange: "When the editor loses focus",
   onWindowChange: "When the window loses focus",
+};
+const diagnosticActionNames: Record<string, string> = {
+  ...actionNames,
+  "source.action.useSortedAttributes.biome": "Sort attributes · Biome",
+  "source.action.useSortedKeys.biome": "Sort keys · Biome",
+  "source.action.useSortedProperties.biome": "Sort properties · Biome",
 };
 const actionMode = (value: unknown): string => {
   switch (value) {
@@ -72,15 +78,24 @@ export const Diagnostics = ({
   state,
   navigate,
   run,
+  clear,
   pending,
 }: {
   state: Snapshot;
   navigate: (page: string) => void;
   run: () => void;
+  clear: () => void;
   pending: boolean;
 }) => {
   const [selection, setSelection] = useState<{ id: string; latest: string }>();
+  const [clearFor, setClearFor] = useState<string>();
+  const runButton = useRef<HTMLButtonElement>(null);
   const latest = state.diagnosticHistory[0];
+  const confirmingClear = !!latest && clearFor === latest.id;
+
+  useEffect(() => {
+    if (!pending && !latest && clearFor) runButton.current?.focus();
+  }, [pending, latest, clearFor]);
   const report =
     (selection && selection.latest === latest?.id
       ? state.diagnosticHistory.find((entry) => entry.id === selection.id)
@@ -88,10 +103,67 @@ export const Diagnostics = ({
 
   return (
     <div className="diagnostics">
+      {latest && report && (
+        <section
+          className="diagnostic-history-section"
+          aria-labelledby="diagnostic-history"
+        >
+          <div className="diagnostic-history-heading">
+            <h2 id="diagnostic-history">Run history</h2>
+            <div className="diagnostic-history-actions">
+              {confirmingClear && (
+                <button type="button" onClick={() => setClearFor(undefined)}>
+                  Cancel
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={pending}
+                aria-describedby={
+                  confirmingClear ? "diagnostic-clear-note" : undefined
+                }
+                onClick={confirmingClear ? clear : () => setClearFor(latest.id)}
+              >
+                {confirmingClear ? "Delete saved runs" : "Clear history"}
+              </button>
+            </div>
+          </div>
+          {confirmingClear && (
+            <p id="diagnostic-clear-note" role="status">
+              Delete all saved diagnostic runs for this{" "}
+              {state.hasWorkspace ? "workspace" : "window"}?
+            </p>
+          )}
+          <ul className="diagnostic-history">
+            {state.diagnosticHistory.map((entry) => (
+              <li key={entry.id}>
+                <button
+                  type="button"
+                  aria-pressed={report.id === entry.id}
+                  aria-controls="diagnostic-report"
+                  onClick={() =>
+                    setSelection({ id: entry.id, latest: latest.id })
+                  }
+                >
+                  <span>
+                    {runTime.format(entry.createdAt)} ·{" "}
+                    {entry.fileName ?? "No active file"}
+                  </span>
+                  <small>
+                    {runContext(entry)}
+                    {entry.id === latest.id && " · Latest"}
+                  </small>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <div className="diagnostic-run">
         <button
           type="button"
           className="primary"
+          ref={runButton}
           disabled={pending}
           onClick={run}
         >
@@ -110,66 +182,34 @@ export const Diagnostics = ({
         </p>
       )}
       {latest && report && (
-        <>
-          <section
-            className="diagnostics-section"
-            aria-labelledby="diagnostic-history"
-          >
-            <h2 id="diagnostic-history">Run history</h2>
-            <ul className="diagnostic-history">
-              {state.diagnosticHistory.map((entry) => (
-                <li key={entry.id}>
-                  <button
-                    type="button"
-                    aria-pressed={report.id === entry.id}
-                    aria-controls="diagnostic-report"
-                    onClick={() =>
-                      setSelection({ id: entry.id, latest: latest.id })
-                    }
-                  >
-                    <span>
-                      {runTime.format(entry.createdAt)} ·{" "}
-                      {entry.fileName ?? "No active file"}
-                    </span>
-                    <small>
-                      {runContext(entry)}
-                      {entry.id === latest.id && " · Latest"}
-                    </small>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-          <section
-            id="diagnostic-report"
-            className="diagnostics-section"
-            aria-labelledby="diagnostic-report-title"
-          >
-            <h2 id="diagnostic-report-title">
-              {report.id === latest.id
-                ? "Last run results"
-                : "Selected run results"}
-            </h2>
-            <p>
-              {report.fileName ?? "No active file"} · {runContext(report)}
+        <section
+          id="diagnostic-report"
+          className="diagnostics-section"
+          aria-labelledby="diagnostic-report-title"
+        >
+          <h2 id="diagnostic-report-title">
+            {report.id === latest.id
+              ? "Last run results"
+              : "Selected run results"}
+          </h2>
+          <p>
+            {report.fileName ?? "No active file"} · {runContext(report)}
+          </p>
+          {(report.scopeLabel !== diagnosticScopeLabel(state) ||
+            report.selectedLanguage !== state.scope.language ||
+            report.language !== state.activeLanguage ||
+            report.fileName !== state.activeFile?.name) && (
+            <p className="diagnostic-context-note">
+              This report was captured for a different file, scope, or language.
             </p>
-            {(report.scopeLabel !== diagnosticScopeLabel(state) ||
-              report.selectedLanguage !== state.scope.language ||
-              report.language !== state.activeLanguage ||
-              report.fileName !== state.activeFile?.name) && (
-              <p className="diagnostic-context-note">
-                This report was captured for a different file, scope, or
-                language.
-              </p>
-            )}
-            <Report
-              key={report.id}
-              report={report}
-              navigate={navigate}
-              canReviewPause={state.recovery?.kind === "pause"}
-            />
-          </section>
-        </>
+          )}
+          <Report
+            key={report.id}
+            report={report}
+            navigate={navigate}
+            canReviewPause={state.recovery?.kind === "pause"}
+          />
+        </section>
       )}
     </div>
   );
@@ -214,6 +254,25 @@ const Report = ({
         key={key}
         label={labels[key]}
         value={settingValue(key, value, formatterName)}
+        source={source}
+      />
+    ));
+  const neverActions = actionCounts.get("Never") ?? [];
+  const activeActions = actions.filter(
+    ({ value }) => actionMode(value) !== "Never",
+  );
+  const actionRows = (rows: DiagnosticReport["actions"]) =>
+    rows.map(({ id, value, source }) => (
+      <SourceRow
+        key={id}
+        label={
+          Object.hasOwn(diagnosticActionNames, id) ? (
+            diagnosticActionNames[id]
+          ) : (
+            <code>{id}</code>
+          )
+        }
+        value={actionMode(value)}
         source={source}
       />
     ));
@@ -337,26 +396,21 @@ const Report = ({
               fixes and import organization can run even with Format on save
               off.
             </p>
-            {actions.length > 0 ? (
-              <dl className="diagnostic-values">
-                {actions.map(({ id, value, source }) => (
-                  <SourceRow
-                    key={id}
-                    label={
-                      Object.hasOwn(actionNames, id) ? (
-                        actionNames[id]
-                      ) : (
-                        <code>{id}</code>
-                      )
-                    }
-                    value={actionMode(value)}
-                    source={source}
-                  />
-                ))}
-              </dl>
-            ) : legacyActions.length > 0 ? (
+            {activeActions.length > 0 && (
+              <dl className="diagnostic-values">{actionRows(activeActions)}</dl>
+            )}
+            {neverActions.length > 0 && (
+              <details className="diagnostic-action-ids">
+                <summary>Never run ({neverActions.length})</summary>
+                <dl className="diagnostic-values">
+                  {actionRows(neverActions)}
+                </dl>
+              </details>
+            )}
+            {legacyActions.length > 0 && (
               <p>Legacy actions: {legacyActions.join(", ")}</p>
-            ) : (
+            )}
+            {actions.length === 0 && legacyActions.length === 0 && (
               <p>No code actions configured.</p>
             )}
             {actions.length > 0 && (

@@ -44,6 +44,12 @@ export class Dashboard implements vscode.Disposable {
   private get activeDocument(): vscode.TextDocument | undefined {
     return this.active?.isClosed ? undefined : this.active;
   }
+  private get hasWorkspace(): boolean {
+    return !!(
+      vscode.workspace.workspaceFile ||
+      vscode.workspace.workspaceFolders?.length
+    );
+  }
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly onResponse?: (message: Response) => unknown,
@@ -335,10 +341,7 @@ export class Dashboard implements vscode.Disposable {
       recovery,
       workflowError,
       status: status(flags.map((k) => effective.get(k, false))),
-      hasWorkspace: !!(
-        vscode.workspace.workspaceFile ||
-        vscode.workspace.workspaceFolders?.length
-      ),
+      hasWorkspace: this.hasWorkspace,
     };
   }
   private async publish(id?: string, message?: string): Promise<void> {
@@ -460,6 +463,14 @@ export class Dashboard implements vscode.Disposable {
         if (state.navigation === this.navigation) this.focusFinding = undefined;
         this.revision++;
         await this.publish(request.id);
+        return;
+      }
+      if (request.type === "clearDiagnosticHistory") {
+        if (this.hasWorkspace)
+          await this.workspaceState?.update(diagnosticHistoryKey, undefined);
+        this.diagnosticHistory = [];
+        this.revision++;
+        await this.publish(request.id, "Diagnostic history cleared.");
         return;
       }
       if (request.type === "formattingPause") {

@@ -2,7 +2,7 @@
 
 ## Providers and diagnostics
 
-Select **Run diagnostics** to capture a read-only report for the current scope and language. **Run history** keeps up to 20 reports per workspace in VS Code's extension storage. Selecting a report shows the original results below the list. In an empty VS Code window, history lasts for the current window session.
+Select **Run diagnostics** to capture a read-only report for the current scope and language. **Run history** appears above the button and keeps up to 20 reports per workspace in VS Code's extension storage. Selecting a report shows the original results below the button. **Clear history** removes those reports after confirmation. In an empty VS Code window, history lasts for the current window session.
 
 Provider adapters declare known languages, formatting capability, supported setting keys and candidate source actions for Biome, ESLint, Prettier and built-in JavaScript/TypeScript, JSON, HTML and CSS tooling. Runtime evidence comes from public VS Code configuration and extension metadata. Prettier has no invented fix-all actions; ESLint formatting is conditional on its formatting flag. Unknown formatter extensions remain selectable by ID without claiming adapter capabilities.
 
