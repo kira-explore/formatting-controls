@@ -719,6 +719,25 @@ summary {
 .diagnostic-run p {
   margin: 0;
 }
+.diagnostic-spinner {
+  box-sizing: border-box;
+  width: 19px;
+  height: 19px;
+  flex: none;
+  border: 2px solid currentColor;
+  border-inline-end-color: transparent;
+  border-radius: 50%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .diagnostic-spinner {
+    animation: diagnostic-spin 0.85s linear infinite;
+  }
+}
+@keyframes diagnostic-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .diagnostic-history-section {
   margin-bottom: 20px;
 }

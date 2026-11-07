@@ -167,8 +167,26 @@ export const reviewDashboard = async (
               await evaluate("!!document.querySelector('#diagnostic-report')"),
               false,
             );
-            await evaluate(
-              "document.querySelector('.diagnostic-run button').click()",
+            assert.equal(
+              await evaluate<boolean>(`new Promise(resolve => {
+                const row = document.querySelector('.diagnostic-run');
+                const button = row.querySelector('button');
+                const observer = new MutationObserver(() => {
+                  if (!row.querySelector('.diagnostic-spinner')) return;
+                  observer.disconnect();
+                  clearTimeout(timeout);
+                  resolve(button.disabled &&
+                    button.textContent.includes('Running diagnostics') &&
+                    row.querySelector('[role=status]').textContent.includes('Checking formatting settings'));
+                });
+                const timeout = setTimeout(() => {
+                  observer.disconnect();
+                  resolve(false);
+                }, 2000);
+                observer.observe(row, { subtree: true, childList: true, characterData: true });
+                button.click();
+              })`),
+              true,
             );
             await wait(
               "document.querySelectorAll('.diagnostic-history button').length === 1",

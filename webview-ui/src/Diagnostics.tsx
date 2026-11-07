@@ -80,12 +80,14 @@ export const Diagnostics = ({
   run,
   clear,
   pending,
+  running,
 }: {
   state: Snapshot;
   navigate: (page: string) => void;
   run: () => void;
   clear: () => void;
   pending: boolean;
+  running: boolean;
 }) => {
   const [selection, setSelection] = useState<{ id: string; latest: string }>();
   const [clearFor, setClearFor] = useState<string>();
@@ -167,13 +169,19 @@ export const Diagnostics = ({
           disabled={pending}
           onClick={run}
         >
-          <Icon name="scan" />
-          Run diagnostics
+          {running ? (
+            <span className="diagnostic-spinner" aria-hidden="true" />
+          ) : (
+            <Icon name="scan" />
+          )}
+          {running ? "Running diagnostics…" : "Run diagnostics"}
         </button>
         <p role="status">
-          {latest
-            ? `Last run ${runTime.format(latest.createdAt)} · ${latest.findings.length === 0 ? "No findings" : `${latest.findings.length} ${latest.findings.length === 1 ? "finding" : "findings"}`}`
-            : "No diagnostics run yet."}
+          {running
+            ? "Checking formatting settings, formatter availability, and save actions…"
+            : latest
+              ? `Last run ${runTime.format(latest.createdAt)} · ${latest.findings.length === 0 ? "No findings" : `${latest.findings.length} ${latest.findings.length === 1 ? "finding" : "findings"}`}`
+              : "No diagnostics run yet."}
         </p>
       </div>
       {state.focusFinding && (
