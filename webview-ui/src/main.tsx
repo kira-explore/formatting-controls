@@ -150,12 +150,21 @@ const App = () => {
         onChange={(e) => mutate(key, e.target.value)}
       >
         {options.map((value) => (
-          <option key={value}>{value}</option>
+          <option key={value} value={value}>
+            {key === "editor.formatOnSaveMode"
+              ? ({
+                  file: "Whole file",
+                  modifications: "Modified lines",
+                  modificationsIfAvailable: "Modified lines if available",
+                }[value] ?? value)
+              : value}
+          </option>
         ))}
       </select>
     );
   };
   const formatterSetting = setting("editor.defaultFormatter");
+  const saveModeSetting = setting("editor.formatOnSaveMode");
   const formatter = display(formatterSetting?.effective);
   const source = (s: Setting) =>
     formatterSource(s, state.scope, languageName(state.activeLanguage)).replace(
@@ -197,32 +206,35 @@ const App = () => {
       </article>
     );
   };
-  const inspection = (s: Setting) => (
+  const inspection = (s: Setting, showControl = false) => (
     <article className="setting-row" key={s.key}>
       <div>
         <h3>{labels[s.key]}</h3>
-        <code>{s.key}</code>
+        {showControl ? <p>{descriptions[s.key]}</p> : <code>{s.key}</code>}
         <small>{source(s)}</small>
       </div>
-      <button
-        type="button"
-        className="text-button"
-        disabled={
-          disabled ||
-          !s.configured ||
-          (!!state.scope.language && s.key.startsWith("files."))
-        }
-        aria-label={`Reset at this scope: ${labels[s.key]}`}
-        onClick={() =>
-          send({ type: "reset", key: s.key, revision: state.revision })
-        }
-      >
-        Reset at this scope
-      </button>
-      <details>
-        <summary>Inspect sources for {labels[s.key]}</summary>
-        <pre>{JSON.stringify(s.sources, null, 2)}</pre>
-      </details>
+      {showControl && <div className="row-controls">{control(s.key)}</div>}
+      <div className="inspection-actions">
+        <details>
+          <summary>Inspect sources for {labels[s.key]}</summary>
+          <pre>{JSON.stringify(s.sources, null, 2)}</pre>
+        </details>
+        <button
+          type="button"
+          className="text-button"
+          disabled={
+            disabled ||
+            !s.configured ||
+            (!!state.scope.language && s.key.startsWith("files."))
+          }
+          aria-label={`Reset at this scope: ${labels[s.key]}`}
+          onClick={() =>
+            send({ type: "reset", key: s.key, revision: state.revision })
+          }
+        >
+          Reset at this scope
+        </button>
+      </div>
     </article>
   );
   const actionSource = (id: string) => {
@@ -341,7 +353,13 @@ const App = () => {
       <div className="workspace">
         <main
           id="page-content"
-          className={page === "welcome" ? "help-page" : undefined}
+          className={
+            page === "welcome"
+              ? "help-page"
+              : page === "formatting"
+                ? "formatting-page"
+                : undefined
+          }
           tabIndex={-1}
           aria-busy={disabled}
         >
@@ -533,70 +551,95 @@ const App = () => {
                   {control("editor.defaultFormatter")}
                 </div>
               </section>
-              <details className="disclosure">
+              <details className="disclosure formatting-disclosure">
                 <summary>Installed formatter tools</summary>
                 <p>
-                  Installed extensions are hints, not a guarantee of language
-                  support. Review provider settings when needed.
+                  Review known providers and their settings. An installed
+                  provider may not support the selected language.
                 </p>
-                <section className="provider-grid">
-                  {state.providers.map((p) => (
-                    <article key={p.id}>
-                      <div className="provider-heading">
-                        <h3>{p.name}</h3>
-                        <span
-                          className={`tag ${p.installed ? "installed" : ""}`}
-                        >
-                          {p.installed ? "Present" : "Not found"}
-                        </span>
-                      </div>
-                      <code>{p.id}</code>
-                      <p>{p.note}</p>
-                      <small>
-                        Enable setting:{" "}
-                        {p.enabled === null
-                          ? "Unknown"
-                          : p.enabled
-                            ? "Yes"
-                            : "No"}{" "}
-                        · Format setting:{" "}
-                        {p.formattingEnabled === null
-                          ? "Unknown"
-                          : p.formattingEnabled
-                            ? "Yes"
-                            : "No"}
-                      </small>
-                      <small>
-                        Candidate actions:{" "}
-                        {p.actions.join(", ") ||
-                          "None declared by this adapter"}
-                      </small>
-                      <details>
-                        <summary>Provider setting evidence</summary>
-                        <pre>{JSON.stringify(p.evidence, null, 2)}</pre>
-                      </details>
-                      <button
-                        type="button"
-                        disabled={disabled || !p.installed}
-                        aria-label={`Open provider settings: ${p.name}`}
-                        onClick={() =>
-                          send({ type: "providerSettings", provider: p.id })
-                        }
-                      >
-                        Open provider settings
-                      </button>
-                      <button
-                        type="button"
-                        disabled={disabled || !p.installed || !p.formatting}
-                        aria-label={`${formatter.toLowerCase() === p.id.toLowerCase() ? "Selected formatter" : "Set default formatter"}: ${p.name}`}
-                        onClick={() => mutate("editor.defaultFormatter", p.id)}
-                      >
-                        {formatter.toLowerCase() === p.id.toLowerCase()
-                          ? "Selected formatter"
-                          : "Set default formatter"}
-                      </button>
-                    </article>
-                  ))}
+                <section className="formatter-tools">
+                  {state.providers
+                    .toSorted(
+                      (a, b) => Number(b.installed) - Number(a.installed),
+                    )
+                    .map((p) => {
+                      const selected =
+                        formatter.toLowerCase() === p.id.toLowerCase();
+                      return (
+                        <article key={p.id} className="formatter-tool">
+                          <div className="formatter-tool-summary">
+                            <div>
+                              <div className="formatter-tool-name">
+                                <h3>{p.name}</h3>
+                                <span
+                                  className={`tag ${p.installed ? "installed" : ""}`}
+                                >
+                                  {p.installed ? "Present" : "Not found"}
+                                </span>
+                              </div>
+                              <p>{p.note}</p>
+                            </div>
+                            {p.installed && (
+                              <div className="button-row">
+                                <button
+                                  type="button"
+                                  disabled={disabled}
+                                  aria-label={`Open provider settings: ${p.name}`}
+                                  onClick={() =>
+                                    send({
+                                      type: "providerSettings",
+                                      provider: p.id,
+                                    })
+                                  }
+                                >
+                                  Open provider settings
+                                </button>
+                                {p.formatting && (
+                                  <button
+                                    type="button"
+                                    disabled={disabled}
+                                    aria-label={`${selected ? "Selected formatter" : "Set default formatter"}: ${p.name}`}
+                                    onClick={() =>
+                                      mutate("editor.defaultFormatter", p.id)
+                                    }
+                                  >
+                                    {selected
+                                      ? "Selected formatter"
+                                      : "Set default formatter"}
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <details className="provider-evidence">
+                            <summary>Provider setting evidence</summary>
+                            <small>
+                              <code>{p.id}</code>
+                            </small>
+                            <small>
+                              Enable setting:{" "}
+                              {p.enabled === null
+                                ? "Unknown"
+                                : p.enabled
+                                  ? "Yes"
+                                  : "No"}
+                              {" · "}Format setting:{" "}
+                              {p.formattingEnabled === null
+                                ? "Unknown"
+                                : p.formattingEnabled
+                                  ? "Yes"
+                                  : "No"}
+                            </small>
+                            <small>
+                              Candidate actions:{" "}
+                              {p.actions.join(", ") ||
+                                "None declared by this adapter"}
+                            </small>
+                            <pre>{JSON.stringify(p.evidence, null, 2)}</pre>
+                          </details>
+                        </article>
+                      );
+                    })}
                 </section>
               </details>
               <section className="automatic-section">
@@ -662,42 +705,53 @@ const App = () => {
                   </p>
                 )}
               </section>
-              <details className="disclosure">
+              <details className="disclosure formatting-disclosure">
                 <summary>Advanced formatting settings</summary>
-                {settingRow("editor.formatOnSaveMode")}
-                <h3>Custom formatter</h3>
-                <form
-                  className="inline-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    mutate("editor.defaultFormatter", customFormatter);
-                  }}
-                >
-                  <input
-                    aria-label="Custom formatter extension ID"
-                    maxLength={200}
-                    placeholder="publisher.extension"
-                    value={customFormatter}
-                    onChange={(e) => setCustomFormatter(e.target.value)}
-                    required
-                    pattern="[\w\-]+\.[\w.\-]+"
-                    disabled={disabled}
-                  />
-                  <button disabled={disabled} type="submit">
-                    Use ID
-                  </button>
-                </form>
                 <p>
-                  Reset removes only the selected scope’s override; inherited
-                  settings apply.
+                  Reset at this scope removes the selected override so inherited
+                  settings can apply.
                 </p>
-                {state.settings
-                  .filter(
-                    (s) =>
-                      s.key.startsWith("editor.format") ||
-                      s.key === "editor.defaultFormatter",
-                  )
-                  .map(inspection)}
+                <div className="advanced-controls">
+                  {saveModeSetting && inspection(saveModeSetting, true)}
+                  <article className="setting-row">
+                    <div>
+                      <h3>Custom formatter</h3>
+                      <p>Set the formatter by its extension ID.</p>
+                    </div>
+                    <form
+                      className="inline-form"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        mutate("editor.defaultFormatter", customFormatter);
+                      }}
+                    >
+                      <input
+                        aria-label="Custom formatter extension ID"
+                        maxLength={200}
+                        placeholder="publisher.extension"
+                        value={customFormatter}
+                        onChange={(e) => setCustomFormatter(e.target.value)}
+                        required
+                        pattern="[\w\-]+\.[\w.\-]+"
+                        disabled={disabled}
+                      />
+                      <button disabled={disabled} type="submit">
+                        Use ID
+                      </button>
+                    </form>
+                  </article>
+                </div>
+                <section className="setting-overrides">
+                  <h2>Setting overrides</h2>
+                  {state.settings
+                    .filter(
+                      (s) =>
+                        (s.key.startsWith("editor.format") &&
+                          s.key !== "editor.formatOnSaveMode") ||
+                        s.key === "editor.defaultFormatter",
+                    )
+                    .map((s) => inspection(s))}
+                </section>
               </details>
             </>
           )}
@@ -714,7 +768,7 @@ const App = () => {
                   <summary>Auto Save setting sources</summary>
                   {state.settings
                     .filter((s) => s.key.startsWith("files."))
-                    .map(inspection)}
+                    .map((s) => inspection(s))}
                 </details>
               </section>
               <section className="save-section">

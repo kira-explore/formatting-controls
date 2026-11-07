@@ -198,6 +198,54 @@ export const reviewDashboard = async (
           layout.scrollWidth <= layout.width + 1,
           `${name} overflows horizontally: ${JSON.stringify(layout)}`,
         );
+        if (name === "Formatting") {
+          assert.equal(
+            await evaluate<number>(
+              "document.querySelector('.feedback').getBoundingClientRect().height",
+            ),
+            0,
+            "An empty feedback region must not reserve a row",
+          );
+          for (const [index, control] of [
+            [0, ".formatter-tool .button-row button"],
+            [1, 'select[aria-label="Save formatting mode"]'],
+          ] as const) {
+            await evaluate(
+              `document.querySelectorAll('.formatting-disclosure > summary')[${index}].click()`,
+            );
+            assert.ok(
+              await evaluate<boolean>(
+                `[...document.querySelectorAll(${JSON.stringify(control)})].some(control => control.getClientRects().length > 0)`,
+              ),
+              "The expanded section must expose its controls",
+            );
+            assert.ok(
+              await evaluate<boolean>(
+                "document.documentElement.scrollWidth <= innerWidth + 1",
+              ),
+              "Expanded formatting settings must fit the viewport",
+            );
+            if (!narrow) {
+              await evaluate(
+                `document.querySelectorAll('.formatting-disclosure')[${index}].scrollIntoView(); new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))`,
+              );
+              const clip = await page.locator("iframe").first().boundingBox();
+              assert.ok(clip);
+              await page.screenshot({
+                path: join(
+                  directory,
+                  index === 0
+                    ? "formatter-tools.png"
+                    : "advanced-formatting.png",
+                ),
+                clip,
+              });
+            }
+            await evaluate(
+              `document.querySelectorAll('.formatting-disclosure > summary')[${index}].click()`,
+            );
+          }
+        }
         if (narrow) {
           assert.ok(
             await evaluate<boolean>(

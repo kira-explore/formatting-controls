@@ -1,6 +1,7 @@
 :root {
   font-family: var(--vscode-font-family, system-ui, sans-serif);
-  font-size: var(--vscode-font-size, 13px);
+  font-size: calc(var(--vscode-font-size, 13px) + 2px);
+  line-height: 1.45;
   color: var(--vscode-foreground, #ccc);
   background: var(--vscode-editor-background, #1f1f1f);
   font-synthesis: none;
@@ -31,7 +32,7 @@ input:not([type="checkbox"]) {
   border-radius: 4px;
   background: var(--field);
   padding: 7px 11px;
-  min-height: 32px;
+  min-height: 38px;
 }
 button {
   cursor: pointer;
@@ -64,7 +65,8 @@ p {
   margin-top: 0;
 }
 h1 {
-  font-size: 26px;
+  font-size: 2rem;
+  line-height: 1.2;
   font-weight: 500;
   margin-bottom: 8px;
 }
@@ -72,12 +74,12 @@ h1:focus {
   outline: none;
 }
 h2 {
-  font-size: 16px;
+  font-size: 1.25rem;
   font-weight: 500;
   margin-bottom: 7px;
 }
 h3 {
-  font-size: 13px;
+  font-size: 1rem;
   font-weight: 500;
   margin-bottom: 6px;
 }
@@ -94,7 +96,7 @@ small {
 code,
 pre {
   font-family: var(--vscode-editor-font-family, monospace);
-  font-size: 11px;
+  font-size: 0.87rem;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
@@ -111,7 +113,7 @@ pre {
 }
 .app {
   display: grid;
-  grid-template-columns: 194px minmax(0, 1fr);
+  grid-template-columns: 218px minmax(0, 1fr);
   grid-template-rows: 64px 1fr;
   min-height: 100vh;
 }
@@ -135,7 +137,9 @@ pre {
   padding: 5px;
 }
 .brand {
-  font-size: 15px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 1.05rem;
   text-align: left;
 }
 .help-button {
@@ -171,9 +175,9 @@ nav button.active {
 }
 .sidebar-footer {
   margin-top: auto;
-  padding: 28px 8px 0;
+  padding: 28px 0 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 0.87rem;
 }
 .sidebar-footer .help-setup {
   display: flex;
@@ -182,17 +186,23 @@ nav button.active {
   background: transparent;
   border: 0;
   margin-bottom: 18px;
-  padding: 8px;
+  padding: 13px 12px;
+  width: 100%;
+  text-align: left;
   color: inherit;
-  font-size: 13px;
+  font-size: 1rem;
 }
 .sidebar-footer .help-setup[aria-current="page"] {
   background: var(--vscode-list-activeSelectionBackground, #203844);
   color: var(--vscode-list-activeSelectionForeground, #fff);
 }
+body:is(.vscode-dark, .vscode-light)
+  :is(nav button.active, .sidebar-footer .help-setup[aria-current="page"]) {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  color: var(--vscode-foreground, #ccc);
+}
 .sidebar-footer p {
-  max-width: 140px;
-  margin-bottom: 0;
+  margin: 0 12px;
 }
 .workspace {
   min-width: 0;
@@ -200,7 +210,7 @@ nav button.active {
 main {
   max-width: 1220px;
   margin: 0 auto;
-  padding: 34px 34px 22px;
+  padding: 38px 42px 28px;
   min-width: 0;
 }
 .page-heading {
@@ -211,7 +221,7 @@ main {
   margin-bottom: 27px;
 }
 .subtitle {
-  font-size: 13px;
+  font-size: 1rem;
   margin: 0;
 }
 .active-context {
@@ -239,7 +249,7 @@ main {
 }
 .active-context p {
   margin: 5px 0 0;
-  font-size: 12px;
+  font-size: 0.93rem;
 }
 .scope-bar {
   display: grid;
@@ -252,7 +262,7 @@ label {
   display: grid;
   gap: 9px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 0.93rem;
   min-width: 0;
 }
 select {
@@ -262,14 +272,16 @@ select {
 }
 .scope-description {
   grid-column: 1 / -1;
-  font-size: 12px;
+  font-size: 0.93rem;
   margin: 0;
 }
 .feedback {
-  font-size: 12px;
+  font-size: 0.93rem;
   color: var(--muted);
-  padding: 6px 0;
-  min-height: 25px;
+  overflow-wrap: anywhere;
+}
+.feedback:not(:empty) {
+  margin: 14px 0;
 }
 .error {
   padding: 14px;
@@ -283,7 +295,7 @@ select {
   margin: 6px 0 0 12px;
 }
 .formatter-section {
-  padding: 0 0 21px;
+  padding: 22px 0;
   border-bottom: 1px solid var(--border);
 }
 .formatter-row {
@@ -294,7 +306,7 @@ select {
 }
 .formatter-row p {
   margin-bottom: 0;
-  font-size: 12px;
+  font-size: 0.93rem;
   white-space: pre-line;
 }
 .formatter-control {
@@ -311,6 +323,101 @@ summary {
 }
 .disclosure[open] > summary {
   margin-bottom: 22px;
+}
+.formatting-disclosure {
+  padding: 0;
+}
+.formatting-disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 0;
+  color: inherit;
+  font-weight: 500;
+}
+.formatting-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+.formatting-disclosure > summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex: none;
+  margin: 0 5px 3px 0;
+  border: solid var(--muted);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+.formatting-disclosure[open] > summary {
+  margin-bottom: 4px;
+}
+.formatting-disclosure[open] > summary::after {
+  margin-bottom: -3px;
+  transform: rotate(225deg);
+}
+.formatting-disclosure > summary:hover {
+  color: var(--accent);
+}
+.formatting-page > .formatting-disclosure:last-of-type {
+  border-bottom: 0;
+}
+.formatting-page > footer {
+  margin-top: 0;
+}
+.formatter-tools,
+.setting-overrides {
+  margin-bottom: 18px;
+}
+.formatter-tool {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 15px 16px;
+}
+.formatter-tool + .formatter-tool {
+  margin-top: 10px;
+}
+.formatter-tool-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px 20px;
+  flex-wrap: wrap;
+}
+.formatter-tool-summary > div:first-child {
+  flex: 1 1 280px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.formatter-tool-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+.formatter-tool-name h3,
+.formatter-tool .button-row {
+  margin: 0;
+}
+.formatter-tool-summary p {
+  margin: 5px 0 0;
+  font-size: 0.93rem;
+}
+.provider-evidence {
+  margin-top: 12px;
+  font-size: 0.93rem;
+  overflow-wrap: anywhere;
+}
+.setting-overrides {
+  border-top: 1px solid var(--border);
+  margin-top: 8px;
+  padding-top: 18px;
+}
+.setting-overrides .setting-row {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  padding: 15px 0;
 }
 .automatic-section {
   padding: 25px 0 30px;
@@ -340,7 +447,7 @@ summary {
 }
 .format-status {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 0.93rem;
   white-space: nowrap;
 }
 .format-status .icon {
@@ -374,7 +481,7 @@ summary {
 }
 .trigger-row p {
   margin: 0;
-  font-size: 12px;
+  font-size: 0.93rem;
   white-space: pre-line;
 }
 .trigger-row div {
@@ -382,7 +489,7 @@ summary {
   overflow-wrap: anywhere;
 }
 .workflow-note {
-  font-size: 12px;
+  font-size: 0.93rem;
   margin: 23px 0 0;
 }
 .setting-row {
@@ -397,12 +504,24 @@ summary {
   border-bottom: 0;
 }
 .setting-row p {
-  font-size: 12px;
+  font-size: 0.93rem;
   margin-bottom: 6px;
 }
-.setting-row details {
+.inspection-actions {
   grid-column: 1 / -1;
-  font-size: 11px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  font-size: 0.93rem;
+}
+.inspection-actions details {
+  min-width: 0;
+  max-width: 100%;
+}
+.inspection-actions .text-button {
+  padding: 0;
 }
 .row-controls {
   min-width: 0;
@@ -418,6 +537,7 @@ summary {
 }
 .inline-form button {
   white-space: nowrap;
+  flex: none;
 }
 .text-button {
   background: transparent;
@@ -431,12 +551,12 @@ summary {
   background: transparent;
 }
 .save-section {
-  padding: 0 0 22px;
+  padding: 22px 0;
   margin-bottom: 25px;
   border-bottom: 1px solid var(--border);
 }
 .save-section > p {
-  font-size: 12px;
+  font-size: 0.93rem;
 }
 .action-row {
   display: flex;
@@ -455,10 +575,10 @@ summary {
 }
 .action-row p {
   margin-bottom: 5px;
-  font-size: 12px;
+  font-size: 0.93rem;
 }
 .action-row small {
-  font-size: 11px;
+  font-size: 0.87rem;
 }
 .custom-action {
   display: flex;
@@ -492,19 +612,19 @@ summary {
   min-width: 0;
 }
 .provider-grid p {
-  font-size: 12px;
+  font-size: 0.93rem;
   margin: 12px 0;
 }
 .provider-grid small {
-  font-size: 11px;
+  font-size: 0.87rem;
 }
 .provider-grid details {
-  font-size: 11px;
+  font-size: 0.87rem;
   margin: 15px 0;
 }
 .provider-grid button {
   margin: 5px 5px 0 0;
-  font-size: 12px;
+  font-size: 0.93rem;
 }
 .provider-heading {
   display: flex;
@@ -517,7 +637,7 @@ summary {
   overflow-wrap: anywhere;
 }
 .tag {
-  font-size: 10px;
+  font-size: 0.8rem;
   border: 1px solid var(--border);
   padding: 3px 7px;
   border-radius: 3px;
@@ -541,7 +661,7 @@ summary {
 }
 .callout p {
   margin: 8px 0;
-  font-size: 12px;
+  font-size: 0.93rem;
 }
 .callout button {
   margin-top: 10px;
@@ -551,7 +671,7 @@ summary {
   border-color: var(--vscode-editorWarning-foreground, #a58849);
 }
 .recovery-card p {
-  font-size: 12px;
+  font-size: 0.93rem;
 }
 .button-row {
   display: flex;
@@ -573,7 +693,7 @@ summary {
   padding: 20px 0;
 }
 .finding p {
-  font-size: 12px;
+  font-size: 0.93rem;
   margin: 8px 0 12px;
 }
 .finding-focused {
@@ -584,7 +704,7 @@ summary {
   width: 100%;
   border-collapse: collapse;
   margin: 22px 0;
-  font-size: 12px;
+  font-size: 0.93rem;
 }
 .sources-table td,
 .sources-table th {
@@ -597,16 +717,16 @@ summary {
   color: var(--muted);
   font-weight: 400;
 }
-.help-page .feedback:empty {
-  display: none;
+.help-page .page-heading {
+  margin-bottom: 32px;
 }
 .setup-guide {
-  padding: 0 0 26px;
+  padding: 0 0 28px;
   border-bottom: 1px solid var(--border);
 }
 .setup-steps {
   display: grid;
-  gap: 17px;
+  gap: 19px;
   padding-left: 22px;
   margin: 20px 0;
 }
@@ -634,6 +754,10 @@ summary {
   width: auto;
   color: inherit;
   line-height: 1.6;
+  font-weight: 500;
+}
+.common-questions summary::marker {
+  color: var(--muted);
 }
 .help-answer {
   padding: 14px 0 0 18px;
@@ -655,7 +779,7 @@ footer {
   padding: 22px 0 0;
   margin-top: 45px;
   border-top: 1px solid var(--border);
-  font-size: 11px;
+  font-size: 0.87rem;
   color: var(--muted);
 }
 footer button {
@@ -715,11 +839,11 @@ footer button:hover {
     padding: 0 14px;
   }
   .brand {
-    font-size: 13px;
+    font-size: 1rem;
     gap: 7px;
   }
   .help-button {
-    font-size: 12px;
+    font-size: 0.93rem;
     gap: 5px;
   }
   .sidebar {
@@ -736,7 +860,7 @@ footer button:hover {
   }
   nav button {
     white-space: nowrap;
-    font-size: 11px;
+    font-size: 0.87rem;
     padding: 8px;
     gap: 6px;
   }
@@ -783,7 +907,7 @@ footer button:hover {
   }
   .sources-table {
     table-layout: fixed;
-    font-size: 11px;
+    font-size: 0.87rem;
   }
   .sources-table td,
   .sources-table th {
