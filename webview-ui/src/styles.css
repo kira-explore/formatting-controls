@@ -700,22 +700,82 @@ summary {
   outline: 1px solid var(--focus);
   outline-offset: 4px;
 }
-.sources-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 22px 0;
-  font-size: 0.93rem;
-}
-.sources-table td,
-.sources-table th {
-  padding: 13px 8px;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
+.diagnostics {
   overflow-wrap: anywhere;
 }
-.sources-table th {
+.diagnostics-section {
+  padding-top: 24px;
+}
+.diagnostics-section + .diagnostics-section {
+  border-top: 1px solid var(--border);
+  margin-top: 22px;
+}
+.diagnostics-summary,
+.diagnostic-values {
+  padding: 0;
+  margin: 0;
+}
+.diagnostics-summary {
+  list-style: none;
+}
+.diagnostics-summary li {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 0;
+}
+.diagnostics-summary li + li,
+.diagnostics .finding + .finding {
+  border-top: 1px solid var(--border);
+}
+.diagnostics-summary li > div {
+  min-width: 0;
+}
+.diagnostics-summary .icon {
+  color: var(--accent);
+  margin-top: 2px;
+}
+.diagnostics-summary p {
+  margin: 0;
+}
+.diagnostics-summary .text-button {
+  margin-top: 8px;
+}
+.diagnostics .finding {
+  border-bottom: 0;
+  padding: 16px 0;
+}
+.diagnostics .provider-heading {
+  flex-wrap: wrap;
+  align-items: center;
+}
+.diagnostic-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr) minmax(0, 1.35fr);
+  align-items: start;
+  gap: 8px 18px;
+  border-bottom: 1px solid var(--border);
+  padding: 13px 0;
+}
+.diagnostic-column-headings,
+.diagnostic-source {
   color: var(--muted);
-  font-weight: 400;
+}
+.diagnostic-values dt {
+  font-weight: 500;
+}
+.diagnostic-values dd {
+  margin: 0;
+}
+.diagnostic-source {
+  white-space: pre-line;
+}
+.diagnostic-actions > p,
+.diagnostic-actions > pre {
+  margin-bottom: 0;
+}
+.diagnostics-page > footer {
+  margin-top: 18px;
 }
 .help-page .page-heading {
   margin-bottom: 32px;
@@ -905,13 +965,12 @@ footer button:hover {
   .action-row select {
     max-width: 100%;
   }
-  .sources-table {
-    table-layout: fixed;
-    font-size: 0.87rem;
+  .diagnostic-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 3px;
   }
-  .sources-table td,
-  .sources-table th {
-    padding: 10px 5px;
+  .diagnostic-column-headings {
+    display: none;
   }
   footer {
     flex-wrap: wrap;

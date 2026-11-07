@@ -45,6 +45,34 @@ export const formatterSource = (
   return `${sourceRank > selectedRank ? "Effective from" : "Inherited from"} ${source}.`;
 };
 
+/** Read a single save action's value at each scope. */
+export const settingForAction = (
+  setting: Setting,
+  id: string,
+  effective: unknown,
+): Setting => {
+  const valueAt = (value: unknown) =>
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.hasOwn(value, id)
+      ? (value as Record<string, unknown>)[id]
+      : undefined;
+  const owned = valueAt(setting.owned);
+  return {
+    ...setting,
+    effective,
+    owned,
+    configured: owned !== undefined,
+    sources: Object.fromEntries(
+      Object.entries(setting.sources).map(([field, value]) => [
+        field,
+        valueAt(value),
+      ]),
+    ),
+  };
+};
+
 /** Presence and explicit provider switches are evidence; language lists are only hints. */
 export const formatterWarning = (
   settings: readonly Setting[],

@@ -13,6 +13,7 @@ export const labels: Record<string, string> = {
   "editor.defaultFormatter": "Default formatter",
   "files.autoSave": "Auto Save",
   "files.autoSaveDelay": "Auto Save delay",
+  "editor.codeActionsOnSave": "Code actions on save",
 };
 export const descriptions: Record<string, string> = {
   "editor.formatOnSave":
@@ -27,6 +28,11 @@ export const descriptions: Record<string, string> = {
   "files.autoSave": "Choose when VS Code saves your changes automatically.",
   "files.autoSaveDelay":
     "Milliseconds to wait when Auto Save is set to afterDelay.",
+};
+export const saveModeLabels: Record<string, string> = {
+  file: "Whole file",
+  modifications: "Modified lines",
+  modificationsIfAvailable: "Modified lines if available",
 };
 export const actionNames: Record<string, string> = {
   "source.fixAll": "Fix all",

@@ -39,7 +39,7 @@ export const diagnose = (
         id: "provider-off",
         confidence: "verified",
         title: "A provider setting disables formatting",
-        detail: `Check the displayed ${provider.name} configuration evidence in Formatters.`,
+        detail: `Review the configuration evidence for ${provider.name} in Installed formatter tools.`,
       });
     if (
       provider?.installed &&

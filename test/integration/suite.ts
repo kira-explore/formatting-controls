@@ -476,6 +476,11 @@ export const run = async (): Promise<void> => {
           }),
         );
       } else {
+        await setAction(
+          workspace,
+          "source.fixAll.veryLongProviderActionForDashboardDiagnostics",
+          "explicit",
+        );
         await dashboard.open();
       }
       await vscode.commands.executeCommand("workbench.action.closeSidebar");

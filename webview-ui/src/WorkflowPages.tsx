@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { languageName } from "../../shared/language";
 import type { Operation, Snapshot } from "../../shared/protocol";
-import { formatterSource } from "../../shared/status-details";
-import { labels } from "./catalog";
 
 interface Props {
   page: string;
@@ -10,7 +8,6 @@ interface Props {
   disabled: boolean;
   send: (operation: Operation) => void;
   selectLanguage: (language: string) => void;
-  navigate: (page: string) => void;
 }
 export const WorkflowPages = ({
   page,
@@ -18,7 +15,6 @@ export const WorkflowPages = ({
   disabled,
   send,
   selectLanguage,
-  navigate,
 }: Props) => {
   const [name, setName] = useState("");
   const [addingRule, setAddingRule] = useState(false);
@@ -40,90 +36,6 @@ export const WorkflowPages = ({
       ...(profileName ? { name: profileName } : {}),
       revision: state.revision,
     });
-  if (page === "diagnostics")
-    return (
-      <>
-        <h2>What applies now</h2>
-        <section className="settings-list">
-          {state.focusFinding &&
-            !state.findings.some(
-              (finding) => finding.id === state.focusFinding,
-            ) && (
-              <p role="status">
-                The previously reported problem is no longer detected.
-              </p>
-            )}
-          {state.findings.map((f) => (
-            <article
-              className={`finding${state.focusFinding === f.id ? " finding-focused" : ""}`}
-              key={f.id}
-              id={`finding-${f.id}`}
-              tabIndex={-1}
-              aria-label={f.title}
-            >
-              <div className="provider-heading">
-                <h3>{f.title}</h3>
-                <span
-                  className={`tag ${f.confidence === "verified" ? "installed" : ""}`}
-                >
-                  {f.confidence}
-                </span>
-              </div>
-              <p>{f.detail}</p>
-              {["formatter-unavailable", "provider-off"].includes(f.id) && (
-                <button type="button" onClick={() => navigate("formatting")}>
-                  Review formatter
-                </button>
-              )}
-              {f.id === "pause-failed" && state.recovery?.kind === "pause" && (
-                <button type="button" onClick={() => navigate("profiles")}>
-                  Review pause recovery
-                </button>
-              )}
-            </article>
-          ))}
-          {!state.findings.length && (
-            <p className="empty">
-              No findings for the selected context. This is not a guarantee of
-              provider execution.
-            </p>
-          )}
-        </section>
-        <section className="disclosure">
-          <h2>Setting sources</h2>
-          <table className="sources-table">
-            <thead>
-              <tr>
-                <th scope="col">Setting</th>
-                <th scope="col">Value</th>
-                <th scope="col">Effective source</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.settings.map((setting) => (
-                <tr key={setting.key}>
-                  <th scope="row">{labels[setting.key] ?? setting.key}</th>
-                  <td>
-                    {typeof setting.effective === "boolean"
-                      ? setting.effective
-                        ? "On"
-                        : "Off"
-                      : (JSON.stringify(setting.effective) ?? "Not configured")}
-                  </td>
-                  <td>
-                    {formatterSource(
-                      setting,
-                      state.scope,
-                      languageName(state.activeLanguage),
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      </>
-    );
   if (page === "rules")
     return (
       <>

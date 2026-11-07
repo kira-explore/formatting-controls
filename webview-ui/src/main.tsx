@@ -2,9 +2,17 @@ import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { languageName } from "../../shared/language";
 import type { Key, Scope, Setting } from "../../shared/protocol";
-import { formatterSource } from "../../shared/status-details";
+import { formatterSource, settingForAction } from "../../shared/status-details";
 import { BrandMark } from "./BrandMark";
-import { actionNames, descriptions, display, labels, pages } from "./catalog";
+import {
+  actionNames,
+  descriptions,
+  display,
+  labels,
+  pages,
+  saveModeLabels,
+} from "./catalog";
+import { Diagnostics } from "./Diagnostics";
 import { HelpSetup } from "./HelpSetup";
 import { Icon } from "./Icon";
 import { useEditor } from "./useEditor";
@@ -152,11 +160,7 @@ const App = () => {
         {options.map((value) => (
           <option key={value} value={value}>
             {key === "editor.formatOnSaveMode"
-              ? ({
-                  file: "Whole file",
-                  modifications: "Modified lines",
-                  modificationsIfAvailable: "Modified lines if available",
-                }[value] ?? value)
+              ? (saveModeLabels[value] ?? value)
               : value}
           </option>
         ))}
@@ -180,6 +184,13 @@ const App = () => {
       : state.scope.target === "workspace"
         ? "Changes apply to this workspace."
         : `Changes apply only to the ${selectedFolder?.name ?? "selected"} folder.`;
+  const inspectedLanguage = languageName(state.activeLanguage);
+  const inspectionContext =
+    state.activeLanguage === "All languages"
+      ? "Inspecting settings for all languages."
+      : state.scope.language
+        ? `Inspecting ${inspectedLanguage} settings.`
+        : `Inspecting settings for the active language, ${inspectedLanguage}.`;
   const status =
     state.status === "ON"
       ? "Enabled"
@@ -240,22 +251,7 @@ const App = () => {
   const actionSource = (id: string) => {
     const group = setting("editor.codeActionsOnSave");
     if (!group) return "Using VS Code default";
-    const valueAt = (value: unknown) =>
-      value && typeof value === "object" && !Array.isArray(value)
-        ? (value as Record<string, unknown>)[id]
-        : undefined;
-    return source({
-      ...group,
-      effective: actionObject[id],
-      owned: valueAt(group.owned),
-      configured: valueAt(group.owned) !== undefined,
-      sources: Object.fromEntries(
-        Object.entries(group.sources).map(([field, value]) => [
-          field,
-          valueAt(value),
-        ]),
-      ),
-    });
+    return source(settingForAction(group, id, actionObject[id]));
   };
   const actionRow = (id: string) => (
     <article className="action-row" key={id}>
@@ -353,13 +349,7 @@ const App = () => {
       <div className="workspace">
         <main
           id="page-content"
-          className={
-            page === "welcome"
-              ? "help-page"
-              : page === "formatting"
-                ? "formatting-page"
-                : undefined
-          }
+          className={page === "welcome" ? "help-page" : `${page}-page`}
           tabIndex={-1}
           aria-busy={disabled}
         >
@@ -375,7 +365,8 @@ const App = () => {
                     actions: "Control Auto Save, fixes and import actions.",
                     rules: "Keep language exceptions in one place.",
                     profiles: "Save and reuse formatting preferences.",
-                    diagnostics: "Understand the settings that apply.",
+                    diagnostics:
+                      "See what applies and trace each setting to its source.",
                     welcome:
                       "Get started with formatting and find answers when you need them.",
                   }[page]
@@ -485,18 +476,23 @@ const App = () => {
                   </select>
                 </label>
                 <p className="scope-description">
-                  {scopeDescription}
-                  {state.scope.language
+                  {page === "diagnostics"
+                    ? inspectionContext
+                    : scopeDescription}
+                  {page !== "diagnostics" && state.scope.language
                     ? ` Editing ${languageName(state.scope.language)} rules.`
                     : ""}
                 </p>
               </section>
-              {state.remoteName && state.scope.target === "user" && (
-                <p className="callout" role="note">
-                  User changes may affect local User settings or existing Remote
-                  settings. Use VS Code Settings to select Remote explicitly.
-                </p>
-              )}
+              {page !== "diagnostics" &&
+                state.remoteName &&
+                state.scope.target === "user" && (
+                  <p className="callout" role="note">
+                    User changes may affect local User settings or existing
+                    Remote settings. Use VS Code Settings to select Remote
+                    explicitly.
+                  </p>
+                )}
             </>
           )}
           <div aria-live="polite" className="feedback">
@@ -527,13 +523,15 @@ const App = () => {
                 </div>
               </div>
             )}
-          {["rules", "diagnostics", "profiles"].includes(page) && (
+          {page === "diagnostics" && (
+            <Diagnostics state={state} navigate={setPage} />
+          )}
+          {["rules", "profiles"].includes(page) && (
             <WorkflowPages
               page={page}
               state={state}
               disabled={disabled}
               send={send}
-              navigate={setPage}
               selectLanguage={(language) => {
                 send({ type: "read" }, { ...state.scope, language });
                 setPage("formatting");

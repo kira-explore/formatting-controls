@@ -198,6 +198,29 @@ export const reviewDashboard = async (
           layout.scrollWidth <= layout.width + 1,
           `${name} overflows horizontally: ${JSON.stringify(layout)}`,
         );
+        if (name === "Diagnostics") {
+          assert.ok(
+            await evaluate<boolean>(
+              "document.querySelector('.diagnostics-summary').textContent.includes('of 3 triggers enabled')",
+            ),
+          );
+          await evaluate(
+            "document.querySelector('.diagnostic-actions summary').click()",
+          );
+          assert.ok(
+            await evaluate<boolean>(
+              `[...document.querySelectorAll('.diagnostic-actions dl > div')].some(row =>
+                row.querySelector('dt').textContent === 'source.fixAll.veryLongProviderActionForDashboardDiagnostics' &&
+                row.querySelector('dd').textContent === 'Explicit save' &&
+                row.querySelector('.diagnostic-source').textContent.includes('Workspace') &&
+                row.scrollWidth <= row.clientWidth + 1)`,
+            ),
+            "Long save-action IDs must show the mode and source without overflowing",
+          );
+          await evaluate(
+            "document.querySelector('.diagnostic-actions summary').click()",
+          );
+        }
         if (name === "Formatting") {
           assert.equal(
             await evaluate<number>(
