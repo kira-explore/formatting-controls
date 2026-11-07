@@ -304,12 +304,17 @@ export const reviewDashboard = async (
     // The redesigned shared selectors must still reach the host with the
     // exact folder URI, and real checkbox changes must round-trip back.
     const choose = async (selector: string, value: string) => {
-      await evaluate(
-        `(()=>{const select=document.querySelector(${JSON.stringify(selector)});select.value=${JSON.stringify(value)};select.dispatchEvent(new Event('change',{bubbles:true}));})()`,
-      );
-      await wait(
-        `!document.querySelector(${JSON.stringify(selector)}).disabled`,
-      );
+      const reply = await send("Runtime.callFunctionOn", {
+        executionContextId: contextId,
+        functionDeclaration: `function (selector, value) {
+          const select = document.querySelector(selector);
+          select.value = value;
+          select.dispatchEvent(new Event("change", { bubbles: true }));
+        }`,
+        arguments: [{ value: selector }, { value }],
+      });
+      assert.equal(reply.result?.exceptionDetails, undefined);
+      await wait('!document.querySelector(".scope-bar select:disabled")');
     };
     const folderValue = await evaluate<string>(
       `document.querySelector('.scope-bar select option[value^="folder:"]').value`,

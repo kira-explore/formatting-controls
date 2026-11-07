@@ -35,6 +35,9 @@ export class Dashboard implements vscode.Disposable {
   private page: Snapshot["page"] = "formatting";
   private focusFinding: string | undefined;
   private queue = Promise.resolve();
+  private get activeDocument(): vscode.TextDocument | undefined {
+    return this.active?.isClosed ? undefined : this.active;
+  }
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly onResponse?: (message: Response) => unknown,
@@ -136,6 +139,32 @@ export class Dashboard implements vscode.Disposable {
           void this.publish();
         }
       }),
+      vscode.workspace.onDidCloseTextDocument((document) => {
+        if (document === this.active) {
+          this.revision++;
+          void this.publish();
+        }
+      }),
+      vscode.window.tabGroups.onDidChangeTabs(({ closed }) => {
+        const uri = this.activeDocument?.uri.toString();
+        if (!uri) return;
+        const showsDocument = ({ input }: vscode.Tab) =>
+          input instanceof vscode.TabInputText
+            ? input.uri.toString() === uri
+            : input instanceof vscode.TabInputTextDiff &&
+              (input.original.toString() === uri ||
+                input.modified.toString() === uri);
+        if (
+          closed.some(showsDocument) &&
+          !vscode.window.tabGroups.all.some((group) =>
+            group.tabs.some(showsDocument),
+          )
+        ) {
+          this.active = undefined;
+          this.revision++;
+          void this.publish();
+        }
+      }),
       ...(this.workflows
         ? [
             this.workflows.onDidChange(() => {
@@ -166,7 +195,7 @@ export class Dashboard implements vscode.Disposable {
       !vscode.workspace.workspaceFolders?.length
     )
       throw new Error("Open a workspace before editing workspace settings.");
-    const activeUri = this.active?.uri;
+    const activeUri = this.activeDocument?.uri;
     const activeFolder =
       activeUri && vscode.workspace.getWorkspaceFolder(activeUri);
     const uri = folder
@@ -187,15 +216,12 @@ export class Dashboard implements vscode.Disposable {
   }
   async snapshot(): Promise<Snapshot> {
     const languages = await vscode.languages.getLanguages();
+    const activeDocument = this.activeDocument;
+    const language = this.scope.language ?? activeDocument?.languageId;
     const selection = this.selection(this.scope);
     const effective = configuration({
       ...selection,
-      ...((this.scope.language ?? this.active?.languageId)
-        ? {
-            language: (this.scope.language ??
-              this.active?.languageId) as string,
-          }
-        : {}),
+      ...(language ? { language } : {}),
     });
     const settings = settingKeys.map((key) => {
       const owned = own(selection, key);
@@ -209,7 +235,7 @@ export class Dashboard implements vscode.Disposable {
     });
     const detected = providersFor(
       effective,
-      this.scope.language ?? this.active?.languageId ?? "",
+      language ?? "",
       effective.get("editor.defaultFormatter"),
     );
     const selectedConfiguration = configuration(selection);
@@ -261,7 +287,6 @@ export class Dashboard implements vscode.Disposable {
         .filter(Boolean)
         .join("; ");
     }
-    const activeDocument = this.active?.isClosed ? undefined : this.active;
     const activeFolder =
       activeDocument && vscode.workspace.getWorkspaceFolder(activeDocument.uri);
     return {
@@ -285,8 +310,7 @@ export class Dashboard implements vscode.Disposable {
         ? { workspaceName: vscode.workspace.name }
         : {}),
       ...(this.focusFinding ? { focusFinding: this.focusFinding } : {}),
-      activeLanguage:
-        this.scope.language ?? this.active?.languageId ?? "All languages",
+      activeLanguage: language ?? "All languages",
       resource: selection.uri?.toString() ?? "No active file",
       folders: (vscode.workspace.workspaceFolders ?? []).map((f) => ({
         name: f.name,
@@ -425,7 +449,8 @@ export class Dashboard implements vscode.Disposable {
           throw new Error("Workflow storage is unavailable.");
         let message: string;
         if (request.type === "pause") {
-          const language = this.scope.language ?? this.active?.languageId;
+          const language =
+            this.scope.language ?? this.activeDocument?.languageId;
           message = await this.workflows.pause(
             selection,
             this.scope,

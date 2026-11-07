@@ -423,6 +423,26 @@ export const run = async (): Promise<void> => {
     assert.equal((await dashboard.snapshot()).page, "formatting");
     assert.equal((await dashboard.snapshot()).focusFinding, undefined);
     assert.ok((await dashboard.snapshot()).navigation > navigation);
+
+    await dashboard.handle({
+      id: "inspect-active-language",
+      type: "read",
+      scope: { target: "user" },
+    });
+    await vscode.window.showTextDocument(activeDocument);
+    assert.equal((await dashboard.snapshot()).activeFile?.name, "sample.ts");
+    await vscode.commands.executeCommand("workbench.action.closeActiveEditor");
+    const closedContext = await dashboard.snapshot();
+    assert.equal(closedContext.activeFile, undefined);
+    assert.equal(closedContext.activeLanguage, "All languages");
+    assert.equal(closedContext.resource, "No active file");
+    await dashboard.handle({
+      id: "inspect-explicit-language",
+      type: "read",
+      scope: { target: "user", language: "typescript" },
+    });
+    assert.equal((await dashboard.snapshot()).activeLanguage, "typescript");
+
     await assert.rejects(
       write({ ...first, language: "typescript" }, "files.autoSave", "off"),
       /not language-overridable/,
