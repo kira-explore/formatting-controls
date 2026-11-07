@@ -73,4 +73,4 @@ The separate dashboard retains its validated message protocol and nonce-based co
 
 ## Deferred Reset shortcut
 
-The card includes an unlinked **Reset…** placeholder with **Not available yet** beside it. It does not open a picker, navigate or change settings. The future reset flow remains deferred. Existing per-setting dashboard resets still require preview confirmation.
+The card includes a disabled **Reset** placeholder with **Not available yet** beside it. Existing per-setting dashboard resets still require preview confirmation.

@@ -47,7 +47,7 @@ export type Operation =
     }
   | {
       type: "open";
-      destination: "settings" | "github" | "docs" | "quickControls";
+      destination: "settings" | "github" | "docs" | "quickControls" | "issues";
     };
 export type Request = { id: string; scope: Scope } & Operation;
 export interface Setting {
@@ -151,7 +151,7 @@ export const parseRequest = (raw: unknown): Request => {
   if (
     raw.type === "open" &&
     typeof raw.destination === "string" &&
-    ["settings", "github", "docs", "quickControls"].includes(
+    ["settings", "github", "docs", "quickControls", "issues"].includes(
       String(raw.destination),
     )
   )

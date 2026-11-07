@@ -547,7 +547,7 @@ export const reviewStatus = async (
   assert.ok(formatterBounds && alignment[0]);
   const formattingTopGap =
     summaryBounds.y + alignment[0].summaryTop - (formatterBounds.y + 46);
-  const reset = hover.getByRole("img", { name: /^Reset… Not available yet/ });
+  const reset = hover.getByRole("img", { name: /^Reset\. Not available yet/ });
   const resetBounds = await reset.boundingBox();
   assert.ok(resetBounds);
   assert.equal(

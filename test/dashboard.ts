@@ -240,6 +240,58 @@ export const reviewDashboard = async (
     await wait(
       `document.querySelector('.scope-description').textContent.includes('JavaScript')`,
     );
+    await evaluate("document.querySelector('.help-button').click()");
+    await wait("document.querySelector('h1').textContent === 'Help & setup'");
+    assert.equal(
+      await evaluate<number>(
+        "document.querySelectorAll('.setup-steps li').length",
+      ),
+      4,
+    );
+    assert.equal(
+      await evaluate<number>(
+        "document.querySelectorAll('.active-context, .scope-bar').length",
+      ),
+      0,
+      "Help is a guide without configuration selectors",
+    );
+    assert.equal(
+      await evaluate<number>(
+        "document.querySelectorAll('.sidebar-footer p br').length",
+      ),
+      1,
+    );
+    for (const question of [1, 2, 0]) {
+      await evaluate(
+        `document.querySelectorAll('.common-questions summary')[${question}].click()`,
+      );
+      assert.ok(
+        await evaluate<boolean>(
+          `document.querySelectorAll('.common-questions details[open]').length === 1 && document.querySelectorAll('.common-questions details')[${question}].open`,
+        ),
+        "Opening a help question closes the previous answer",
+      );
+    }
+    await evaluate("document.querySelector('.help-answer button').click()");
+    await wait("document.querySelector('h1').textContent === 'Diagnostics'");
+    await evaluate("document.querySelector('.help-button').click()");
+    await wait("document.querySelector('h1').textContent === 'Help & setup'");
+    await evaluate("document.querySelector('.setup-guide button').click()");
+    await wait("document.querySelector('h1').textContent === 'Formatting'");
+    assert.equal(
+      await evaluate<string>(
+        "document.querySelector('.scope-bar select').value",
+      ),
+      folderValue,
+      "Help navigation preserves the selected scope",
+    );
+    assert.equal(
+      await evaluate<string>(
+        "document.querySelector('.scope-bar label:nth-child(2) select').value",
+      ),
+      "javascript",
+      "Help navigation preserves the selected language",
+    );
     const beforeChecked = await evaluate<boolean>(
       'document.querySelector(".trigger-row input").checked',
     );

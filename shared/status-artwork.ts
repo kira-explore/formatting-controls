@@ -475,12 +475,12 @@ export const statusArtwork = (
       309,
     ),
     reset: image(
-      34,
+      44,
       line(1) +
-        rect(5.5, 5.5, 61, 23, p.border, p.input) +
-        centeredText(36, 17, "Reset…", 12.5, p.muted, "middle") +
-        centeredText(78, 17, "Not available yet", 11.5, p.muted),
-      "Reset… Not available yet. Reset behavior is deferred.",
+        rect(5.5, 11.5, 65, 23, p.border, p.button) +
+        centeredText(38, 23, "Reset", 12.5, p.muted, "middle") +
+        centeredText(83, 23, "Not available yet", 11.5, p.muted),
+      "Reset. Not available yet. Reset behavior is deferred.",
     ),
     dashboard: image(
       36,

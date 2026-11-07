@@ -12,6 +12,7 @@ import {
   settingKeys,
 } from "../shared/protocol";
 import { adapters } from "../shared/providers";
+import { issueUrl } from "../shared/status-help";
 import {
   configuration,
   own,
@@ -373,9 +374,11 @@ export class Dashboard implements vscode.Disposable {
         else
           await vscode.env.openExternal(
             vscode.Uri.parse(
-              request.destination === "github"
-                ? "https://github.com/kira-explore/formatting-controls"
-                : "https://github.com/kira-explore/formatting-controls#readme",
+              request.destination === "issues"
+                ? issueUrl
+                : request.destination === "github"
+                  ? "https://github.com/kira-explore/formatting-controls"
+                  : "https://github.com/kira-explore/formatting-controls#readme",
             ),
           );
         await this.publish(request.id);

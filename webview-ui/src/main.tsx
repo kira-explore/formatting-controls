@@ -5,6 +5,7 @@ import type { Key, Scope, Setting } from "../../shared/protocol";
 import { formatterSource } from "../../shared/status-details";
 import { BrandMark } from "./BrandMark";
 import { actionNames, descriptions, display, labels, pages } from "./catalog";
+import { HelpSetup } from "./HelpSetup";
 import { Icon } from "./Icon";
 import { useEditor } from "./useEditor";
 import { WorkflowPages } from "./WorkflowPages";
@@ -54,7 +55,7 @@ const App = () => {
   const mutate = (key: Key, value: boolean | string | number) =>
     send({ type: "set", key, value, revision: state.revision });
   const open = (
-    destination: "settings" | "github" | "docs" | "quickControls",
+    destination: "settings" | "github" | "docs" | "quickControls" | "issues",
   ) => send({ type: "open", destination });
   const query = search.toLowerCase();
   const matches = (text: string) => text.toLowerCase().includes(query);
@@ -330,11 +331,20 @@ const App = () => {
             <Icon name="book" />
             Help & setup
           </button>
-          <p>Local settings. No telemetry.</p>
+          <p>
+            Local settings.
+            <br />
+            No telemetry.
+          </p>
         </div>
       </aside>
       <div className="workspace">
-        <main id="page-content" tabIndex={-1} aria-busy={disabled}>
+        <main
+          id="page-content"
+          className={page === "welcome" ? "help-page" : undefined}
+          tabIndex={-1}
+          aria-busy={disabled}
+        >
           <div className="page-heading">
             <div>
               <h1 tabIndex={-1} id={`page-${page}`}>
@@ -348,121 +358,128 @@ const App = () => {
                     rules: "Keep language exceptions in one place.",
                     profiles: "Save and reuse formatting preferences.",
                     diagnostics: "Understand the settings that apply.",
-                    welcome: "Set up formatting with confidence.",
+                    welcome:
+                      "Get started with formatting and find answers when you need them.",
                   }[page]
                 }
               </p>
             </div>
-            <button
-              type="button"
-              className="settings-button"
-              aria-label="Open VS Code Settings"
-              disabled={disabled}
-              onClick={() => open("settings")}
-            >
-              <Icon name="sliders" />
-            </button>
+            {page !== "welcome" && (
+              <button
+                type="button"
+                className="settings-button"
+                aria-label="Open VS Code Settings"
+                disabled={disabled}
+                onClick={() => open("settings")}
+              >
+                <Icon name="sliders" />
+              </button>
+            )}
           </div>
-          <section className="active-context" aria-label="Active editor">
-            <Icon name="file" />
-            <div>
-              <span>
-                {state.activeFile
-                  ? `${state.activeFile.name} · ${languageName(state.activeFile.language)}`
-                  : "No active file"}
-              </span>
-              <p>
-                {state.workspaceName
-                  ? `Workspace: ${state.workspaceName}`
-                  : state.hasWorkspace
-                    ? "Workspace open"
-                    : "No workspace open"}
-              </p>
-              {state.folders.length > 1 && state.activeFile?.folder && (
-                <p>Folder: {state.activeFile.folder}</p>
+          {page !== "welcome" && (
+            <>
+              <section className="active-context" aria-label="Active editor">
+                <Icon name="file" />
+                <div>
+                  <span>
+                    {state.activeFile
+                      ? `${state.activeFile.name} · ${languageName(state.activeFile.language)}`
+                      : "No active file"}
+                  </span>
+                  <p>
+                    {state.workspaceName
+                      ? `Workspace: ${state.workspaceName}`
+                      : state.hasWorkspace
+                        ? "Workspace open"
+                        : "No workspace open"}
+                  </p>
+                  {state.folders.length > 1 && state.activeFile?.folder && (
+                    <p>Folder: {state.activeFile.folder}</p>
+                  )}
+                </div>
+              </section>
+              <section className="scope-bar" aria-label="Configuration scope">
+                <label>
+                  Scope
+                  <select
+                    value={
+                      state.scope.target === "folder"
+                        ? `folder:${state.scope.folder}`
+                        : state.scope.target
+                    }
+                    disabled={disabled}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      const target = value.startsWith("folder:")
+                        ? "folder"
+                        : (value as Scope["target"]);
+                      send(
+                        { type: "read" },
+                        {
+                          target,
+                          ...(target === "folder"
+                            ? { folder: value.slice(7) }
+                            : {}),
+                          ...(state.scope.language
+                            ? { language: state.scope.language }
+                            : {}),
+                        },
+                      );
+                    }}
+                  >
+                    <option value="user">User</option>
+                    {state.hasWorkspace && (
+                      <option value="workspace">Workspace</option>
+                    )}
+                    {state.folders.map((f) => (
+                      <option key={f.uri} value={`folder:${f.uri}`}>
+                        Folder: {f.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Language
+                  <select
+                    value={state.scope.language ?? ""}
+                    disabled={disabled}
+                    onChange={(event) =>
+                      send(
+                        { type: "read" },
+                        {
+                          target: state.scope.target,
+                          ...(state.scope.folder
+                            ? { folder: state.scope.folder }
+                            : {}),
+                          ...(event.target.value
+                            ? { language: event.target.value }
+                            : {}),
+                        },
+                      )
+                    }
+                  >
+                    <option value="">All languages</option>
+                    {languages.map((l) => (
+                      <option key={l} value={l}>
+                        {languageName(l)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="scope-description">
+                  {scopeDescription}
+                  {state.scope.language
+                    ? ` Editing ${languageName(state.scope.language)} rules.`
+                    : ""}
+                </p>
+              </section>
+              {state.remoteName && state.scope.target === "user" && (
+                <p className="callout" role="note">
+                  User changes may affect local User settings or existing Remote
+                  settings. Use VS Code Settings to select Remote explicitly.
+                </p>
               )}
-            </div>
-          </section>
-          <section className="scope-bar" aria-label="Configuration scope">
-            <label>
-              Scope
-              <select
-                value={
-                  state.scope.target === "folder"
-                    ? `folder:${state.scope.folder}`
-                    : state.scope.target
-                }
-                disabled={disabled}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  const target = value.startsWith("folder:")
-                    ? "folder"
-                    : (value as Scope["target"]);
-                  send(
-                    { type: "read" },
-                    {
-                      target,
-                      ...(target === "folder"
-                        ? { folder: value.slice(7) }
-                        : {}),
-                      ...(state.scope.language
-                        ? { language: state.scope.language }
-                        : {}),
-                    },
-                  );
-                }}
-              >
-                <option value="user">User</option>
-                {state.hasWorkspace && (
-                  <option value="workspace">Workspace</option>
-                )}
-                {state.folders.map((f) => (
-                  <option key={f.uri} value={`folder:${f.uri}`}>
-                    Folder: {f.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Language
-              <select
-                value={state.scope.language ?? ""}
-                disabled={disabled}
-                onChange={(event) =>
-                  send(
-                    { type: "read" },
-                    {
-                      target: state.scope.target,
-                      ...(state.scope.folder
-                        ? { folder: state.scope.folder }
-                        : {}),
-                      ...(event.target.value
-                        ? { language: event.target.value }
-                        : {}),
-                    },
-                  )
-                }
-              >
-                <option value="">All languages</option>
-                {languages.map((l) => (
-                  <option key={l} value={l}>
-                    {languageName(l)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <p className="scope-description">
-              {scopeDescription}
-              {state.scope.language
-                ? ` Editing ${languageName(state.scope.language)} rules.`
-                : ""}
-            </p>
-          </section>
-          {state.remoteName && state.scope.target === "user" && (
-            <p className="callout" role="note">
-              User changes may affect local User settings or existing Remote
-              settings. Use VS Code Settings to select Remote explicitly.
-            </p>
+            </>
           )}
           <div aria-live="polite" className="feedback">
             {pending ? "Updating editor…" : notice}
@@ -771,63 +788,7 @@ const App = () => {
               </section>
             </>
           )}
-          {page === "welcome" && (
-            <section className="welcome">
-              <span className="eyebrow">WELCOME TO A CALMER WORKFLOW</span>
-              <h2>
-                Your formatting.
-                <br />
-                Under control.
-              </h2>
-              <p>
-                Keep your editor’s formatting and save actions understandable,
-                with native quick controls and a dashboard that shows what
-                actually applies.
-              </p>
-              <div className="welcome-steps">
-                <article>
-                  <span>01</span>
-                  <h3>Choose the scope</h3>
-                  <p>
-                    Select User, Workspace, or a specific folder above. Add a
-                    language when you need an override.
-                  </p>
-                </article>
-                <article>
-                  <span>02</span>
-                  <h3>Pick your behavior</h3>
-                  <p>
-                    Review effective values, then change individual settings.
-                    Nothing is changed just by opening this page.
-                  </p>
-                </article>
-                <article>
-                  <span>03</span>
-                  <h3>Keep your flow</h3>
-                  <p>
-                    Use the status bar for everyday adjustments. Come here to
-                    inspect overrides and source actions.
-                  </p>
-                </article>
-              </div>
-              <div className="welcome-buttons">
-                <button
-                  type="button"
-                  className="primary"
-                  onClick={() => setPage("formatting")}
-                >
-                  Set up my formatting →
-                </button>
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={() => open("docs")}
-                >
-                  Documentation ↗
-                </button>
-              </div>
-            </section>
-          )}
+          {page === "welcome" && <HelpSetup navigate={setPage} />}
           <footer>
             <button
               type="button"
@@ -836,15 +797,25 @@ const App = () => {
             >
               Documentation ↗
             </button>
-            <span>
-              {state.scope.target === "user"
-                ? "User settings"
-                : (selectedFolder?.name ?? "Workspace")}{" "}
-              ·{" "}
-              {state.scope.language
-                ? languageName(state.scope.language)
-                : "All languages"}
-            </span>
+            {page === "welcome" ? (
+              <button
+                type="button"
+                disabled={disabled}
+                onClick={() => open("issues")}
+              >
+                Report an issue ↗
+              </button>
+            ) : (
+              <span>
+                {state.scope.target === "user"
+                  ? "User settings"
+                  : (selectedFolder?.name ?? "Workspace")}{" "}
+                ·{" "}
+                {state.scope.language
+                  ? languageName(state.scope.language)
+                  : "All languages"}
+              </span>
+            )}
           </footer>
         </main>
       </div>
