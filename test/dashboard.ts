@@ -198,6 +198,17 @@ export const reviewDashboard = async (
           layout.scrollWidth <= layout.width + 1,
           `${name} overflows horizontally: ${JSON.stringify(layout)}`,
         );
+        if (narrow) {
+          assert.ok(
+            await evaluate<boolean>(
+              `(() => {
+                const heading = document.querySelector('.page-heading');
+                return heading.scrollWidth <= heading.clientWidth + 1;
+              })()`,
+            ),
+            `${name} heading must fit inside the content area`,
+          );
+        }
       }
     }
     await page.emulateMedia({ reducedMotion: "reduce" });

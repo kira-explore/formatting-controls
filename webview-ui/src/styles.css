@@ -750,6 +750,16 @@ footer button:hover {
   main {
     padding: 24px 18px;
   }
+  .page-heading {
+    gap: 8px;
+  }
+  .page-heading > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .page-heading h1 {
+    font-size: 22px;
+  }
   .scope-bar {
     grid-template-columns: minmax(0, 1fr);
   }
