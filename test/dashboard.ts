@@ -125,6 +125,26 @@ export const reviewDashboard = async (
       }
       throw new Error(`Dashboard did not settle: ${expression}`);
     };
+    const assertDiagnosticsSpacing = async () => {
+      const gaps = await evaluate<number[]>(`(() => {
+        const bounds = (selector) => document.querySelector(selector)?.getBoundingClientRect();
+        const scope = bounds('.scope-bar');
+        const run = bounds('.diagnostic-run');
+        const history = bounds('.diagnostic-history-section');
+        const next = bounds('#diagnostic-report') ?? bounds('.diagnostics-page > footer');
+        return [
+          (history ?? run).top - scope.bottom,
+          ...(history ? [run.top - history.bottom] : []),
+          next.top - run.bottom,
+        ];
+      })()`);
+      const [firstGap] = gaps;
+      assert.ok(
+        firstGap !== undefined &&
+          gaps.every((gap) => gap >= 16 && Math.abs(gap - firstGap) <= 1),
+        `Diagnostics should have consistent spacing around history and the run button: ${gaps}`,
+      );
+    };
     const csp = await evaluate<string>(
       'document.querySelector("meta[http-equiv=Content-Security-Policy]").content',
     );
@@ -162,6 +182,7 @@ export const reviewDashboard = async (
           `document.querySelector('h1').textContent===${JSON.stringify(name)}&&document.activeElement.tagName==='H1'`,
         );
         if (name === "Diagnostics") {
+          await assertDiagnosticsSpacing();
           if (!narrow) {
             assert.equal(
               await evaluate("!!document.querySelector('#diagnostic-report')"),
@@ -216,6 +237,7 @@ export const reviewDashboard = async (
             ),
             "diagnostic-run",
           );
+          await assertDiagnosticsSpacing();
         }
         const result = await evaluate<{
           violations: { id: string; nodes: { target: string[] }[] }[];
@@ -275,8 +297,9 @@ export const reviewDashboard = async (
               "document.querySelector('.diagnostic-history li:last-child .diagnostic-delete-run')";
             await evaluate(`${deleteRun}.click()`);
             await wait(
-              "document.querySelector('#diagnostic-clear-note')?.textContent.startsWith('Delete the run from')",
+              "document.querySelector('.diagnostic-history li:last-child #diagnostic-clear-note')?.textContent.startsWith('Delete the run from')",
             );
+            await assertDiagnosticsSpacing();
             await evaluate(
               "document.querySelector('.diagnostic-history-actions button:first-child').click()",
             );
@@ -297,6 +320,10 @@ export const reviewDashboard = async (
             await wait(
               "document.querySelectorAll('.diagnostic-history-entry').length === 2 && document.querySelector('#diagnostic-report-title').textContent.trim() === 'Last run results'",
             );
+            await wait(
+              "document.querySelector('.diagnostic-run [role=status]').textContent.startsWith('Diagnostic run deleted.')",
+            );
+            await assertDiagnosticsSpacing();
             await evaluate(
               "document.querySelector('.diagnostic-clear-all').click()",
             );
@@ -307,8 +334,9 @@ export const reviewDashboard = async (
               "document.querySelector('.diagnostic-history-actions button:last-child').click()",
             );
             await wait(
-              "!document.querySelector('#diagnostic-report') && document.querySelector('.diagnostic-run [role=status]').textContent === 'No diagnostics run yet.'",
+              "!document.querySelector('#diagnostic-report') && document.querySelector('.diagnostic-run [role=status]').textContent.endsWith('No diagnostics run yet.')",
             );
+            await assertDiagnosticsSpacing();
           }
         }
         if (name === "Formatting") {

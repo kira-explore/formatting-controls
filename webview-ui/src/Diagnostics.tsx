@@ -81,6 +81,7 @@ export const Diagnostics = ({
   remove,
   pending,
   running,
+  notice,
 }: {
   state: Snapshot;
   navigate: (page: string) => void;
@@ -88,6 +89,7 @@ export const Diagnostics = ({
   remove: (runId?: string) => void;
   pending: boolean;
   running: boolean;
+  notice: string;
 }) => {
   const [selectedId, setSelectedId] = useState<string>();
   const [deleteTarget, setDeleteTarget] = useState<string>();
@@ -109,6 +111,38 @@ export const Diagnostics = ({
       (selectedButton.current ?? runButton.current)?.focus();
     }
   }, [pending, confirming, deleteTarget]);
+
+  const confirmation = confirming && (
+    <div className="diagnostic-delete-confirmation">
+      <p id="diagnostic-clear-note">
+        {targetRun
+          ? `Delete the run from ${runTime.format(targetRun.createdAt)}?`
+          : `Delete all saved runs for this ${state.hasWorkspace ? "workspace" : "window"}?`}
+      </p>
+      <div className="diagnostic-history-actions">
+        <button
+          type="button"
+          ref={cancelButton}
+          aria-describedby="diagnostic-clear-note"
+          disabled={pending}
+          onClick={() => {
+            setDeleteTarget(undefined);
+            deleteTrigger.current?.focus();
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          aria-describedby="diagnostic-clear-note"
+          disabled={pending}
+          onClick={() => remove(targetRun?.id)}
+        >
+          {clearAll ? "Delete all runs" : "Delete run"}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="diagnostics">
@@ -133,37 +167,7 @@ export const Diagnostics = ({
               </button>
             )}
           </div>
-          {confirming && (
-            <div className="diagnostic-delete-confirmation">
-              <p id="diagnostic-clear-note">
-                {targetRun
-                  ? `Delete the run from ${runTime.format(targetRun.createdAt)}?`
-                  : `Delete all saved runs for this ${state.hasWorkspace ? "workspace" : "window"}?`}
-              </p>
-              <div className="diagnostic-history-actions">
-                <button
-                  type="button"
-                  ref={cancelButton}
-                  aria-describedby="diagnostic-clear-note"
-                  disabled={pending}
-                  onClick={() => {
-                    setDeleteTarget(undefined);
-                    deleteTrigger.current?.focus();
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  aria-describedby="diagnostic-clear-note"
-                  disabled={pending}
-                  onClick={() => remove(targetRun?.id)}
-                >
-                  {clearAll ? "Delete all runs" : "Delete run"}
-                </button>
-              </div>
-            </div>
-          )}
+          {clearAll && confirmation}
           <ul className="diagnostic-history">
             {history.map((entry) => (
               <li key={entry.id} className="diagnostic-history-row">
@@ -198,6 +202,7 @@ export const Diagnostics = ({
                 >
                   <Icon name="trash" />
                 </button>
+                {entry.id === deleteTarget && confirmation}
               </li>
             ))}
           </ul>
@@ -223,11 +228,14 @@ export const Diagnostics = ({
           {running ? "Running diagnostics…" : "Run diagnostics"}
         </button>
         <p role="status">
+          {!pending && notice && `${notice} `}
           {running
             ? "Checking formatting settings, formatter availability, and save actions…"
-            : latest
-              ? `Last run ${runTime.format(latest.createdAt)} · ${latest.findings.length === 0 ? "No findings" : `${latest.findings.length} ${latest.findings.length === 1 ? "finding" : "findings"}`}`
-              : "No diagnostics run yet."}
+            : pending
+              ? "Working…"
+              : latest
+                ? `Last run ${runTime.format(latest.createdAt)} · ${latest.findings.length === 0 ? "No findings" : `${latest.findings.length} ${latest.findings.length === 1 ? "finding" : "findings"}`}`
+                : "No diagnostics run yet."}
         </p>
       </div>
       {state.focusFinding && (

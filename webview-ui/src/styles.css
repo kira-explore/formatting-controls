@@ -704,6 +704,7 @@ summary {
   margin: 8px 0 12px;
 }
 .diagnostics {
+  padding-top: 20px;
   overflow-wrap: anywhere;
 }
 .diagnostic-run,
@@ -749,6 +750,7 @@ summary {
   gap: 8px;
 }
 .diagnostic-history-heading {
+  min-height: 28px;
   justify-content: space-between;
 }
 .diagnostic-history-heading h2 {
@@ -790,15 +792,19 @@ summary {
   border-radius: 4px;
 }
 .diagnostic-history-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   background: var(--surface);
 }
 .diagnostic-history-row + .diagnostic-history-row {
   border-top: 1px solid var(--border);
 }
+.diagnostic-history-row > .diagnostic-delete-confirmation {
+  grid-column: 1 / -1;
+  margin: 0 8px 8px;
+}
 .diagnostic-history-entry {
-  flex: 1;
   min-width: 0;
   padding: 7px 10px;
   text-align: start;
@@ -916,8 +922,12 @@ summary {
   color: var(--accent);
   cursor: pointer;
 }
-.diagnostics-page > footer {
-  margin-top: 18px;
+.diagnostics-page > footer,
+#diagnostic-report {
+  margin-top: 20px;
+}
+.diagnostics-page > .error {
+  margin-top: 20px;
 }
 .help-page .page-heading {
   margin-bottom: 32px;

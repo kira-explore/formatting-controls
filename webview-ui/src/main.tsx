@@ -487,15 +487,11 @@ const App = () => {
                 )}
             </>
           )}
-          <div aria-live="polite" className="feedback">
-            {pending === "runDiagnostics" && page === "diagnostics"
-              ? ""
-              : pending
-                ? page === "diagnostics"
-                  ? "Working…"
-                  : "Updating editor…"
-                : notice}
-          </div>
+          {page !== "diagnostics" && (
+            <div aria-live="polite" className="feedback">
+              {pending ? "Updating editor…" : notice}
+            </div>
+          )}
           {error && (
             <div className="error" role="alert">
               {error}
@@ -528,6 +524,7 @@ const App = () => {
               navigate={setPage}
               pending={disabled}
               running={pending === "runDiagnostics"}
+              notice={notice}
               run={() =>
                 send({ type: "runDiagnostics", revision: state.revision })
               }
