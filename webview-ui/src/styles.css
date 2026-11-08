@@ -754,8 +754,23 @@ summary {
 .diagnostic-history-heading h2 {
   margin: 0;
 }
-.diagnostic-history-section > p {
-  margin: 8px 0 0;
+.diagnostic-clear-all {
+  color: var(--muted);
+}
+.diagnostic-delete-confirmation {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.diagnostic-delete-confirmation p {
+  margin: 0;
 }
 .diagnostic-context-note {
   margin: 12px 0 0;
@@ -770,21 +785,58 @@ summary {
   max-height: 12rem;
   overflow: auto;
   margin: 12px 0 0;
-  padding: 4px;
-  display: grid;
-  gap: 6px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
 }
-.diagnostic-history button {
-  width: 100%;
+.diagnostic-history-row {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+}
+.diagnostic-history-row + .diagnostic-history-row {
+  border-top: 1px solid var(--border);
+}
+.diagnostic-history-entry {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
   text-align: start;
+  background: transparent;
+  border: 0;
+  border-inline-start: 2px solid transparent;
+  border-radius: 0;
 }
-.diagnostic-history button[aria-pressed="true"] {
-  background: var(--vscode-list-activeSelectionBackground, #264f78);
-  color: var(--vscode-list-activeSelectionForeground, #fff);
+.diagnostic-history-entry[aria-pressed="true"] {
+  border-inline-start-color: var(--vscode-contrastActiveBorder, var(--accent));
+}
+.diagnostic-history-entry:focus-visible,
+.diagnostic-delete-run:focus-visible {
+  outline-offset: -2px;
 }
 .diagnostic-history small {
-  color: inherit;
+  color: var(--muted);
   margin: 2px 0 0;
+}
+.diagnostic-latest {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-inline-start: 8px;
+}
+.diagnostic-delete-run {
+  display: grid;
+  place-items: center;
+  min-height: 32px;
+  min-width: 32px;
+  padding: 4px;
+  margin-inline: 4px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+.diagnostic-delete-run .icon {
+  width: 16px;
+  height: 16px;
 }
 .diagnostics h4 {
   font-size: 1rem;

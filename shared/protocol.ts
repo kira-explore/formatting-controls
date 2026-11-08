@@ -22,6 +22,7 @@ export type Operation =
   | { type: "ready" }
   | { type: "read" }
   | { type: "runDiagnostics" | "clearDiagnosticHistory"; revision: number }
+  | { type: "deleteDiagnosticRun"; runId: string; revision: number }
   | {
       type: "set";
       key: Key;
@@ -187,7 +188,8 @@ export const parseRequest = (raw: unknown): Request => {
     raw.type === "pause" ||
     raw.type === "formattingPause" ||
     raw.type === "runDiagnostics" ||
-    raw.type === "clearDiagnosticHistory"
+    raw.type === "clearDiagnosticHistory" ||
+    (raw.type === "deleteDiagnosticRun" && string(raw.runId, 80))
   )
     return raw as Request;
   if (

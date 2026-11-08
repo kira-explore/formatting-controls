@@ -465,12 +465,28 @@ export class Dashboard implements vscode.Disposable {
         await this.publish(request.id);
         return;
       }
-      if (request.type === "clearDiagnosticHistory") {
+      if (
+        request.type === "clearDiagnosticHistory" ||
+        request.type === "deleteDiagnosticRun"
+      ) {
+        const runId =
+          request.type === "deleteDiagnosticRun" ? request.runId : undefined;
+        const history = runId
+          ? this.diagnosticHistory.filter(({ id }) => id !== runId)
+          : [];
         if (this.hasWorkspace)
-          await this.workspaceState?.update(diagnosticHistoryKey, undefined);
-        this.diagnosticHistory = [];
+          await this.workspaceState?.update(
+            diagnosticHistoryKey,
+            history.length > 0 ? history : undefined,
+          );
+        this.diagnosticHistory = history;
         this.revision++;
-        await this.publish(request.id, "Diagnostic history cleared.");
+        await this.publish(
+          request.id,
+          request.type === "deleteDiagnosticRun"
+            ? "Diagnostic run deleted."
+            : "Diagnostic history cleared.",
+        );
         return;
       }
       if (request.type === "formattingPause") {

@@ -499,6 +499,28 @@ export const run = async (): Promise<void> => {
       );
       assert.deepEqual((await reopened.snapshot()).diagnosticHistory, history);
       await diagnostics.handle({
+        id: "diagnostic-delete",
+        type: "deleteDiagnosticRun",
+        runId: firstReport.id,
+        scope: inspectionScope,
+        revision: (await diagnostics.snapshot()).revision,
+      });
+      assert.deepEqual(
+        (await diagnostics.snapshot()).diagnosticHistory,
+        history.slice(0, 1),
+      );
+      const afterDelete = new Dashboard(
+        ext.extensionUri,
+        undefined,
+        undefined,
+        undefined,
+        diagnosticStore,
+      );
+      assert.deepEqual(
+        (await afterDelete.snapshot()).diagnosticHistory,
+        history.slice(0, 1),
+      );
+      await diagnostics.handle({
         id: "diagnostic-clear",
         type: "clearDiagnosticHistory",
         scope: inspectionScope,

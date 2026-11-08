@@ -78,30 +78,37 @@ export const Diagnostics = ({
   state,
   navigate,
   run,
-  clear,
+  remove,
   pending,
   running,
 }: {
   state: Snapshot;
   navigate: (page: string) => void;
   run: () => void;
-  clear: () => void;
+  remove: (runId?: string) => void;
   pending: boolean;
   running: boolean;
 }) => {
-  const [selection, setSelection] = useState<{ id: string; latest: string }>();
-  const [clearFor, setClearFor] = useState<string>();
+  const [selectedId, setSelectedId] = useState<string>();
+  const [deleteTarget, setDeleteTarget] = useState<string>();
+  const deleteTrigger = useRef<HTMLButtonElement>(null);
+  const cancelButton = useRef<HTMLButtonElement>(null);
+  const selectedButton = useRef<HTMLButtonElement>(null);
   const runButton = useRef<HTMLButtonElement>(null);
-  const latest = state.diagnosticHistory[0];
-  const confirmingClear = !!latest && clearFor === latest.id;
+  const history = state.diagnosticHistory;
+  const latest = history[0];
+  const report = history.find(({ id }) => id === selectedId) ?? latest;
+  const clearAll = deleteTarget === "all";
+  const targetRun = history.find(({ id }) => id === deleteTarget);
+  const confirming = clearAll ? history.length > 0 : !!targetRun;
 
   useEffect(() => {
-    if (!pending && !latest && clearFor) runButton.current?.focus();
-  }, [pending, latest, clearFor]);
-  const report =
-    (selection && selection.latest === latest?.id
-      ? state.diagnosticHistory.find((entry) => entry.id === selection.id)
-      : undefined) ?? latest;
+    if (confirming && deleteTarget) {
+      cancelButton.current?.focus();
+    } else if (!pending && deleteTarget) {
+      (selectedButton.current ?? runButton.current)?.focus();
+    }
+  }, [pending, confirming, deleteTarget]);
 
   return (
     <div className="diagnostics">
@@ -112,49 +119,84 @@ export const Diagnostics = ({
         >
           <div className="diagnostic-history-heading">
             <h2 id="diagnostic-history">Run history</h2>
-            <div className="diagnostic-history-actions">
-              {confirmingClear && (
-                <button type="button" onClick={() => setClearFor(undefined)}>
-                  Cancel
-                </button>
-              )}
+            {history.length > 1 && (
               <button
                 type="button"
+                className="text-button diagnostic-clear-all"
                 disabled={pending}
-                aria-describedby={
-                  confirmingClear ? "diagnostic-clear-note" : undefined
-                }
-                onClick={confirmingClear ? clear : () => setClearFor(latest.id)}
+                onClick={(event) => {
+                  deleteTrigger.current = event.currentTarget;
+                  setDeleteTarget("all");
+                }}
               >
-                {confirmingClear ? "Delete saved runs" : "Clear history"}
+                Clear all
               </button>
-            </div>
+            )}
           </div>
-          {confirmingClear && (
-            <p id="diagnostic-clear-note" role="status">
-              Delete all saved diagnostic runs for this{" "}
-              {state.hasWorkspace ? "workspace" : "window"}?
-            </p>
-          )}
-          <ul className="diagnostic-history">
-            {state.diagnosticHistory.map((entry) => (
-              <li key={entry.id}>
+          {confirming && (
+            <div className="diagnostic-delete-confirmation">
+              <p id="diagnostic-clear-note">
+                {targetRun
+                  ? `Delete the run from ${runTime.format(targetRun.createdAt)}?`
+                  : `Delete all saved runs for this ${state.hasWorkspace ? "workspace" : "window"}?`}
+              </p>
+              <div className="diagnostic-history-actions">
                 <button
                   type="button"
+                  ref={cancelButton}
+                  aria-describedby="diagnostic-clear-note"
+                  disabled={pending}
+                  onClick={() => {
+                    setDeleteTarget(undefined);
+                    deleteTrigger.current?.focus();
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  aria-describedby="diagnostic-clear-note"
+                  disabled={pending}
+                  onClick={() => remove(targetRun?.id)}
+                >
+                  {clearAll ? "Delete all runs" : "Delete run"}
+                </button>
+              </div>
+            </div>
+          )}
+          <ul className="diagnostic-history">
+            {history.map((entry) => (
+              <li key={entry.id} className="diagnostic-history-row">
+                <button
+                  type="button"
+                  className="diagnostic-history-entry"
+                  ref={report.id === entry.id ? selectedButton : undefined}
                   aria-pressed={report.id === entry.id}
                   aria-controls="diagnostic-report"
-                  onClick={() =>
-                    setSelection({ id: entry.id, latest: latest.id })
-                  }
+                  onClick={() => setSelectedId(entry.id)}
                 >
                   <span>
-                    {runTime.format(entry.createdAt)} ·{" "}
                     {entry.fileName ?? "No active file"}
+                    {entry.id === latest.id && (
+                      <span className="diagnostic-latest">Latest</span>
+                    )}
                   </span>
                   <small>
-                    {runContext(entry)}
-                    {entry.id === latest.id && " · Latest"}
+                    {runTime.format(entry.createdAt)} · {runContext(entry)}
                   </small>
+                </button>
+                <button
+                  type="button"
+                  className="diagnostic-delete-run"
+                  title="Delete run"
+                  aria-label={`Delete run from ${runTime.format(entry.createdAt)} · ${entry.fileName ?? "No active file"}`}
+                  disabled={pending}
+                  onClick={(event) => {
+                    deleteTrigger.current = event.currentTarget;
+                    setDeleteTarget(entry.id);
+                  }}
+                >
+                  <Icon name="trash" />
                 </button>
               </li>
             ))}
@@ -167,7 +209,11 @@ export const Diagnostics = ({
           className="primary"
           ref={runButton}
           disabled={pending}
-          onClick={run}
+          onClick={() => {
+            setDeleteTarget(undefined);
+            setSelectedId(undefined);
+            run();
+          }}
         >
           {running ? (
             <span className="diagnostic-spinner" aria-hidden="true" />

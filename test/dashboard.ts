@@ -189,24 +189,24 @@ export const reviewDashboard = async (
               true,
             );
             await wait(
-              "document.querySelectorAll('.diagnostic-history button').length === 1",
+              "document.querySelectorAll('.diagnostic-history-entry').length === 1",
             );
           }
           await evaluate(
             "document.querySelector('.diagnostic-run button').click()",
           );
           await wait(
-            `document.querySelectorAll('.diagnostic-history button').length === ${narrow ? 3 : 2}`,
+            `document.querySelectorAll('.diagnostic-history-entry').length === ${narrow ? 3 : 2}`,
           );
           await evaluate(
-            "document.querySelector('.diagnostic-history li:last-child button').click()",
+            "document.querySelector('.diagnostic-history li:last-child .diagnostic-history-entry').click()",
           );
           await wait(
             "document.querySelector('#diagnostic-report-title').textContent.trim() === 'Selected run results'",
           );
           assert.equal(
             await evaluate(
-              "document.querySelector('.diagnostic-history li:last-child button').getAttribute('aria-pressed')",
+              "document.querySelector('.diagnostic-history li:last-child .diagnostic-history-entry').getAttribute('aria-pressed')",
             ),
             "true",
           );
@@ -271,21 +271,37 @@ export const reviewDashboard = async (
             "Long save-action IDs must show the mode and source without overflowing",
           );
           if (narrow) {
-            await evaluate(
-              "document.querySelector('.diagnostic-history-actions button').click()",
+            const deleteRun =
+              "document.querySelector('.diagnostic-history li:last-child .diagnostic-delete-run')";
+            await evaluate(`${deleteRun}.click()`);
+            await wait(
+              "document.querySelector('#diagnostic-clear-note')?.textContent.startsWith('Delete the run from')",
             );
-            await wait("!!document.querySelector('#diagnostic-clear-note')");
             await evaluate(
-              "document.querySelector('.diagnostic-history-actions button').click()",
+              "document.querySelector('.diagnostic-history-actions button:first-child').click()",
             );
             assert.equal(
               await evaluate(
-                "document.querySelectorAll('.diagnostic-history li').length",
+                "document.querySelectorAll('.diagnostic-history-entry').length",
               ),
               3,
             );
+            assert.equal(
+              await evaluate(`document.activeElement === ${deleteRun}`),
+              true,
+            );
+            await evaluate(`${deleteRun}.click()`);
             await evaluate(
-              "document.querySelector('.diagnostic-history-actions button').click()",
+              "document.querySelector('.diagnostic-history-actions button:last-child').click()",
+            );
+            await wait(
+              "document.querySelectorAll('.diagnostic-history-entry').length === 2 && document.querySelector('#diagnostic-report-title').textContent.trim() === 'Last run results'",
+            );
+            await evaluate(
+              "document.querySelector('.diagnostic-clear-all').click()",
+            );
+            await wait(
+              "document.querySelector('#diagnostic-clear-note')?.textContent.startsWith('Delete all saved runs')",
             );
             await evaluate(
               "document.querySelector('.diagnostic-history-actions button:last-child').click()",

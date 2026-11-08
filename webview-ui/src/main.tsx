@@ -531,11 +531,19 @@ const App = () => {
               run={() =>
                 send({ type: "runDiagnostics", revision: state.revision })
               }
-              clear={() =>
-                send({
-                  type: "clearDiagnosticHistory",
-                  revision: state.revision,
-                })
+              remove={(runId) =>
+                send(
+                  runId
+                    ? {
+                        type: "deleteDiagnosticRun",
+                        runId,
+                        revision: state.revision,
+                      }
+                    : {
+                        type: "clearDiagnosticHistory",
+                        revision: state.revision,
+                      },
+                )
               }
             />
           )}
