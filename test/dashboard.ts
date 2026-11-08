@@ -118,8 +118,9 @@ export const reviewDashboard = async (
         throw new Error(JSON.stringify(reply.result.exceptionDetails));
       return reply.result?.result?.value as T;
     };
-    const wait = async (expression: string) => {
-      for (let i = 0; i < 100; i++) {
+    const wait = async (expression: string, timeoutMs = 5000) => {
+      const deadline = Date.now() + timeoutMs;
+      while (Date.now() < deadline) {
         if (await evaluate<boolean>(expression)) return;
         await delay(50);
       }
@@ -337,6 +338,58 @@ export const reviewDashboard = async (
               "!document.querySelector('#diagnostic-report') && document.querySelector('.diagnostic-run [role=status]').textContent.endsWith('No diagnostics run yet.')",
             );
             await assertDiagnosticsSpacing();
+
+            const runDiagnostics =
+              "document.querySelector('.diagnostic-run button')";
+            for (const count of [1, 2]) {
+              await evaluate(`${runDiagnostics}.click()`);
+              await wait(
+                `!${runDiagnostics}.disabled && document.querySelectorAll('.diagnostic-history-entry').length === ${count}`,
+              );
+            }
+            for (const count of [1, 0]) {
+              await evaluate(`${deleteRun}.click()`);
+              await evaluate(
+                "document.querySelector('.diagnostic-history-actions button:last-child').click()",
+              );
+              await wait(
+                `!${runDiagnostics}.disabled && document.querySelectorAll('.diagnostic-history-entry').length === ${count}`,
+              );
+            }
+            await evaluate(`${runDiagnostics}.click()`);
+            await wait(
+              `!${runDiagnostics}.disabled && document.querySelectorAll('.diagnostic-history-entry').length === 1 && !!document.querySelector('#diagnostic-report')`,
+            );
+            // Drop the successful run reply after the host has saved it.
+            await evaluate(`(() => {
+              const prototype = MessageEvent.prototype;
+              const descriptor = Object.getOwnPropertyDescriptor(prototype, 'data');
+              Object.defineProperty(prototype, 'data', {
+                ...descriptor,
+                get() {
+                  const data = descriptor.get.call(this);
+                  if (data?.type !== 'state' || !data.id ||
+                      data.state.diagnosticHistory.length !== 2) return data;
+                  Object.defineProperty(prototype, 'data', descriptor);
+                  return { ...data, id: undefined };
+                },
+              });
+              ${runDiagnostics}.click();
+            })()`);
+            await wait(`!${runDiagnostics}.disabled`, 20000);
+            assert.match(
+              await evaluate<string>(
+                "document.querySelector('.error[role=alert]')?.textContent ?? ''",
+              ),
+              /Diagnostics did not respond/,
+            );
+            await wait(
+              "document.querySelectorAll('.diagnostic-history-entry').length === 2",
+            );
+            await evaluate(`${runDiagnostics}.click()`);
+            await wait(
+              `!${runDiagnostics}.disabled && document.querySelectorAll('.diagnostic-history-entry').length === 3`,
+            );
           }
         }
         if (name === "Formatting") {

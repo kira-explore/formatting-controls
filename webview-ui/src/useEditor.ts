@@ -14,6 +14,7 @@ declare const acquireVsCodeApi:
 const api =
   typeof acquireVsCodeApi === "function" ? acquireVsCodeApi() : undefined;
 const diagnosticFeedbackMs = 700;
+const diagnosticTimeoutMs = 10000;
 
 export const useEditor = () => {
   const [state, setState] = useState<Snapshot>();
@@ -26,6 +27,7 @@ export const useEditor = () => {
     id: string;
     type: Operation["type"];
     startedAt: number;
+    timeout: number | undefined;
   }>(undefined);
   const latest = useRef<Snapshot | undefined>(undefined);
   const initial = useRef(true);
@@ -36,7 +38,24 @@ export const useEditor = () => {
   ) => {
     if (!api || pendingRef.current) return;
     const id = `request-${++requestId.current}`;
-    pendingRef.current = { id, type: body.type, startedAt: performance.now() };
+    const startedAt = performance.now();
+    const timeout =
+      body.type === "runDiagnostics"
+        ? window.setTimeout(() => {
+            if (pendingRef.current?.id !== id) return;
+            pendingRef.current = undefined;
+            setPending(undefined);
+            setError(
+              "Diagnostics did not respond. Check the run history or try again.",
+            );
+            api.postMessage({
+              type: "ready",
+              id: `request-${++requestId.current}`,
+              scope,
+            });
+          }, diagnosticTimeoutMs)
+        : undefined;
+    pendingRef.current = { id, type: body.type, startedAt, timeout };
     setPending(body.type);
     setError("");
     setNotice("");
@@ -46,21 +65,19 @@ export const useEditor = () => {
     let timeout: number | undefined;
     let diagnosticFeedback: number | undefined;
     const applyResponse = (response: Response) => {
+      const request = pendingRef.current;
+      // Complete an acknowledged request even if a newer event already won.
+      if (request && response.id === request.id) {
+        window.clearTimeout(request.timeout);
+        pendingRef.current = undefined;
+        setPending(undefined);
+      }
       if (response.type === "error") {
         setError(response.error);
-        if (response.id === pendingRef.current?.id) {
-          pendingRef.current = undefined;
-          setPending(undefined);
-        }
       }
       if (response.type === "state") {
         window.clearTimeout(timeout);
         const next = response.state;
-        // Complete an acknowledged request even if a newer event already won.
-        if (pendingRef.current && response.id === pendingRef.current.id) {
-          pendingRef.current = undefined;
-          setPending(undefined);
-        }
         if (!isCurrentSnapshot(latest.current, next)) return;
         latest.current = next;
         setState(next);
@@ -105,6 +122,7 @@ export const useEditor = () => {
     return () => {
       window.removeEventListener("message", receive);
       window.clearTimeout(timeout);
+      window.clearTimeout(pendingRef.current?.timeout);
       window.clearTimeout(diagnosticFeedback);
     };
   }, []);
