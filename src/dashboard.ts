@@ -1,8 +1,9 @@
 import { randomBytes } from "node:crypto";
 import * as vscode from "vscode";
-import { diagnose } from "../shared/diagnostics";
+import type { Finding } from "../shared/diagnostics";
 import {
   correlationId,
+  type DiagnosticReport,
   type LanguageRule,
   parseRequest,
   type Request,
@@ -12,6 +13,7 @@ import {
   settingKeys,
 } from "../shared/protocol";
 import { adapters } from "../shared/providers";
+import { issueUrl } from "../shared/status-help";
 import {
   configuration,
   own,
@@ -20,9 +22,13 @@ import {
   setAction,
   write,
 } from "./configuration";
+import { createDiagnosticReport } from "./diagnostic-report";
 import { flags, status } from "./model";
 import { providersFor } from "./providers";
-import type { Workflows } from "./workflows";
+import type { Store, Workflows } from "./workflows";
+
+const diagnosticHistoryKey = "formattingControls.diagnostics.v1";
+const diagnosticHistoryLimit = 20;
 
 export class Dashboard implements vscode.Disposable {
   private panel: vscode.WebviewPanel | undefined;
@@ -31,13 +37,29 @@ export class Dashboard implements vscode.Disposable {
   private navigation = 0;
   private scope: Scope = { target: "user" };
   private active = vscode.window.activeTextEditor?.document;
-  private page: "overview" | "welcome" = "overview";
+  private page: Snapshot["page"] = "formatting";
+  private focusFinding: string | undefined;
+  private diagnosticHistory: DiagnosticReport[];
   private queue = Promise.resolve();
+  private get activeDocument(): vscode.TextDocument | undefined {
+    return this.active?.isClosed ? undefined : this.active;
+  }
+  private get hasWorkspace(): boolean {
+    return !!(
+      vscode.workspace.workspaceFile ||
+      vscode.workspace.workspaceFolders?.length
+    );
+  }
   constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly onResponse?: (message: Response) => unknown,
     private readonly workflows?: Workflows,
-  ) {}
+    private readonly extraFindings: (scope: Scope) => Finding[] = () => [],
+    private readonly workspaceState?: Store,
+  ) {
+    this.diagnosticHistory =
+      workspaceState?.get<DiagnosticReport[]>(diagnosticHistoryKey) ?? [];
+  }
   private reconcileScope(): void {
     try {
       this.selection(this.scope);
@@ -50,11 +72,31 @@ export class Dashboard implements vscode.Disposable {
     if (this.onResponse) await this.onResponse(message);
     await this.panel?.webview.postMessage(message);
   }
-  async open(welcome = false): Promise<void> {
+  async open(
+    welcome = false,
+    diagnostics?: {
+      finding: string;
+      scope: Scope;
+      document?: vscode.TextDocument;
+    },
+  ): Promise<void> {
+    if (diagnostics) {
+      this.scope = diagnostics.scope;
+      this.active = diagnostics.document ?? this.active;
+      this.revision++;
+    }
     this.reconcileScope();
-    this.page = welcome ? "welcome" : "overview";
+    this.page = diagnostics
+      ? "diagnostics"
+      : welcome
+        ? "welcome"
+        : "formatting";
+    this.focusFinding = diagnostics?.finding;
     this.navigation++;
-    this.active = vscode.window.activeTextEditor?.document ?? this.active;
+    this.active =
+      diagnostics?.document ??
+      vscode.window.activeTextEditor?.document ??
+      this.active;
     if (this.panel) {
       this.panel.reveal();
       await this.publish();
@@ -113,6 +155,32 @@ export class Dashboard implements vscode.Disposable {
           void this.publish();
         }
       }),
+      vscode.workspace.onDidCloseTextDocument((document) => {
+        if (document === this.active) {
+          this.revision++;
+          void this.publish();
+        }
+      }),
+      vscode.window.tabGroups.onDidChangeTabs(({ closed }) => {
+        const uri = this.activeDocument?.uri.toString();
+        if (!uri) return;
+        const showsDocument = ({ input }: vscode.Tab) =>
+          input instanceof vscode.TabInputText
+            ? input.uri.toString() === uri
+            : input instanceof vscode.TabInputTextDiff &&
+              (input.original.toString() === uri ||
+                input.modified.toString() === uri);
+        if (
+          closed.some(showsDocument) &&
+          !vscode.window.tabGroups.all.some((group) =>
+            group.tabs.some(showsDocument),
+          )
+        ) {
+          this.active = undefined;
+          this.revision++;
+          void this.publish();
+        }
+      }),
       ...(this.workflows
         ? [
             this.workflows.onDidChange(() => {
@@ -143,7 +211,7 @@ export class Dashboard implements vscode.Disposable {
       !vscode.workspace.workspaceFolders?.length
     )
       throw new Error("Open a workspace before editing workspace settings.");
-    const activeUri = this.active?.uri;
+    const activeUri = this.activeDocument?.uri;
     const activeFolder =
       activeUri && vscode.workspace.getWorkspaceFolder(activeUri);
     const uri = folder
@@ -164,15 +232,12 @@ export class Dashboard implements vscode.Disposable {
   }
   async snapshot(): Promise<Snapshot> {
     const languages = await vscode.languages.getLanguages();
+    const activeDocument = this.activeDocument;
+    const language = this.scope.language ?? activeDocument?.languageId;
     const selection = this.selection(this.scope);
     const effective = configuration({
       ...selection,
-      ...((this.scope.language ?? this.active?.languageId)
-        ? {
-            language: (this.scope.language ??
-              this.active?.languageId) as string,
-          }
-        : {}),
+      ...(language ? { language } : {}),
     });
     const settings = settingKeys.map((key) => {
       const owned = own(selection, key);
@@ -186,7 +251,7 @@ export class Dashboard implements vscode.Disposable {
     });
     const detected = providersFor(
       effective,
-      this.scope.language ?? this.active?.languageId ?? "",
+      language ?? "",
       effective.get("editor.defaultFormatter"),
     );
     const selectedConfiguration = configuration(selection);
@@ -238,14 +303,30 @@ export class Dashboard implements vscode.Disposable {
         .filter(Boolean)
         .join("; ");
     }
+    const activeFolder =
+      activeDocument && vscode.workspace.getWorkspaceFolder(activeDocument.uri);
     return {
       ...(vscode.env.remoteName ? { remoteName: vscode.env.remoteName } : {}),
       revision: this.revision,
       navigation: this.navigation,
       scope: this.scope,
       page: this.page,
-      activeLanguage:
-        this.scope.language ?? this.active?.languageId ?? "All languages",
+      ...(activeDocument
+        ? {
+            activeFile: {
+              name:
+                activeDocument.uri.path.split("/").at(-1) ||
+                activeDocument.fileName,
+              language: activeDocument.languageId,
+              ...(activeFolder ? { folder: activeFolder.name } : {}),
+            },
+          }
+        : {}),
+      ...(vscode.workspace.name
+        ? { workspaceName: vscode.workspace.name }
+        : {}),
+      ...(this.focusFinding ? { focusFinding: this.focusFinding } : {}),
+      activeLanguage: language ?? "All languages",
       resource: selection.uri?.toString() ?? "No active file",
       folders: (vscode.workspace.workspaceFolders ?? []).map((f) => ({
         name: f.name,
@@ -254,16 +335,13 @@ export class Dashboard implements vscode.Disposable {
       languages,
       settings,
       providers: detected,
-      findings: diagnose(settings, detected),
+      diagnosticHistory: this.diagnosticHistory,
       rules,
       profiles,
       recovery,
       workflowError,
       status: status(flags.map((k) => effective.get(k, false))),
-      hasWorkspace: !!(
-        vscode.workspace.workspaceFile ||
-        vscode.workspace.workspaceFolders?.length
-      ),
+      hasWorkspace: this.hasWorkspace,
     };
   }
   private async publish(id?: string, message?: string): Promise<void> {
@@ -330,9 +408,11 @@ export class Dashboard implements vscode.Disposable {
         else
           await vscode.env.openExternal(
             vscode.Uri.parse(
-              request.destination === "github"
-                ? "https://github.com/kira-explore/formatting-controls"
-                : "https://github.com/kira-explore/formatting-controls#readme",
+              request.destination === "issues"
+                ? issueUrl
+                : request.destination === "github"
+                  ? "https://github.com/kira-explore/formatting-controls"
+                  : "https://github.com/kira-explore/formatting-controls#readme",
             ),
           );
         await this.publish(request.id);
@@ -363,12 +443,70 @@ export class Dashboard implements vscode.Disposable {
         throw new Error(
           "Settings changed. Review the refreshed values and try again.",
         );
+      if (request.type === "runDiagnostics") {
+        const state = await this.snapshot();
+        if (state.revision !== request.revision)
+          throw new Error(
+            "The inspection context changed. Run diagnostics again.",
+          );
+        const report = createDiagnosticReport(
+          state,
+          this.extraFindings(state.scope),
+        );
+        const history = [report, ...this.diagnosticHistory].slice(
+          0,
+          diagnosticHistoryLimit,
+        );
+        if (state.hasWorkspace)
+          await this.workspaceState?.update(diagnosticHistoryKey, history);
+        this.diagnosticHistory = history;
+        if (state.navigation === this.navigation) this.focusFinding = undefined;
+        this.revision++;
+        await this.publish(request.id);
+        return;
+      }
+      if (
+        request.type === "clearDiagnosticHistory" ||
+        request.type === "deleteDiagnosticRun"
+      ) {
+        const runId =
+          request.type === "deleteDiagnosticRun" ? request.runId : undefined;
+        const history = runId
+          ? this.diagnosticHistory.filter(({ id }) => id !== runId)
+          : [];
+        if (this.hasWorkspace)
+          await this.workspaceState?.update(
+            diagnosticHistoryKey,
+            history.length > 0 ? history : undefined,
+          );
+        this.diagnosticHistory = history;
+        this.revision++;
+        await this.publish(
+          request.id,
+          request.type === "deleteDiagnosticRun"
+            ? "Diagnostic run deleted."
+            : "Diagnostic history cleared.",
+        );
+        return;
+      }
+      if (request.type === "formattingPause") {
+        if (!this.workflows)
+          throw new Error("Workflow storage is unavailable.");
+        const message =
+          this.workflows.recovery()?.kind === "pause"
+            ? await this.workflows.resumePause()
+            : await this.workflows.pauseFormatting(selection, this.scope);
+        this.revision++;
+        await this.publish(request.id, message);
+        return;
+      }
       if (request.type === "profile" || request.type === "pause") {
         if (!this.workflows)
           throw new Error("Workflow storage is unavailable.");
         let message: string;
         if (request.type === "pause") {
-          const language = this.scope.language ?? this.active?.languageId;
+          const language =
+            this.scope.language ?? this.activeDocument?.languageId;
           message = await this.workflows.pause(
             selection,
             this.scope,

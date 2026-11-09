@@ -1,12 +1,9 @@
 export const pages = [
-  { id: "overview", name: "Overview", glyph: "◈" },
-  { id: "formatting", name: "Formatting", glyph: "⌘" },
-  { id: "actions", name: "Code actions", glyph: "↗" },
-  { id: "formatters", name: "Formatters", glyph: "⊞" },
-  { id: "rules", name: "Language rules", glyph: "⌁" },
-  { id: "diagnostics", name: "Diagnostics", glyph: "◉" },
-  { id: "profiles", name: "Profiles", glyph: "▤" },
-  { id: "welcome", name: "Getting started", glyph: "◎" },
+  { id: "formatting", name: "Formatting", glyph: "sliders" },
+  { id: "actions", name: "Save actions", glyph: "save" },
+  { id: "rules", name: "Language rules", glyph: "code" },
+  { id: "profiles", name: "Profiles", glyph: "layers" },
+  { id: "diagnostics", name: "Diagnostics", glyph: "scan" },
 ] as const;
 export const labels: Record<string, string> = {
   "editor.formatOnSave": "Format on save",
@@ -16,6 +13,7 @@ export const labels: Record<string, string> = {
   "editor.defaultFormatter": "Default formatter",
   "files.autoSave": "Auto Save",
   "files.autoSaveDelay": "Auto Save delay",
+  "editor.codeActionsOnSave": "Code actions on save",
 };
 export const descriptions: Record<string, string> = {
   "editor.formatOnSave":
@@ -30,6 +28,11 @@ export const descriptions: Record<string, string> = {
   "files.autoSave": "Choose when VS Code saves your changes automatically.",
   "files.autoSaveDelay":
     "Milliseconds to wait when Auto Save is set to afterDelay.",
+};
+export const saveModeLabels: Record<string, string> = {
+  file: "Whole file",
+  modifications: "Modified lines",
+  modificationsIfAvailable: "Modified lines if available",
 };
 export const actionNames: Record<string, string> = {
   "source.fixAll": "Fix all",

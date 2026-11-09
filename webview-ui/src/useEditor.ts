@@ -13,15 +13,22 @@ declare const acquireVsCodeApi:
   | (() => { postMessage(message: Request): void });
 const api =
   typeof acquireVsCodeApi === "function" ? acquireVsCodeApi() : undefined;
+const diagnosticFeedbackMs = 700;
+const diagnosticTimeoutMs = 10000;
 
 export const useEditor = () => {
   const [state, setState] = useState<Snapshot>();
-  const [page, setPage] = useState<string>("overview");
-  const [pending, setPending] = useState<string>();
+  const [page, setPage] = useState<string>("formatting");
+  const [pending, setPending] = useState<Operation["type"]>();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const requestId = useRef(0);
-  const pendingRef = useRef<string | undefined>(undefined);
+  const pendingRef = useRef<{
+    id: string;
+    type: Operation["type"];
+    startedAt: number;
+    timeout: number | undefined;
+  }>(undefined);
   const latest = useRef<Snapshot | undefined>(undefined);
   const initial = useRef(true);
   const navigation = useRef(0);
@@ -31,40 +38,76 @@ export const useEditor = () => {
   ) => {
     if (!api || pendingRef.current) return;
     const id = `request-${++requestId.current}`;
-    pendingRef.current = id;
-    setPending(id);
+    const startedAt = performance.now();
+    const timeout =
+      body.type === "runDiagnostics"
+        ? window.setTimeout(() => {
+            if (pendingRef.current?.id !== id) return;
+            pendingRef.current = undefined;
+            setPending(undefined);
+            setError(
+              "Diagnostics did not respond. Check the run history or try again.",
+            );
+            api.postMessage({
+              type: "ready",
+              id: `request-${++requestId.current}`,
+              scope,
+            });
+          }, diagnosticTimeoutMs)
+        : undefined;
+    pendingRef.current = { id, type: body.type, startedAt, timeout };
+    setPending(body.type);
     setError("");
     setNotice("");
     api.postMessage({ ...body, id, scope } as Request);
   };
   useEffect(() => {
     let timeout: number | undefined;
-    const receive = (event: MessageEvent<Response>) => {
-      if (event.data.type === "error") {
-        setError(event.data.error);
-        if (event.data.id === pendingRef.current) {
-          pendingRef.current = undefined;
-          setPending(undefined);
-        }
+    let diagnosticFeedback: number | undefined;
+    const applyResponse = (response: Response) => {
+      const request = pendingRef.current;
+      // Complete an acknowledged request even if a newer event already won.
+      if (request && response.id === request.id) {
+        window.clearTimeout(request.timeout);
+        pendingRef.current = undefined;
+        setPending(undefined);
       }
-      if (event.data.type === "state") {
+      if (response.type === "error") {
+        setError(response.error);
+      }
+      if (response.type === "state") {
         window.clearTimeout(timeout);
-        const next = event.data.state;
-        // Complete an acknowledged request even if a newer event already won.
-        if (event.data.id === pendingRef.current) {
-          pendingRef.current = undefined;
-          setPending(undefined);
-        }
+        const next = response.state;
         if (!isCurrentSnapshot(latest.current, next)) return;
         latest.current = next;
         setState(next);
         if (initial.current || navigation.current !== next.navigation) {
           navigation.current = next.navigation;
-          setPage(next.page);
+          setPage(next.page === "overview" ? "formatting" : next.page);
           initial.current = false;
         }
-        if (event.data.message) setNotice(event.data.message);
+        if (response.message) setNotice(response.message);
       }
+    };
+    const receive = ({ data }: MessageEvent<Response>) => {
+      const request = pendingRef.current;
+      if (
+        data.type === "state" &&
+        request?.type === "runDiagnostics" &&
+        data.id === request.id
+      ) {
+        // Keep fast runs visible without delaying the host or error responses.
+        const remaining =
+          diagnosticFeedbackMs - (performance.now() - request.startedAt);
+        if (remaining > 0) {
+          diagnosticFeedback = window.setTimeout(
+            () => applyResponse(data),
+            remaining,
+          );
+          return;
+        }
+      }
+      applyResponse(data);
     };
     window.addEventListener("message", receive);
     const id = `request-${++requestId.current}`;
@@ -79,6 +122,8 @@ export const useEditor = () => {
     return () => {
       window.removeEventListener("message", receive);
       window.clearTimeout(timeout);
+      window.clearTimeout(pendingRef.current?.timeout);
+      window.clearTimeout(diagnosticFeedback);
     };
   }, []);
   // Clear the connection warning once the host has delivered state.

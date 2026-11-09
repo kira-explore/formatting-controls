@@ -1,8 +1,23 @@
 # Changelog
 
-## 0.8.0 — Unreleased
+## 0.9.0 — Unreleased
+
+- Redesign the dashboard around five main sections: Formatting, Save actions, Language rules, Profiles and Diagnostics, with Help & setup separate. Formatting is the default page; formatter tools move inside it and Auto Save moves to Save actions.
+- Share active-file context, Scope and Language across sections. Use effective-source notes, real themed checkboxes, expandable advanced controls and a diagnostics source table. Preserve provider controls, custom IDs/actions, profiles and recovery.
+- Connect dashboard Automatic formatting Pause/Resume to the three-trigger workflow without changing save actions. Keep the existing broader pause under advanced Profiles controls.
+- Add a disabled Reset placeholder to the status card. Reset behavior remains deferred.
+- Give Help & setup a four-step guide and common questions with one answer open at a time. Link to Formatting, Diagnostics and Save actions while preserving the selected scope and language, and place Documentation and Report an issue at opposite ends of the footer.
+- Keep the sidebar privacy note on two lines. Match the Reset placeholder to Pause in width, height and background, with equal space above and below.
+
+- Move Pause/Resume into the padded hover/click header immediately before Settings. Keep both buttons 24px tall and reserve the same width for Pause and Resume.
+- Right-align the formatting state icon and Enabled, Disabled or Mixed text together on the Automatic formatting row with a consistent 6px icon-to-text gap. Preserve the fixed card width, field information, source notes, warnings and native confirmation flow.
+
+## 0.8.0
 
 - Replace the extension icon with a transparent white-and-blue formatting-controls mark: indented lines and a slider. Use the same mark in the dashboard sidebar and loading view, adapting its foreground to the editor theme.
+- Show Enabled, Disabled or Mixed beside the status icon in the hover/click card. Move the text-only Pause/Resume button to the right of Automatic formatting, keeping its size, native picker flow and the card's fixed width unchanged.
+- Add hover-only information icons for Scope, Language and Formatter, including the effective formatter source and overrides. Keep source notes below the formatting checkboxes.
+- Show a conditional status-card warning for an unavailable configured formatter, explicit provider formatting disablement or a failed Pause/Resume action. Open the existing Diagnostics page at that finding with the same file and scope. Do not warn solely because no default formatter is configured or an adapter does not list a language.
 
 ## 0.7.0
 

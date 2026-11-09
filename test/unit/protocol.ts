@@ -97,6 +97,13 @@ test("workflow messages require known operations, bounded names and revisions", 
     "profile",
   );
   assert.equal(parseRequest({ ...envelope, type: "pause" }).type, "pause");
+  assert.equal(
+    parseRequest({ ...envelope, type: "formattingPause" }).type,
+    "formattingPause",
+  );
+  assert.throws(() =>
+    parseRequest({ ...envelope, type: "formattingPause", revision: -1 }),
+  );
   for (const raw of [
     { ...envelope, type: "profile", action: "execute", name: "x" },
     { ...envelope, type: "profile", action: "save", name: " " },

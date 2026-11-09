@@ -47,6 +47,8 @@ test("reference artwork has live values, accessible descriptions and read-only f
     JSON.parse(decodeURIComponent(match[1] ?? "")),
   );
   assert.deepEqual(actions, [[7, "pause"]]);
+  assert.match(art.reset.alt, /Not available yet/);
+  assert.doesNotMatch(html, /statusControl[^"]*reset/);
   assert.match(html, /width="330" height="76"/);
   assert.equal(art.header.alt, "Kira Formatting Controls");
   assert.match(art.summary.alt, /Automatic formatting: Mixed/);
@@ -87,6 +89,44 @@ test("formatting stays visible with context, formatter and footer actions", () =
     statusArtwork({ ...context, flags: [false, false, false] }).summary.alt,
     /formatting: Disabled/,
   );
+});
+
+test("field info icons have separate hover-only targets and warnings alone add a Diagnostics action", () => {
+  const art = statusArtwork({
+    ...context,
+    formatterInfo: "Saved in User settings.\nOverridden by Workspace.",
+  });
+  assert.equal(
+    art.scopeLabel.width +
+      art.scopeInfo.width +
+      art.fieldGap.width +
+      art.scopeValue.width,
+    330,
+  );
+  assert.equal(art.scopeLabel.height + art.languageLabel.height, 72);
+  const html = statusHover({
+    ...context,
+    formatterInfo: art.formatterInfo.tooltip ?? "",
+  });
+  assert.match(
+    html,
+    /title="Saved in User settings\.&#10;Overridden by Workspace\."/,
+  );
+  assert.doesNotMatch(html, /Review in dashboard/);
+  const warning = statusHover({
+    ...context,
+    diagnostic: {
+      id: "pause-failed",
+      confidence: "verified",
+      title: "Pause failed",
+      detail: '<script>alert("test")</script>',
+    },
+  });
+  assert.match(warning, /Review in dashboard/);
+  assert.ok(
+    warning.includes(encodeURIComponent(JSON.stringify([7, "diagnostics"]))),
+  );
+  assert.doesNotMatch(warning, /<script/);
 });
 
 test("untrusted labels remain inert text inside SVG and HTML image descriptions", () => {
@@ -155,6 +195,16 @@ test("status and pause/resume reserve identical geometry and preserve truthful e
     assert.equal(art.pause.width, 66);
     assert.equal(art.pause.height, art.settings.height);
     assert.doesNotMatch(art.summary.svg, /<rect\b/);
+    assert.equal(
+      art.header.width +
+        art.pause.width +
+        art.headerGap.width +
+        art.settings.width,
+      art.context.width,
+      "The title, action and Settings fit the fixed header width without shifting",
+    );
+    assert.equal(art.summary.width, art.context.width);
+    assert.match(art.summary.svg, /x="325"[^>]*text-anchor="end"/);
   }
   assert.match(variants[4]?.summary.alt ?? "", /Disabled/);
   assert.match(variants[5]?.summary.alt ?? "", /Mixed/);
@@ -184,14 +234,22 @@ test("actions have no tooltip while keeping their labels and click targets", () 
     assert.ok(button);
     assert.equal(button[2], "");
     assert.match(button[3] ?? "", /width="66" height="24"/);
-    assert.doesNotMatch(html, /title=/);
+    assert.equal(
+      [...html.matchAll(/ title=/g)].length,
+      3,
+      "Only field information icons have explanatory tooltips",
+    );
     assert.doesNotMatch(html, /formattingControls\.statusInfo/);
     const rows = [...html.matchAll(/<tr>(.*?)<\/tr>/g)].map(
       (match) => match[1] ?? "",
     );
     assert.match(
       rows[0] ?? "",
-      /alt="Kira Formatting Controls".*alt="(?:Pause|Resume)".*alt="Open VS Code Settings"/,
+      /alt="Kira Formatting Controls".*alt="Open VS Code Settings"/,
+    );
+    assert.match(
+      rows[0] ?? "",
+      /alt="(?:Pause|Resume)".*alt="Open VS Code Settings"/,
     );
     assert.doesNotMatch(rows[0] ?? "", /alt="Automatic formatting:/);
     const pauseIndex = rows.findIndex((row) =>
@@ -204,12 +262,17 @@ test("actions have no tooltip while keeping their labels and click targets", () 
     const statusIndex = rows.findIndex((row) =>
       row.includes("Automatic formatting: Mixed."),
     );
-    assert.equal(statusIndex, 4);
+    assert.equal(statusIndex, 5);
     assert.doesNotMatch(rows[1] ?? "", /Automatic formatting: Mixed/);
     assert.doesNotMatch(rows[statusIndex] ?? "", /<a\b/);
+    assert.match(
+      rows[statusIndex] ?? "",
+      /^<td colspan="2"><img[^>]*alt="Automatic formatting: Mixed\."/,
+      "The full-width formatting heading and status remain unlinked",
+    );
     for (const row of rows.filter((row) => /alt="Active file:/.test(row)))
       assert.doesNotMatch(row, /<a\b/);
-    for (const row of rows.slice(1)) assert.doesNotMatch(row, /title=/);
+    for (const row of rows.slice(5)) assert.doesNotMatch(row, /title=/);
     const art = statusArtwork({ ...context, paused });
     assert.equal(
       art.pauseCaption.alt,
@@ -329,6 +392,12 @@ test("heading status icons distinguish every flag combination while context keep
         new RegExp(`data-icon="${icon}" data-status="${expected}"`),
       );
       assert.equal(art.summary.alt, `Automatic formatting: ${expected}.`);
+      assert.match(
+        art.summary.svg,
+        new RegExp(
+          `x="325" y="14"[^>]*text-anchor="end"[^>]*>${expected}</text>`,
+        ),
+      );
       assert.match(art.summary.svg, /r="7.2"/);
       assert.match(art.context.svg, /data-icon="file-text"/);
       assert.doesNotMatch(art.context.svg, /data-status=/);

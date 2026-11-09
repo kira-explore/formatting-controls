@@ -1,6 +1,6 @@
 {
   "name": "formatting-controls",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Control formatting from your status bar, with a dashboard for explicit scopes, language rules, profiles and diagnostics.",
   "main": "./dist/extension.js",
   "scripts": {
