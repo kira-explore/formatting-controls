@@ -114,8 +114,8 @@ pre {
 .app {
   display: grid;
   grid-template-columns: 218px minmax(0, 1fr);
-  grid-template-rows: 64px 1fr;
-  min-height: 100vh;
+  grid-template-rows: 64px minmax(0, 1fr);
+  height: 100vh;
 }
 .topbar {
   grid-column: 1 / -1;
@@ -151,9 +151,7 @@ pre {
   padding: 24px 12px 16px;
   display: flex;
   flex-direction: column;
-  position: sticky;
-  top: 0;
-  height: calc(100vh - 64px);
+  overflow-y: auto;
 }
 nav {
   display: grid;
@@ -213,6 +211,7 @@ body:is(.vscode-dark, .vscode-light)
 }
 .workspace {
   min-width: 0;
+  overflow: auto;
 }
 main {
   max-width: 1220px;
@@ -1044,7 +1043,8 @@ footer button:hover {
 }
 @media (max-width: 650px) {
   .app {
-    display: block;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
   }
   .topbar {
     min-height: 56px;
@@ -1059,8 +1059,6 @@ footer button:hover {
     gap: 5px;
   }
   .sidebar {
-    position: static;
-    height: auto;
     padding: 10px;
     border-right: 0;
     border-bottom: 1px solid var(--border);
@@ -1148,13 +1146,101 @@ body.vscode-high-contrast-light {
   color-scheme: light;
 }
 
+.profile-section {
+  padding: 24px 0;
+  border-bottom: 1px solid var(--border);
+}
+.profile-section > p:last-child,
+.profile-section .recovery-card,
+.profiles-content .callout {
+  margin-bottom: 0;
+}
+.profile-form {
+  margin-top: 16px;
+}
+.profile-section .button-row {
+  margin-top: 0;
+}
+.profile-section .recovery-card .button-row {
+  margin-top: 14px;
+}
+.profile-empty,
 .profile-list {
-  display: block;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
 }
-.profile-list article {
-  position: relative;
-  padding: 20px 0;
+.profile-empty,
+.profile-row {
+  padding: 15px 16px;
 }
-.profile-list .button-row {
-  margin-top: 12px;
+.profile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+.profile-row + .profile-row {
+  border-top: 1px solid var(--border);
+}
+.profile-row > div:first-child {
+  flex: 1 1 260px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.profile-empty p,
+.profile-row p {
+  margin: 4px 0 0;
+  font-size: 0.93rem;
+}
+.profile-row .button-row {
+  margin: 0;
+}
+.profile-save-hint,
+.profile-form {
+  margin-bottom: 16px;
+}
+.profile-presets {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 14px;
+  margin-top: 16px;
+}
+.preset-choices {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.preset-choices button {
+  text-align: start;
+}
+.preset-choices button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  border-color: var(--vscode-contrastActiveBorder, var(--accent));
+}
+.preset-detail .profile-row {
+  display: grid;
+  justify-content: stretch;
+}
+@media (max-width: 760px) {
+  .profile-presets {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.profiles-content .formatting-disclosure > .callout {
+  margin: 0 0 20px;
+}
+.profiles-content .callout button + p {
+  margin-bottom: 0;
+}
+.profiles-content > details:last-child {
+  border-bottom: 0;
+}
+.profiles-page > footer {
+  margin-top: 0;
 }

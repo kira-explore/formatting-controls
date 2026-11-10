@@ -16,10 +16,96 @@ export class MemoryStore implements Store {
     else this.values.set(key, structuredClone(value));
   }
 }
+const runMultiLanguageProfileTest = async (uri: vscode.Uri): Promise<void> => {
+  const folder = vscode.workspace.getWorkspaceFolder(uri);
+  assert.ok(folder);
+  const selection = { target: vscode.ConfigurationTarget.WorkspaceFolder, uri };
+  const scope = { target: "folder" as const, folder: folder.uri.toString() };
+  const html = { ...selection, language: "html" };
+  const css = { ...selection, language: "css" };
+  const file = vscode.Uri.joinPath(
+    folder.uri,
+    "test-multi-language-profile.json",
+  );
+  const key = "editor.formatOnSave";
+  const originals = [selection, html, css].map((s) => own(s, key));
+  const profile = {
+    version: 1,
+    name: "Web formatting",
+    settings: {
+      [key]: false,
+      "[html]": { [key]: true },
+      "[css]": { [key]: false },
+    },
+  };
+  const global = new MemoryStore();
+  const workspace = new MemoryStore();
+  const previews: Change[][] = [];
+  const workflows = new Workflows(
+    global,
+    workspace,
+    async (_, changes) => {
+      previews.push([...changes]);
+      return true;
+    },
+    { open: async () => file, save: async () => file },
+  );
+  const reopened = new Workflows(global, workspace, async () => true);
+  try {
+    await write(selection, key, true);
+    await write(html, key, undefined);
+    await write(css, key, true);
+    await vscode.workspace.fs.writeFile(
+      file,
+      new TextEncoder().encode(JSON.stringify(profile)),
+    );
+    await workflows.import(scope);
+    assert.deepEqual(
+      [own(selection, key), own(html, key), own(css, key)],
+      [true, undefined, true],
+    );
+    await workflows.export(profile.name, selection, scope);
+    assert.deepEqual(
+      JSON.parse(
+        new TextDecoder().decode(await vscode.workspace.fs.readFile(file)),
+      ),
+      profile,
+    );
+    await assert.rejects(
+      workflows.apply(profile.name, html, { ...scope, language: "html" }),
+      /Select All languages/,
+    );
+    await workflows.apply(profile.name, selection, scope);
+    assert.equal(previews.length, 1);
+    assert.deepEqual(
+      previews[0]?.map(({ language }) => language),
+      [undefined, "html", "css"],
+    );
+    assert.deepEqual(
+      [own(selection, key), own(html, key), own(css, key)],
+      [false, true, false],
+    );
+    await write(css, key, undefined);
+    await reopened.restore();
+    assert.deepEqual(
+      [own(selection, key), own(html, key), own(css, key)],
+      [true, undefined, undefined],
+    );
+  } finally {
+    workflows.dispose();
+    reopened.dispose();
+    for (const [index, s] of [selection, html, css].entries()) {
+      await write(s, key, originals[index]);
+    }
+    await vscode.workspace.fs.delete(file).then(undefined, () => {});
+  }
+};
+
 export const runWorkflowTests = async (
   extensionUri: vscode.Uri,
   uri: vscode.Uri,
 ): Promise<void> => {
+  await runMultiLanguageProfileTest(uri);
   const folder = vscode.workspace.getWorkspaceFolder(uri);
   assert.ok(folder);
   const selection = {
@@ -172,7 +258,7 @@ export const runWorkflowTests = async (
     await workflows.discard();
     const cancelled = new Workflows(global, workspace, async () => false);
     assert.match(
-      await cancelled.apply("Strict", selection, scope),
+      await cancelled.apply("Format on Save, Paste and Type", selection, scope),
       /Cancelled/,
     );
     assert.equal(own(selection, "editor.formatOnSave"), undefined);

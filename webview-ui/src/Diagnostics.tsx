@@ -85,7 +85,7 @@ export const Diagnostics = ({
 }: {
   state: Snapshot;
   navigate: (page: string) => void;
-  run: () => void;
+  run: (onComplete: (runId: string) => void) => void;
   remove: (runId?: string) => void;
   pending: boolean;
   running: boolean;
@@ -99,7 +99,7 @@ export const Diagnostics = ({
   const runButton = useRef<HTMLButtonElement>(null);
   const history = state.diagnosticHistory;
   const latest = history[0];
-  const report = history.find(({ id }) => id === selectedId) ?? latest;
+  const report = history.find(({ id }) => id === selectedId);
   const clearAll = deleteTarget === "all";
   const targetRun = history.find(({ id }) => id === deleteTarget);
   const confirming = clearAll ? history.length > 0 : !!targetRun;
@@ -146,7 +146,7 @@ export const Diagnostics = ({
 
   return (
     <div className="diagnostics">
-      {latest && report && (
+      {latest && (
         <section
           className="diagnostic-history-section"
           aria-labelledby="diagnostic-history"
@@ -174,9 +174,11 @@ export const Diagnostics = ({
                 <button
                   type="button"
                   className="diagnostic-history-entry"
-                  ref={report.id === entry.id ? selectedButton : undefined}
-                  aria-pressed={report.id === entry.id}
-                  aria-controls="diagnostic-report"
+                  ref={report?.id === entry.id ? selectedButton : undefined}
+                  aria-pressed={report?.id === entry.id}
+                  aria-controls={
+                    report?.id === entry.id ? "diagnostic-report" : undefined
+                  }
                   onClick={() => setSelectedId(entry.id)}
                 >
                   <span>
@@ -217,7 +219,7 @@ export const Diagnostics = ({
           onClick={() => {
             setDeleteTarget(undefined);
             setSelectedId(undefined);
-            run();
+            run(setSelectedId);
           }}
         >
           {running ? (
@@ -255,7 +257,10 @@ export const Diagnostics = ({
               : "Selected run results"}
           </h2>
           <p>
-            {report.fileName ?? "No active file"} · {runContext(report)}
+            {report.fileName ?? "No active file"} · {runContext(report)} ·{" "}
+            <time dateTime={new Date(report.createdAt).toISOString()}>
+              {runTime.format(report.createdAt)}
+            </time>
           </p>
           {(report.scopeLabel !== diagnosticScopeLabel(state) ||
             report.selectedLanguage !== state.scope.language ||

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   Operation,
   Request,
@@ -8,17 +8,24 @@ import type {
 } from "../../shared/protocol";
 import { isCurrentSnapshot } from "../../shared/state";
 
+type DashboardView = { page: string; navigation: number | undefined };
+
 declare const acquireVsCodeApi:
   | undefined
-  | (() => { postMessage(message: Request): void });
+  | (() => {
+      postMessage(message: Request): void;
+      getState(): DashboardView | undefined;
+      setState(state: DashboardView): void;
+    });
 const api =
   typeof acquireVsCodeApi === "function" ? acquireVsCodeApi() : undefined;
+const restoredView = api?.getState();
 const diagnosticFeedbackMs = 700;
 const diagnosticTimeoutMs = 10000;
 
 export const useEditor = () => {
   const [state, setState] = useState<Snapshot>();
-  const [page, setPage] = useState<string>("formatting");
+  const [page, setPage] = useState(restoredView?.page ?? "formatting");
   const [pending, setPending] = useState<Operation["type"]>();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -28,13 +35,18 @@ export const useEditor = () => {
     type: Operation["type"];
     startedAt: number;
     timeout: number | undefined;
+    onDiagnosticRun: ((runId: string) => void) | undefined;
   }>(undefined);
   const latest = useRef<Snapshot | undefined>(undefined);
-  const initial = useRef(true);
-  const navigation = useRef(0);
+  const navigation = useRef(restoredView?.navigation);
+  const selectPage = useCallback((page: string) => {
+    setPage(page);
+    api?.setState({ page, navigation: navigation.current });
+  }, []);
   const send = (
     body: Operation,
     scope: Scope = state?.scope ?? { target: "user" },
+    onDiagnosticRun?: (runId: string) => void,
   ) => {
     if (!api || pendingRef.current) return;
     const id = `request-${++requestId.current}`;
@@ -55,7 +67,13 @@ export const useEditor = () => {
             });
           }, diagnosticTimeoutMs)
         : undefined;
-    pendingRef.current = { id, type: body.type, startedAt, timeout };
+    pendingRef.current = {
+      id,
+      type: body.type,
+      startedAt,
+      timeout,
+      onDiagnosticRun,
+    };
     setPending(body.type);
     setError("");
     setNotice("");
@@ -71,6 +89,10 @@ export const useEditor = () => {
         window.clearTimeout(request.timeout);
         pendingRef.current = undefined;
         setPending(undefined);
+        if (request.onDiagnosticRun && response.type === "state") {
+          const report = response.state.diagnosticHistory[0];
+          if (report) request.onDiagnosticRun(report.id);
+        }
       }
       if (response.type === "error") {
         setError(response.error);
@@ -81,10 +103,9 @@ export const useEditor = () => {
         if (!isCurrentSnapshot(latest.current, next)) return;
         latest.current = next;
         setState(next);
-        if (initial.current || navigation.current !== next.navigation) {
+        if (navigation.current !== next.navigation) {
           navigation.current = next.navigation;
-          setPage(next.page === "overview" ? "formatting" : next.page);
-          initial.current = false;
+          selectPage(next.page === "overview" ? "formatting" : next.page);
         }
         if (response.message) setNotice(response.message);
       }
@@ -125,11 +146,20 @@ export const useEditor = () => {
       window.clearTimeout(pendingRef.current?.timeout);
       window.clearTimeout(diagnosticFeedback);
     };
-  }, []);
+  }, [selectPage]);
   // Clear the connection warning once the host has delivered state.
   useEffect(() => {
     if (state && error.startsWith("The editor")) setError("");
   }, [state, error]);
 
-  return { state, page, setPage, pending, error, setError, notice, send };
+  return {
+    state,
+    page,
+    setPage: selectPage,
+    pending,
+    error,
+    setError,
+    notice,
+    send,
+  };
 };

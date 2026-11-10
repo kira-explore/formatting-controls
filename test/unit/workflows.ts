@@ -92,6 +92,50 @@ test("action plans affect only requested entries and preserve absence semantics"
   assert.deepEqual(delta[0]?.before, absent);
   assert.equal(delta[0]?.containerPresent, true);
 });
+test("one profile plans general settings and separate language overrides", () => {
+  const raw = {
+    version: 1,
+    name: "Web formatting",
+    settings: {
+      "editor.formatOnSave": true,
+      "[html]": { "editor.formatOnSave": false },
+      "[css]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": { "source.fixAll": "explicit" },
+      },
+    },
+  };
+  const profile = parseProfile(raw);
+  assert.deepEqual(profile, raw);
+  const changes = plan(profile, (key, language) =>
+    key === "editor.formatOnSave" && language === "html" ? true : undefined,
+  );
+  assert.deepEqual(
+    changes.map(({ key, language, action, before }) => [
+      key,
+      language,
+      action,
+      before,
+    ]),
+    [
+      ["editor.formatOnSave", undefined, undefined, absent],
+      ["editor.formatOnSave", "html", undefined, slot(true)],
+      ["editor.formatOnSave", "css", undefined, absent],
+      ["editor.codeActionsOnSave", "css", "source.fixAll", absent],
+    ],
+  );
+  const journal = { ...fixture().batch, kind: "profile", changes };
+  assert.deepEqual(parseJournal(JSON.parse(JSON.stringify(journal))), journal);
+  assert.throws(() => parseJournal({ ...journal, kind: "pause" }));
+  assert.throws(() => parseProfile({ ...raw, language: "html" }));
+  for (const settings of [
+    { "[html][css]": { "editor.formatOnSave": true } },
+    { "[html]": { "files.autoSave": "off" } },
+    { "[html]": { "workbench.colorTheme": "Dark Modern" } },
+  ]) {
+    assert.throws(() => parseProfile({ ...raw, settings }));
+  }
+});
 test("journal is durable before writes and round trips for crash recovery", async () => {
   const f = fixture();
   await applyBatch(f.batch, f.port);

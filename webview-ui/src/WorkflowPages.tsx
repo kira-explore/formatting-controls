@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { languageName } from "../../shared/language";
 import type { Operation, Snapshot } from "../../shared/protocol";
 
@@ -7,6 +7,7 @@ interface Props {
   state: Snapshot;
   disabled: boolean;
   send: (operation: Operation) => void;
+  scopeControls: ReactNode;
   selectLanguage: (language: string) => void;
 }
 export const WorkflowPages = ({
@@ -14,9 +15,17 @@ export const WorkflowPages = ({
   state,
   disabled,
   send,
+  scopeControls,
   selectLanguage,
 }: Props) => {
   const [name, setName] = useState("");
+  const [showSave, setShowSave] = useState(false);
+  const [presetName, setPresetName] = useState("Format on Save and Paste");
+  const profileNameInput = useRef<HTMLInputElement>(null);
+  const saveSettingsButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (showSave) profileNameInput.current?.focus();
+  }, [showSave]);
   const [addingRule, setAddingRule] = useState(false);
   const [ruleLanguage, setRuleLanguage] = useState("");
   const profile = (
@@ -117,143 +126,203 @@ export const WorkflowPages = ({
     );
   const pending = disabled;
   disabled = disabled || !!state.workflowError;
-  const profileCard = (p: Snapshot["profiles"][number]) => (
-    <article key={p.name}>
-      <div className="provider-heading">
-        <h3>{p.name}</h3>
-        <span className="tag">{p.builtin ? "Preset" : "Saved"}</span>
-      </div>
-      <p>{p.description}</p>
-      <small>
-        {p.count} setting groups · {p.language ?? "Any selected language"}
-      </small>
-      <div className="button-row">
-        <button
-          type="button"
-          disabled={
-            disabled ||
-            !p.count ||
-            !!(p.language && p.language !== state.scope.language) ||
-            state.recovery?.kind === "pause" ||
-            (!!state.recovery && state.recovery.phase !== "applied")
-          }
-          aria-label={`Preview & apply ${p.name}`}
-          onClick={() => profile("apply", p.name)}
-        >
-          Preview & apply
-        </button>
-        <button
-          type="button"
-          disabled={disabled || !p.count}
-          aria-label={`Export ${p.name}`}
-          onClick={() => profile("export", p.name)}
-        >
-          Export
-        </button>
-        {!p.builtin && (
+  const canSave = state.settings.some((setting) => setting.configured);
+  const savedProfiles = state.profiles.filter((entry) => !entry.builtin);
+  const presets = state.profiles.filter((entry) => entry.builtin);
+  const selectedPreset =
+    presets.find((entry) => entry.name === presetName) ?? presets[0];
+  const recoveryPending =
+    state.recovery?.kind === "pause" ||
+    (!!state.recovery && state.recovery.phase !== "applied");
+  const profileRow = (entry: Snapshot["profiles"][number]) => {
+    const language = entry.language ? languageName(entry.language) : undefined;
+    const languages = entry.languages?.map(languageName).join(", ");
+    const requiredLanguage = languages ? "All languages" : language;
+    const languageMismatch =
+      (entry.language !== undefined || languages !== undefined) &&
+      entry.language !== state.scope.language;
+
+    return (
+      <article
+        className="profile-row"
+        key={entry.builtin ? "preset" : entry.name}
+      >
+        <div aria-live={entry.builtin ? "polite" : undefined}>
+          <h3>{entry.name}</h3>
+          {entry.builtin && <p>{entry.description}</p>}
+          <p>
+            {entry.count === 0
+              ? "No settings to copy for this selection."
+              : `${entry.count} ${entry.count === 1 ? "setting group" : "setting groups"} · ${languages ?? language ?? "Any selected language"}`}
+          </p>
+          {languageMismatch && (
+            <p>Choose {requiredLanguage} in Settings target to apply.</p>
+          )}
+        </div>
+        <div className="button-row">
+          <button
+            type="button"
+            disabled={
+              disabled || !entry.count || languageMismatch || recoveryPending
+            }
+            aria-label={`Preview & apply ${entry.name}`}
+            onClick={() => profile("apply", entry.name)}
+          >
+            Preview &amp; apply
+          </button>
           <button
             type="button"
             className="text-button"
-            disabled={disabled}
-            aria-label={`Delete ${p.name}`}
-            onClick={() => profile("delete", p.name)}
+            disabled={disabled || !entry.count}
+            aria-label={`Export ${entry.name}`}
+            onClick={() => profile("export", entry.name)}
           >
-            Delete
+            Export
           </button>
-        )}
-      </div>
-    </article>
-  );
+          {!entry.builtin && (
+            <button
+              type="button"
+              className="text-button"
+              disabled={disabled}
+              aria-label={`Delete ${entry.name}`}
+              onClick={() => profile("delete", entry.name)}
+            >
+              Delete
+            </button>
+          )}
+        </div>
+      </article>
+    );
+  };
   return (
-    <>
+    <div className="profiles-content">
       {state.workflowError && (
         <p className="error" role="alert">
           Profiles need attention: {state.workflowError}. Native formatting
           controls remain available.
         </p>
       )}
-      <div className="section-header">
-        <div>
-          <h2>Saved profiles</h2>
-          <p>
-            Preview changes before applying a profile to the selected scope.
-          </p>
+      <details className="profile-section profile-disclosure">
+        <summary>Settings target for saving, applying, or pausing</summary>
+        {scopeControls}
+      </details>
+      <section className="profile-section">
+        <div className="section-header">
+          <div>
+            <h2>Saved profiles</h2>
+            <p>Reuse formatting and save-action preferences across projects.</p>
+          </div>
+          <div className="button-row">
+            <button
+              ref={saveSettingsButton}
+              type="button"
+              className="primary"
+              aria-expanded={showSave}
+              disabled={disabled || !canSave}
+              onClick={() => setShowSave(!showSave)}
+            >
+              Save current settings
+            </button>
+            <button
+              type="button"
+              disabled={disabled}
+              onClick={() => profile("import")}
+            >
+              Import profile
+            </button>
+            <button
+              type="button"
+              className="text-button"
+              disabled={pending}
+              onClick={() => send({ type: "read" })}
+            >
+              Refresh
+            </button>
+          </div>
         </div>
-        <button
-          type="button"
-          className="primary"
-          disabled={disabled}
-          onClick={() =>
-            document
-              .querySelector<HTMLInputElement>(
-                '[aria-label="New profile name"]',
-              )
-              ?.focus()
-          }
-        >
-          + Save current settings
-        </button>
-      </div>
-      <section className="provider-grid profile-list">
-        {state.profiles.filter((p) => !p.builtin).map(profileCard)}
-        {!state.profiles.some((p) => !p.builtin) && (
-          <p>
-            No saved profiles yet. Save your explicit settings or import a
-            profile.
+        {!canSave && (
+          <p className="profile-save-hint">
+            To save a profile, set a formatting or save-action preference for
+            the selected scope and language.
           </p>
         )}
+        {showSave && (
+          <form
+            className="custom-action profile-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!disabled && canSave && name.trim())
+                profile("save", name.trim());
+            }}
+          >
+            <label>
+              Profile name
+              <input
+                ref={profileNameInput}
+                aria-label="New profile name"
+                value={name}
+                required
+                maxLength={80}
+                placeholder="My project preferences"
+                disabled={disabled}
+                onChange={(event) => setName(event.target.value)}
+              />
+            </label>
+            <div className="button-row">
+              <button
+                type="submit"
+                className="primary"
+                disabled={disabled || !canSave || !name.trim()}
+              >
+                Save profile
+              </button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => {
+                  setName("");
+                  setShowSave(false);
+                  saveSettingsButton.current?.focus();
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+        {savedProfiles.length ? (
+          <div className="profile-list">{savedProfiles.map(profileRow)}</div>
+        ) : (
+          <div className="profile-empty">
+            <h3>No saved profiles yet</h3>
+            <p>Save your current settings or import a profile from JSON.</p>
+          </div>
+        )}
       </section>
-      <form
-        className="custom-action"
-        onSubmit={(e) => {
-          e.preventDefault();
-          profile("save", name);
-        }}
-      >
-        <label>
-          Save explicit preferences at the selected scope
-          <input
-            aria-label="New profile name"
-            value={name}
-            required
-            maxLength={80}
-            placeholder="My project preferences"
-            disabled={disabled}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={disabled || !state.settings.some((s) => s.configured)}
-        >
-          Save profile
-        </button>
-      </form>
-      <div className="button-row">
-        <button
-          type="button"
-          className="text-button"
-          disabled={disabled}
-          onClick={() => profile("import")}
-        >
-          Import profile
-        </button>
-        <button
-          type="button"
-          className="text-button"
-          disabled={pending}
-          onClick={() => send({ type: "read" })}
-        >
-          Refresh profiles
-        </button>
-      </div>
-      <details className="disclosure">
-        <summary>Built-in presets</summary>
-        <section className="provider-grid profile-list">
-          {state.profiles.filter((p) => p.builtin).map(profileCard)}
+      {selectedPreset && (
+        <section className="profile-section">
+          <h2>Built-in presets</h2>
+          <p>Choose a preset, then preview its changes before applying it.</p>
+          <div className="profile-presets">
+            <fieldset className="preset-choices" aria-label="Built-in presets">
+              {presets.map((entry) => (
+                <button
+                  key={entry.name}
+                  type="button"
+                  aria-pressed={entry.name === selectedPreset.name}
+                  onClick={() => setPresetName(entry.name)}
+                >
+                  {entry.name}
+                </button>
+              ))}
+            </fieldset>
+            <div className="profile-list preset-detail">
+              {profileRow(selectedPreset)}
+            </div>
+          </div>
         </section>
-      </details>
-      <section className="disclosure">
+      )}
+      <section className="profile-section">
         <h2>Restore previous settings</h2>
         {state.recovery && (
           <section className="recovery-card">
@@ -274,8 +343,8 @@ export const WorkflowPages = ({
             </p>
             <code>{state.recovery.scope.folder}</code>
             <p>
-              Restore only values still matching this change. Externally edited
-              preferences stay untouched; conflicts remain available for review.
+              Restore values that still match this change. Later edits are
+              preserved. Applying another batch replaces this restore point.
             </p>
             <div className="button-row">
               <button
@@ -299,41 +368,37 @@ export const WorkflowPages = ({
           </section>
         )}
         {!state.recovery && (
-          <p>A restore point becomes available after applying a profile.</p>
+          <p>
+            A restore point becomes available after applying a profile or
+            preset.
+          </p>
         )}
       </section>
-      <details className="disclosure">
+      <details className="disclosure formatting-disclosure">
         <summary>Advanced workspace pause</summary>
         <div className="callout">
           <span aria-hidden="true">Ⅱ</span>
           <div>
             <strong>Pause at an explicit workspace scope</strong>
             <p>
-              This advanced pause changes formatting flags and currently
-              configured source actions. Choose Workspace or Workspace folder.
-              It stays in effect until resumed, including across reloads.
-              Language or narrower overrides may still run.
+              Pause automatic formatting and configured save actions until you
+              resume. Language or narrower overrides may still run.
             </p>
             <button
               type="button"
               disabled={
-                disabled ||
-                state.scope.target === "user" ||
-                state.recovery?.kind === "pause" ||
-                (!!state.recovery && state.recovery.phase !== "applied")
+                disabled || state.scope.target === "user" || recoveryPending
               }
               onClick={() => send({ type: "pause", revision: state.revision })}
             >
               Preview temporary pause
             </button>
+            {state.scope.target === "user" && (
+              <p>Select Workspace or a workspace folder to use this pause.</p>
+            )}
           </div>
         </div>
       </details>
-      <p className="workflow-note">
-        Importing saves a profile without applying it. Native previews show
-        exact setting/action changes and require confirmation. Applying another
-        batch replaces the most recent restore point.
-      </p>
-    </>
+    </div>
   );
 };
