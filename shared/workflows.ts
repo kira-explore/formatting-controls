@@ -45,6 +45,7 @@ export interface Journal {
   changes: Change[];
 }
 export interface Recovery {
+  id: string;
   kind: Journal["kind"];
   phase: Journal["phase"];
   name: string;

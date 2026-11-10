@@ -286,6 +286,7 @@ export class Dashboard implements vscode.Disposable {
       })
       .filter((rule) => rule.keys.length > 0);
     let profiles: Snapshot["profiles"] = [],
+      restorePoints: Snapshot["restorePoints"] = [],
       recovery: Snapshot["recovery"] = null,
       workflowError: string | null = null;
     try {
@@ -295,6 +296,7 @@ export class Dashboard implements vscode.Disposable {
     }
     try {
       recovery = this.workflows?.recovery() ?? null;
+      restorePoints = this.workflows?.restorePoints() ?? [];
     } catch (error) {
       workflowError = [
         workflowError,
@@ -339,6 +341,7 @@ export class Dashboard implements vscode.Disposable {
       rules,
       profiles,
       recovery,
+      restorePoints,
       workflowError,
       status: status(flags.map((k) => effective.get(k, false))),
       hasWorkspace: this.hasWorkspace,
@@ -548,10 +551,10 @@ export class Dashboard implements vscode.Disposable {
               message = await this.workflows.import(this.scope);
               break;
             case "restore":
-              message = await this.workflows.restore();
+              message = await this.workflows.restore(request.restoreId);
               break;
             case "discard":
-              message = await this.workflows.discard();
+              message = await this.workflows.discard(request.restoreId);
               break;
           }
         this.revision++;

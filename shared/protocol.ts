@@ -45,6 +45,7 @@ export type Operation =
         | "restore"
         | "discard";
       name?: string;
+      restoreId?: string;
       revision: number;
     }
   | {
@@ -108,6 +109,7 @@ export interface Snapshot {
   hasWorkspace: boolean;
   profiles: ProfileSummary[];
   recovery: Recovery | null;
+  restorePoints: Recovery[];
   workflowError: string | null;
   diagnosticHistory: DiagnosticReport[];
   rules: LanguageRule[];
@@ -205,6 +207,12 @@ export const parseRequest = (raw: unknown): Request => {
       "discard",
     ].includes(raw.action)
   ) {
+    if (
+      raw.restoreId !== undefined &&
+      (!["restore", "discard"].includes(raw.action) ||
+        !string(raw.restoreId, 16384))
+    )
+      throw new Error("Invalid restore point.");
     if (
       ["save", "apply", "delete", "export"].includes(raw.action) &&
       (!string(raw.name, 80) ||

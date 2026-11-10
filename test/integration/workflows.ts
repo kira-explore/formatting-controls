@@ -28,6 +28,12 @@ const runMultiLanguageProfileTest = async (uri: vscode.Uri): Promise<void> => {
     "test-multi-language-profile.json",
   );
   const key = "editor.formatOnSave";
+  const userHtml = {
+    target: vscode.ConfigurationTarget.Global,
+    language: "html",
+  };
+  const flags = [key, "editor.formatOnPaste", "editor.formatOnType"] as const;
+  const originalUserHtml = flags.map((flag) => own(userHtml, flag));
   const originals = [selection, html, css].map((s) => own(s, key));
   const profile = {
     version: 1,
@@ -85,8 +91,25 @@ const runMultiLanguageProfileTest = async (uri: vscode.Uri): Promise<void> => {
       [own(selection, key), own(html, key), own(css, key)],
       [false, true, false],
     );
+    await write(userHtml, key, true);
+    await workflows.apply("Manual Formatting", userHtml, {
+      target: "user",
+      language: "html",
+    });
+    const points = reopened.restorePoints();
+    assert.deepEqual(
+      points.map((point) => point.scope.target),
+      ["user", "folder"],
+    );
     await write(css, key, undefined);
-    await reopened.restore();
+    await reopened.restore(
+      points.find((point) => point.scope.target === "folder")?.id,
+    );
+    assert.equal(own(userHtml, key), false);
+    await reopened.restore(
+      points.find((point) => point.scope.target === "user")?.id,
+    );
+    assert.equal(own(userHtml, key), true);
     assert.deepEqual(
       [own(selection, key), own(html, key), own(css, key)],
       [true, undefined, undefined],
@@ -94,6 +117,9 @@ const runMultiLanguageProfileTest = async (uri: vscode.Uri): Promise<void> => {
   } finally {
     workflows.dispose();
     reopened.dispose();
+    for (const [index, flag] of flags.entries()) {
+      await write(userHtml, flag, originalUserHtml[index]);
+    }
     for (const [index, s] of [selection, html, css].entries()) {
       await write(s, key, originals[index]);
     }

@@ -19,6 +19,7 @@ export const WorkflowPages = ({
   selectLanguage,
 }: Props) => {
   const [name, setName] = useState("");
+  const [applyName, setApplyName] = useState("");
   const [showSave, setShowSave] = useState(false);
   const [presetName, setPresetName] = useState("Format on Save and Paste");
   const profileNameInput = useRef<HTMLInputElement>(null);
@@ -38,11 +39,13 @@ export const WorkflowPages = ({
       | "restore"
       | "discard",
     profileName?: string,
+    restoreId?: string,
   ) =>
     send({
       type: "profile",
       action,
       ...(profileName ? { name: profileName } : {}),
+      ...(restoreId ? { restoreId } : {}),
       revision: state.revision,
     });
   if (page === "rules")
@@ -137,11 +140,6 @@ export const WorkflowPages = ({
   const profileRow = (entry: Snapshot["profiles"][number]) => {
     const language = entry.language ? languageName(entry.language) : undefined;
     const languages = entry.languages?.map(languageName).join(", ");
-    const requiredLanguage = languages ? "All languages" : language;
-    const languageMismatch =
-      (entry.language !== undefined || languages !== undefined) &&
-      entry.language !== state.scope.language;
-
     return (
       <article
         className="profile-row"
@@ -155,18 +153,16 @@ export const WorkflowPages = ({
               ? "No settings to copy for this selection."
               : `${entry.count} ${entry.count === 1 ? "setting group" : "setting groups"} · ${languages ?? language ?? "Any selected language"}`}
           </p>
-          {languageMismatch && (
-            <p>Choose {requiredLanguage} in Settings target to apply.</p>
-          )}
         </div>
         <div className="button-row">
           <button
             type="button"
-            disabled={
-              disabled || !entry.count || languageMismatch || recoveryPending
-            }
+            disabled={disabled || !entry.count || recoveryPending}
             aria-label={`Preview & apply ${entry.name}`}
-            onClick={() => profile("apply", entry.name)}
+            onClick={() => {
+              setShowSave(false);
+              setApplyName(entry.name);
+            }}
           >
             Preview &amp; apply
           </button>
@@ -202,10 +198,6 @@ export const WorkflowPages = ({
           controls remain available.
         </p>
       )}
-      <details className="profile-section profile-disclosure">
-        <summary>Settings target for saving, applying, or pausing</summary>
-        {scopeControls}
-      </details>
       <section className="profile-section">
         <div className="section-header">
           <div>
@@ -218,8 +210,11 @@ export const WorkflowPages = ({
               type="button"
               className="primary"
               aria-expanded={showSave}
-              disabled={disabled || !canSave}
-              onClick={() => setShowSave(!showSave)}
+              disabled={disabled}
+              onClick={() => {
+                setApplyName("");
+                setShowSave(!showSave);
+              }}
             >
               Save current settings
             </button>
@@ -240,7 +235,7 @@ export const WorkflowPages = ({
             </button>
           </div>
         </div>
-        {!canSave && (
+        {showSave && !canSave && (
           <p className="profile-save-hint">
             To save a profile, set a formatting or save-action preference for
             the selected scope and language.
@@ -255,6 +250,7 @@ export const WorkflowPages = ({
                 profile("save", name.trim());
             }}
           >
+            {scopeControls}
             <label>
               Profile name
               <input
@@ -322,51 +318,105 @@ export const WorkflowPages = ({
           </div>
         </section>
       )}
+      {applyName &&
+        (() => {
+          const entry = state.profiles.find((item) => item.name === applyName);
+          if (!entry) return null;
+          const required = entry.languages?.length ? "" : entry.language;
+          const mismatch =
+            required !== undefined && (state.scope.language ?? "") !== required;
+          return (
+            <section
+              className="profile-section"
+              role="region"
+              aria-label="Apply destination"
+            >
+              <h2>Apply {applyName}</h2>
+              {scopeControls}
+              {mismatch && (
+                <p>
+                  Choose {required ? languageName(required) : "All languages"}{" "}
+                  to apply this profile.
+                </p>
+              )}
+              <div className="button-row">
+                <button
+                  type="button"
+                  disabled={disabled || mismatch || recoveryPending}
+                  onClick={() => {
+                    profile("apply", applyName);
+                    setApplyName("");
+                  }}
+                >
+                  Review changes
+                </button>
+                <button type="button" onClick={() => setApplyName("")}>
+                  Cancel
+                </button>
+              </div>
+            </section>
+          );
+        })()}
       <section className="profile-section">
-        <h2>Restore previous settings</h2>
-        {state.recovery && (
-          <section className="recovery-card">
+        <h2>Restore points</h2>
+        <p>
+          Review the latest change at each destination. Restoring keeps later
+          edits.
+        </p>
+        {[
+          ...(state.recovery?.kind === "pause" ? [state.recovery] : []),
+          ...(state.restorePoints ?? []),
+        ].map((point) => (
+          <section className="recovery-card" key={point.id}>
             <div className="provider-heading">
               <h3>
-                {state.recovery.kind === "pause"
+                {point.kind === "pause"
                   ? "Temporary pause / recovery"
-                  : "Previous profile restore point"}
+                  : point.scope.target === "folder"
+                    ? `Folder · ${state.folders.find((folder) => folder.uri === point.scope.folder)?.name ?? point.scope.folder}`
+                    : point.scope.target === "workspace"
+                      ? `Workspace · ${state.workspaceName ?? "Current workspace"}`
+                      : "User settings"}
               </h3>
-              <span className="tag installed">{state.recovery.phase}</span>
+              <span className="tag installed">{point.phase}</span>
             </div>
             <p>
-              {state.recovery.name} · {state.recovery.count} values ·{" "}
-              {state.recovery.scope.target}
-              {state.recovery.scope.language
-                ? ` / ${state.recovery.scope.language}`
-                : " / all languages"}
-            </p>
-            <code>{state.recovery.scope.folder}</code>
-            <p>
-              Restore values that still match this change. Later edits are
-              preserved. Applying another batch replaces this restore point.
+              {point.name} · {point.count}{" "}
+              {point.count === 1 ? "change" : "changes"}
+              {point.scope.language
+                ? ` · ${languageName(point.scope.language)}`
+                : ""}
             </p>
             <div className="button-row">
               <button
                 type="button"
-                className="primary"
                 disabled={pending}
-                onClick={() => profile("restore")}
+                onClick={() =>
+                  profile(
+                    "restore",
+                    undefined,
+                    point.kind === "profile" ? point.id : undefined,
+                  )
+                }
               >
-                {state.recovery.kind === "pause"
-                  ? "Resume / restore"
-                  : "Restore previous values"}
+                {point.kind === "pause" ? "Resume / restore" : "Review restore"}
               </button>
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => profile("discard")}
+                onClick={() =>
+                  profile(
+                    "discard",
+                    undefined,
+                    point.kind === "profile" ? point.id : undefined,
+                  )
+                }
               >
                 Keep current values
               </button>
             </div>
           </section>
-        )}
+        ))}
         {!state.recovery && (
           <p>
             A restore point becomes available after applying a profile or
@@ -376,6 +426,7 @@ export const WorkflowPages = ({
       </section>
       <details className="disclosure formatting-disclosure">
         <summary>Advanced workspace pause</summary>
+        {scopeControls}
         <div className="callout">
           <span aria-hidden="true">Ⅱ</span>
           <div>

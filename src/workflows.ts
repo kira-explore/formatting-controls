@@ -191,22 +191,53 @@ export class Workflows implements vscode.Disposable {
       throw new Error("Invalid stored profiles.");
     return raw.map(parseProfile);
   }
-  journal(): Journal | undefined {
+  private journals(): Journal[] {
     const raw = this.workspace.get<unknown>(journalKey);
-    return raw === undefined ? undefined : parseJournal(raw);
+    return raw === undefined
+      ? []
+      : (Array.isArray(raw) ? raw : [raw]).map(parseJournal);
+  }
+  private destination(journal: Journal): string {
+    return JSON.stringify([journal.scope.target, journal.scope.folder]);
+  }
+  journal(id?: string): Journal | undefined {
+    const journals = this.journals();
+    return id
+      ? journals.find(
+          (journal) =>
+            JSON.stringify([
+              journal.scope.target,
+              journal.scope.folder,
+              journal.created,
+            ]) === id && journal.kind === "profile",
+        )
+      : (journals.find(
+          (journal) => journal.kind === "pause" || journal.phase !== "applied",
+        ) ?? journals[0]);
+  }
+  private recoverySummary(journal: Journal): Recovery {
+    return {
+      id: JSON.stringify([
+        journal.scope.target,
+        journal.scope.folder,
+        journal.created,
+      ]),
+      kind: journal.kind,
+      phase: journal.phase,
+      name: journal.name,
+      scope: journal.scope,
+      created: journal.created,
+      count: journal.changes.length,
+    };
   }
   recovery(): Recovery | null {
-    const j = this.journal();
-    return j
-      ? {
-          kind: j.kind,
-          phase: j.phase,
-          name: j.name,
-          scope: j.scope,
-          created: j.created,
-          count: j.changes.length,
-        }
-      : null;
+    const journal = this.journal();
+    return journal ? this.recoverySummary(journal) : null;
+  }
+  restorePoints(): Recovery[] {
+    return this.journals()
+      .filter((journal) => journal.kind === "profile")
+      .map((journal) => this.recoverySummary(journal));
   }
   private owner(): string {
     return (
@@ -304,7 +335,14 @@ export class Workflows implements vscode.Disposable {
       throw new Error("Reopen the recorded workspace folder before restoring.");
     return s;
   }
-  private port(journal: Journal): BatchPort {
+  private port(journal: Journal, applying = false): BatchPort {
+    const others = this.journals().filter(
+      (entry) =>
+        applying ||
+        entry.kind !== journal.kind ||
+        this.destination(entry) !== this.destination(journal) ||
+        entry.created !== journal.created,
+    );
     const s = this.journalSelection(journal);
     const ensure = () => {
       if (
@@ -322,7 +360,19 @@ export class Workflows implements vscode.Disposable {
     };
     return {
       save: async (value) => {
-        await this.workspace.update(journalKey, value);
+        const remaining =
+          applying && value?.phase === "applied" && value.kind === "profile"
+            ? others.filter(
+                (entry) =>
+                  entry.kind !== "profile" ||
+                  this.destination(entry) !== this.destination(journal),
+              )
+            : others;
+        const records = value ? [value, ...remaining] : remaining;
+        await this.workspace.update(
+          journalKey,
+          records.length ? records : undefined,
+        );
         this.changed.fire();
       },
       read: (c) => {
@@ -442,11 +492,11 @@ export class Workflows implements vscode.Disposable {
       created: new Date().toISOString(),
       changes,
     });
-    const title = `${kind === "pause" ? "Pause formatting at this scope" : `Apply profile ${profile.name}`}?${this.journal() ? " This replaces the previous restore point." : ""}`;
+    const title = `${kind === "pause" ? "Pause formatting at this scope" : `Apply profile ${profile.name}`}?${kind === "profile" && this.journals().some((entry) => entry.kind === "profile" && this.destination(entry) === this.destination(journal)) ? " This replaces the restore point for this destination." : ""}`;
     if (review && !(await this.confirm(title, changes, scopeRecord)))
       return "Cancelled. No settings were changed.";
     if (changes.length) await waitForSettingsSave(s);
-    await applyBatch(journal, this.port(journal));
+    await applyBatch(journal, this.port(journal, true));
     return kind === "pause"
       ? "Paused at the selected scope. Resume from Profiles; overrides may still apply."
       : `Applied ${profile.name} to ${scope.target}. A restore point is saved.`;
@@ -566,15 +616,15 @@ export class Workflows implements vscode.Disposable {
       );
     });
   }
-  async restore(): Promise<string> {
-    return this.restoreSaved(true);
+  async restore(id?: string): Promise<string> {
+    return this.restoreSaved(true, id);
   }
   async resumePause(): Promise<string> {
     return this.restoreSaved(false);
   }
-  private async restoreSaved(review: boolean): Promise<string> {
+  private async restoreSaved(review: boolean, id?: string): Promise<string> {
     return this.exclusive(async () => {
-      const journal = this.journal();
+      const journal = this.journal(id);
       if (!journal) return "No restore point is saved for this workspace.";
       if (
         !review &&
@@ -614,9 +664,9 @@ export class Workflows implements vscode.Disposable {
         : "Restored previous preferences. Unrelated values were preserved.";
     });
   }
-  async discard(): Promise<string> {
+  async discard(id?: string): Promise<string> {
     return this.exclusive(async () => {
-      const journal = this.journal();
+      const journal = this.journal(id);
       if (!journal) return "No restore point is saved.";
       if (
         !(await this.confirm(
@@ -626,8 +676,7 @@ export class Workflows implements vscode.Disposable {
         ))
       )
         return "Restore point kept.";
-      await this.workspace.update(journalKey, undefined);
-      this.changed.fire();
+      await this.port(journal).save(undefined);
       return "Kept current preferences and discarded the restore point.";
     });
   }
