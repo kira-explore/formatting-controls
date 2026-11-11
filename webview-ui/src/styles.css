@@ -1203,13 +1203,12 @@ body.vscode-high-contrast-light {
 }
 .profile-presets {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
   gap: 14px;
   margin-top: 16px;
 }
 .preset-choices {
-  display: grid;
-  align-content: start;
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   min-width: 0;
   margin: 0;
@@ -1223,14 +1222,11 @@ body.vscode-high-contrast-light {
   background: color-mix(in srgb, var(--accent) 18%, var(--surface));
   border-color: var(--vscode-contrastActiveBorder, var(--accent));
 }
-.preset-detail .profile-row {
-  display: grid;
-  justify-content: stretch;
+.restore-list {
+  margin-top: 16px;
 }
-@media (max-width: 760px) {
-  .profile-presets {
-    grid-template-columns: minmax(0, 1fr);
-  }
+.restore-attention {
+  color: var(--vscode-editorWarning-foreground, #e5c07b);
 }
 .profiles-content .formatting-disclosure > .callout {
   margin: 0 0 20px;

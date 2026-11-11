@@ -139,7 +139,7 @@ export const WorkflowPages = ({
     (!!state.recovery && state.recovery.phase !== "applied");
   const profileRow = (entry: Snapshot["profiles"][number]) => {
     const language = entry.language ? languageName(entry.language) : undefined;
-    const languages = entry.languages?.map(languageName).join(", ");
+    const languages = entry.languages?.map(languageName).join(" · ");
     return (
       <article
         className="profile-row"
@@ -147,11 +147,10 @@ export const WorkflowPages = ({
       >
         <div aria-live={entry.builtin ? "polite" : undefined}>
           <h3>{entry.name}</h3>
-          {entry.builtin && <p>{entry.description}</p>}
           <p>
-            {entry.count === 0
-              ? "No settings to copy for this selection."
-              : `${entry.count} ${entry.count === 1 ? "setting group" : "setting groups"} · ${languages ?? language ?? "Any selected language"}`}
+            {entry.builtin
+              ? entry.description
+              : (languages ?? language ?? "All languages")}
           </p>
         </div>
         <div className="button-row">
@@ -168,7 +167,6 @@ export const WorkflowPages = ({
           </button>
           <button
             type="button"
-            className="text-button"
             disabled={disabled || !entry.count}
             aria-label={`Export ${entry.name}`}
             onClick={() => profile("export", entry.name)}
@@ -178,7 +176,6 @@ export const WorkflowPages = ({
           {!entry.builtin && (
             <button
               type="button"
-              className="text-button"
               disabled={disabled}
               aria-label={`Delete ${entry.name}`}
               onClick={() => profile("delete", entry.name)}
@@ -224,14 +221,6 @@ export const WorkflowPages = ({
               onClick={() => profile("import")}
             >
               Import profile
-            </button>
-            <button
-              type="button"
-              className="text-button"
-              disabled={pending}
-              onClick={() => send({ type: "read" })}
-            >
-              Refresh
             </button>
           </div>
         </div>
@@ -358,65 +347,70 @@ export const WorkflowPages = ({
           );
         })()}
       <section className="profile-section">
-        <h2>Restore points</h2>
-        <p>
-          Review the latest change at each destination. Restoring keeps later
-          edits.
-        </p>
-        {[
-          ...(state.recovery?.kind === "pause" ? [state.recovery] : []),
-          ...(state.restorePoints ?? []),
-        ].map((point) => (
-          <section className="recovery-card" key={point.id}>
-            <div className="provider-heading">
-              <h3>
-                {point.kind === "pause"
-                  ? "Temporary pause / recovery"
-                  : point.scope.target === "folder"
-                    ? `Folder · ${state.folders.find((folder) => folder.uri === point.scope.folder)?.name ?? point.scope.folder}`
-                    : point.scope.target === "workspace"
-                      ? `Workspace · ${state.workspaceName ?? "Current workspace"}`
-                      : "User settings"}
-              </h3>
-              <span className="tag installed">{point.phase}</span>
-            </div>
-            <p>
-              {point.name} · {point.count}{" "}
-              {point.count === 1 ? "change" : "changes"}
-              {point.scope.language
-                ? ` · ${languageName(point.scope.language)}`
-                : ""}
-            </p>
-            <div className="button-row">
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() =>
-                  profile(
-                    "restore",
-                    undefined,
-                    point.kind === "profile" ? point.id : undefined,
-                  )
-                }
-              >
-                {point.kind === "pause" ? "Resume / restore" : "Review restore"}
-              </button>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() =>
-                  profile(
-                    "discard",
-                    undefined,
-                    point.kind === "profile" ? point.id : undefined,
-                  )
-                }
-              >
-                Keep current values
-              </button>
-            </div>
-          </section>
-        ))}
+        <h2>Restore previous settings</h2>
+        {state.recovery && (
+          <div className="profile-list restore-list">
+            {[
+              ...(state.recovery?.kind === "pause" ? [state.recovery] : []),
+              ...(state.restorePoints ?? []),
+            ].map((point) => (
+              <article className="profile-row" key={point.id}>
+                <div>
+                  <h3>
+                    {point.kind === "pause"
+                      ? "Temporary pause / recovery"
+                      : point.scope.target === "folder"
+                        ? `Folder · ${state.folders.find((folder) => folder.uri === point.scope.folder)?.name ?? point.scope.folder}`
+                        : point.scope.target === "workspace"
+                          ? `Workspace · ${state.workspaceName ?? "Current workspace"}`
+                          : "User settings"}
+                  </h3>
+
+                  <p>
+                    {point.name} · {point.count}{" "}
+                    {point.count === 1 ? "change" : "changes"}
+                    {point.scope.language
+                      ? ` · ${languageName(point.scope.language)}`
+                      : ""}
+                  </p>
+                </div>
+                {point.phase !== "applied" && (
+                  <span className="restore-attention">Needs attention</span>
+                )}
+                <div className="button-row">
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() =>
+                      profile(
+                        "restore",
+                        undefined,
+                        point.kind === "profile" ? point.id : undefined,
+                      )
+                    }
+                  >
+                    {point.kind === "pause"
+                      ? "Resume / restore"
+                      : "Review restore"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() =>
+                      profile(
+                        "discard",
+                        undefined,
+                        point.kind === "profile" ? point.id : undefined,
+                      )
+                    }
+                  >
+                    Keep current values
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
         {!state.recovery && (
           <p>
             A restore point becomes available after applying a profile or
