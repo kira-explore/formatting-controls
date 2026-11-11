@@ -303,14 +303,14 @@ export const reviewDashboard = async (
           );
           if (narrow) {
             const deleteRun =
-              "document.querySelector('.diagnostic-history li:last-child .diagnostic-delete-run')";
+              "document.querySelector('.diagnostic-history li:last-child .diagnostic-run-trash')";
             await evaluate(`${deleteRun}.click()`);
             await wait(
-              "document.querySelector('.diagnostic-history li:last-child #diagnostic-clear-note')?.textContent.startsWith('Delete the run from')",
+              `document.querySelector('.diagnostic-history li:last-child [aria-label="Cancel run deletion"]') && !document.querySelector('.diagnostic-history #diagnostic-clear-note')`,
             );
             await assertDiagnosticsSpacing();
             await evaluate(
-              "document.querySelector('.diagnostic-history-actions button:first-child').click()",
+              `document.querySelector('.diagnostic-run-actions button[title="Cancel deletion"]').click()`,
             );
             assert.equal(
               await evaluate(
@@ -323,9 +323,8 @@ export const reviewDashboard = async (
               true,
             );
             await evaluate(`${deleteRun}.click()`);
-            await evaluate(
-              "document.querySelector('.diagnostic-history-actions button:last-child').click()",
-            );
+            await wait(`${deleteRun}.title === 'Confirm delete run'`);
+            await evaluate(`${deleteRun}.click()`);
             await wait(
               `document.querySelectorAll('.diagnostic-history-entry').length === 2 && !document.querySelector('#diagnostic-report, .diagnostic-history-entry[aria-pressed="true"]')`,
             );
@@ -357,9 +356,8 @@ export const reviewDashboard = async (
             }
             for (const count of [1, 0]) {
               await evaluate(`${deleteRun}.click()`);
-              await evaluate(
-                "document.querySelector('.diagnostic-history-actions button:last-child').click()",
-              );
+              await wait(`${deleteRun}.title === 'Confirm delete run'`);
+              await evaluate(`${deleteRun}.click()`);
               await wait(
                 `!${runDiagnostics}.disabled && document.querySelectorAll('.diagnostic-history-entry').length === ${count}`,
               );

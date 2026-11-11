@@ -112,12 +112,10 @@ export const Diagnostics = ({
     }
   }, [pending, confirming, deleteTarget]);
 
-  const confirmation = confirming && (
+  const clearConfirmation = clearAll && confirming && (
     <div className="diagnostic-delete-confirmation">
       <p id="diagnostic-clear-note">
-        {targetRun
-          ? `Delete the run from ${runTime.format(targetRun.createdAt)}?`
-          : `Delete all saved runs for this ${state.hasWorkspace ? "workspace" : "window"}?`}
+        {`Delete all saved runs for this ${state.hasWorkspace ? "workspace" : "window"}?`}
       </p>
       <div className="diagnostic-history-actions">
         <button
@@ -136,9 +134,9 @@ export const Diagnostics = ({
           type="button"
           aria-describedby="diagnostic-clear-note"
           disabled={pending}
-          onClick={() => remove(targetRun?.id)}
+          onClick={() => remove()}
         >
-          {clearAll ? "Delete all runs" : "Delete run"}
+          Delete all runs
         </button>
       </div>
     </div>
@@ -167,7 +165,7 @@ export const Diagnostics = ({
               </button>
             )}
           </div>
-          {clearAll && confirmation}
+          {clearConfirmation}
           <ul className="diagnostic-history">
             {history.map((entry) => (
               <li key={entry.id} className="diagnostic-history-row">
@@ -191,20 +189,45 @@ export const Diagnostics = ({
                     {runTime.format(entry.createdAt)} · {runContext(entry)}
                   </small>
                 </button>
-                <button
-                  type="button"
-                  className="diagnostic-delete-run"
-                  title="Delete run"
-                  aria-label={`Delete run from ${runTime.format(entry.createdAt)} · ${entry.fileName ?? "No active file"}`}
-                  disabled={pending}
-                  onClick={(event) => {
-                    deleteTrigger.current = event.currentTarget;
-                    setDeleteTarget(entry.id);
-                  }}
-                >
-                  <Icon name="trash" />
-                </button>
-                {entry.id === deleteTarget && confirmation}
+                <div className="diagnostic-run-actions">
+                  {entry.id === deleteTarget && (
+                    <button
+                      type="button"
+                      className="diagnostic-delete-run"
+                      ref={cancelButton}
+                      title="Cancel deletion"
+                      aria-label="Cancel run deletion"
+                      disabled={pending}
+                      onClick={() => {
+                        setDeleteTarget(undefined);
+                        deleteTrigger.current?.focus();
+                      }}
+                    >
+                      <Icon name="close" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="diagnostic-delete-run diagnostic-run-trash"
+                    title={
+                      entry.id === deleteTarget
+                        ? "Confirm delete run"
+                        : "Delete run"
+                    }
+                    aria-label={`${entry.id === deleteTarget ? "Confirm delete" : "Delete"} run from ${runTime.format(entry.createdAt)} · ${entry.fileName ?? "No active file"}`}
+                    disabled={pending}
+                    onClick={(event) => {
+                      if (entry.id === deleteTarget) {
+                        remove(entry.id);
+                      } else {
+                        deleteTrigger.current = event.currentTarget;
+                        setDeleteTarget(entry.id);
+                      }
+                    }}
+                  >
+                    <Icon name="trash" />
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

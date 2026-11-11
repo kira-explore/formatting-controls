@@ -796,9 +796,15 @@ summary {
 .diagnostic-history-row + .diagnostic-history-row {
   border-top: 1px solid var(--border);
 }
-.diagnostic-history-row > .diagnostic-delete-confirmation {
-  grid-column: 1 / -1;
-  margin: 0 8px 8px;
+.diagnostic-run-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 40px);
+}
+.diagnostic-run-trash {
+  grid-column: 2;
+}
+.diagnostic-run-trash[title="Confirm delete run"] {
+  color: var(--vscode-errorForeground, var(--muted));
 }
 .diagnostic-history-entry {
   min-width: 0;
