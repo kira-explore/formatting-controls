@@ -436,17 +436,15 @@ const App = () => {
                 }
               </p>
             </div>
-            {page !== "welcome" && (
-              <button
-                type="button"
-                className="settings-button"
-                aria-label="Open VS Code Settings"
-                disabled={disabled}
-                onClick={() => open("settings")}
-              >
-                <Icon name="sliders" />
-              </button>
-            )}
+            <button
+              type="button"
+              className="settings-button"
+              aria-label="Open VS Code Settings"
+              disabled={disabled}
+              onClick={() => open("settings")}
+            >
+              <Icon name="sliders" />
+            </button>
           </div>
           {page !== "welcome" && (
             <>

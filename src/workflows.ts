@@ -676,7 +676,9 @@ export class Workflows implements vscode.Disposable {
       if (!journal) return "No restore point is saved.";
       if (
         !(await this.confirm(
-          "Keep current settings and discard this restore point?",
+          journal.kind === "pause"
+            ? "Keep current settings and discard this restore point?"
+            : "Delete this restore point and keep current settings?",
           [],
           journal.scope,
         ))

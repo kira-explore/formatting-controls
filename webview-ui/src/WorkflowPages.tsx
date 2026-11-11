@@ -422,7 +422,9 @@ export const WorkflowPages = ({
                       )
                     }
                   >
-                    Keep current values
+                    {point.kind === "pause"
+                      ? "Keep current values"
+                      : "Delete restore point"}
                   </button>
                 </div>
               </article>
@@ -430,10 +432,7 @@ export const WorkflowPages = ({
           </div>
         )}
         {!state.recovery && (
-          <p>
-            A restore point becomes available after applying a profile or
-            preset.
-          </p>
+          <p>A restore point appears after you apply a profile or preset.</p>
         )}
       </section>
       <section className="profile-section profile-pause">
