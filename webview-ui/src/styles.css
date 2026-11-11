@@ -1204,7 +1204,7 @@ body.vscode-high-contrast-light {
 .profile-presets {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
-  align-items: start;
+  align-items: stretch;
   gap: 14px;
   margin-top: 16px;
 }
@@ -1223,11 +1223,12 @@ body.vscode-high-contrast-light {
 }
 .preset-choices button[aria-pressed="true"] {
   background: color-mix(in srgb, var(--accent) 18%, var(--surface));
-  border-color: var(--vscode-contrastActiveBorder, var(--accent));
 }
 .preset-detail .profile-row {
   display: grid;
   justify-content: stretch;
+  gap: 16px;
+  padding: 16px;
 }
 .profiles-content .profile-row {
   padding: 10px 14px;

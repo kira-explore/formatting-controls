@@ -176,7 +176,7 @@ export const WorkflowPages = ({
               setApplyName(entry.name);
             }}
           >
-            Preview &amp; apply
+            {entry.builtin ? "Preview changes" : "Preview & apply"}
           </button>
           <button
             type="button"
@@ -436,11 +436,11 @@ export const WorkflowPages = ({
           </p>
         )}
       </section>
-      <details className="disclosure formatting-disclosure">
-        <summary>Advanced workspace pause</summary>
+      <section className="profile-section">
+        <h2>Advanced workspace pause</h2>
         <p>
-          Pause formatting and configured save actions at a workspace or folder
-          scope.
+          Temporarily turn off automatic formatting and configured save actions
+          for a workspace or folder until you resume.
         </p>
         {showPauseTarget ? (
           <div className="button-row">
@@ -504,7 +504,7 @@ export const WorkflowPages = ({
             Preview temporary pause
           </button>
         )}
-      </details>
+      </section>
     </div>
   );
 };
