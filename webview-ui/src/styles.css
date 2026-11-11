@@ -803,9 +803,6 @@ summary {
 .diagnostic-run-trash {
   grid-column: 2;
 }
-.diagnostic-run-trash[title="Confirm delete run"] {
-  color: var(--vscode-errorForeground, var(--muted));
-}
 .diagnostic-history-entry {
   min-width: 0;
   padding: 7px 10px;

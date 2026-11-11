@@ -121,6 +121,9 @@ export const Diagnostics = ({
         <button
           type="button"
           ref={cancelButton}
+          title="Cancel deletion"
+          aria-label="Cancel deletion"
+          className="diagnostic-delete-run"
           aria-describedby="diagnostic-clear-note"
           disabled={pending}
           onClick={() => {
@@ -128,15 +131,18 @@ export const Diagnostics = ({
             deleteTrigger.current?.focus();
           }}
         >
-          Cancel
+          <Icon name="close" />
         </button>
         <button
           type="button"
+          className="diagnostic-delete-run"
           aria-describedby="diagnostic-clear-note"
           disabled={pending}
+          title="Delete all runs"
+          aria-label="Delete all runs"
           onClick={() => remove()}
         >
-          Delete all runs
+          <Icon name="check" />
         </button>
       </div>
     </div>
@@ -225,7 +231,9 @@ export const Diagnostics = ({
                       }
                     }}
                   >
-                    <Icon name="trash" />
+                    <Icon
+                      name={entry.id === deleteTarget ? "check" : "trash"}
+                    />
                   </button>
                 </div>
               </li>
