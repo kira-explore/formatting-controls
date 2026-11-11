@@ -1225,14 +1225,33 @@ body.vscode-high-contrast-light {
   background: color-mix(in srgb, var(--accent) 18%, var(--surface));
 }
 .preset-detail .profile-row {
-  display: grid;
-  justify-content: stretch;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  min-height: 100%;
+  box-sizing: border-box;
   gap: 16px;
   padding: 16px;
 }
-.profiles-content .profile-row {
-  padding: 10px 14px;
+.preset-detail .profile-row > div:first-child {
+  flex: 0 0 auto;
+}
+.preset-detail .button-row {
+  margin-top: auto;
+}
+.profile-section-compact {
+  padding-block: 16px;
+}
+.profile-section-compact .section-header {
+  margin-bottom: 10px;
+}
+.profile-section-compact .profile-row {
+  padding: 8px 14px;
   row-gap: 8px;
+}
+.profile-section-compact .profile-row p {
+  margin-top: 2px;
 }
 @media (max-width: 760px) {
   .profile-presets {
@@ -1240,7 +1259,7 @@ body.vscode-high-contrast-light {
   }
 }
 .restore-list {
-  margin-top: 16px;
+  margin-top: 8px;
 }
 .restore-attention {
   color: var(--vscode-editorWarning-foreground, #e5c07b);

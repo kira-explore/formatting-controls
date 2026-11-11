@@ -208,7 +208,7 @@ export const WorkflowPages = ({
           controls remain available.
         </p>
       )}
-      <section className="profile-section">
+      <section className="profile-section profile-section-compact">
         <div className="section-header">
           <div>
             <h2>Saved profiles</h2>
@@ -359,7 +359,7 @@ export const WorkflowPages = ({
             </section>
           );
         })()}
-      <section className="profile-section">
+      <section className="profile-section profile-section-compact">
         <h2>Restore previous settings</h2>
         {lastApplied && (
           <p>
