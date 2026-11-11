@@ -816,7 +816,7 @@ summary {
   align-items: center;
   background: var(--surface);
 }
-.diagnostic-history-row:hover {
+.diagnostic-history-row:has(.diagnostic-history-entry:hover) {
   background: var(
     --vscode-list-hoverBackground,
     var(--vscode-toolbar-hoverBackground, #333)
