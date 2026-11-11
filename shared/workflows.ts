@@ -52,6 +52,7 @@ export interface Recovery {
   scope: Scope;
   created: string;
   count: number;
+  languageCount: number;
 }
 export const absent: Slot = { present: false };
 export const record = (v: unknown): v is Record<string, unknown> =>

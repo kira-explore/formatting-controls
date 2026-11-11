@@ -1,12 +1,12 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { languageName } from "../../shared/language";
-import type { Operation, Snapshot } from "../../shared/protocol";
+import type { Operation, Scope, Snapshot } from "../../shared/protocol";
 
 interface Props {
   page: string;
   state: Snapshot;
   disabled: boolean;
-  send: (operation: Operation) => void;
+  send: (operation: Operation, scope?: Scope) => void;
   scopeControls: ReactNode;
   selectLanguage: (language: string) => void;
 }
@@ -20,6 +20,7 @@ export const WorkflowPages = ({
 }: Props) => {
   const [name, setName] = useState("");
   const [applyName, setApplyName] = useState("");
+  const [showPauseTarget, setShowPauseTarget] = useState(false);
   const [showSave, setShowSave] = useState(false);
   const [presetName, setPresetName] = useState("Format on Save and Paste");
   const profileNameInput = useRef<HTMLInputElement>(null);
@@ -137,6 +138,18 @@ export const WorkflowPages = ({
   const recoveryPending =
     state.recovery?.kind === "pause" ||
     (!!state.recovery && state.recovery.phase !== "applied");
+  const restorePoints = state.restorePoints ?? [];
+  const destination = (scope: Scope) => {
+    if (scope.target === "user") return "User settings";
+    if (scope.target === "workspace")
+      return `Workspace: ${state.workspaceName ?? "Current workspace"}`;
+    return `Folder: ${state.folders.find((folder) => folder.uri === scope.folder)?.name ?? scope.folder}`;
+  };
+  const lastApplied = restorePoints.find((point) => point.phase === "applied");
+  const pauseTarget =
+    state.scope.target === "folder"
+      ? `folder:${state.scope.folder}`
+      : "workspace";
   const profileRow = (entry: Snapshot["profiles"][number]) => {
     const language = entry.language ? languageName(entry.language) : undefined;
     const languages = entry.languages?.map(languageName).join(" · ");
@@ -348,22 +361,27 @@ export const WorkflowPages = ({
         })()}
       <section className="profile-section">
         <h2>Restore previous settings</h2>
+        {lastApplied && (
+          <p>
+            Last applied: {lastApplied.name} · {destination(lastApplied.scope)}{" "}
+            ·{" "}
+            {lastApplied.languageCount
+              ? `${lastApplied.languageCount} ${lastApplied.languageCount === 1 ? "language" : "languages"}`
+              : "All languages"}
+          </p>
+        )}
         {state.recovery && (
           <div className="profile-list restore-list">
             {[
               ...(state.recovery?.kind === "pause" ? [state.recovery] : []),
-              ...(state.restorePoints ?? []),
+              ...restorePoints,
             ].map((point) => (
               <article className="profile-row" key={point.id}>
                 <div>
                   <h3>
                     {point.kind === "pause"
                       ? "Temporary pause / recovery"
-                      : point.scope.target === "folder"
-                        ? `Folder · ${state.folders.find((folder) => folder.uri === point.scope.folder)?.name ?? point.scope.folder}`
-                        : point.scope.target === "workspace"
-                          ? `Workspace · ${state.workspaceName ?? "Current workspace"}`
-                          : "User settings"}
+                      : destination(point.scope)}
                   </h3>
 
                   <p>
@@ -420,29 +438,72 @@ export const WorkflowPages = ({
       </section>
       <details className="disclosure formatting-disclosure">
         <summary>Advanced workspace pause</summary>
-        {scopeControls}
-        <div className="callout">
-          <span aria-hidden="true">Ⅱ</span>
-          <div>
-            <strong>Pause at an explicit workspace scope</strong>
-            <p>
-              Pause automatic formatting and configured save actions until you
-              resume. Language or narrower overrides may still run.
-            </p>
+        <p>
+          Pause formatting and configured save actions at a workspace or folder
+          scope.
+        </p>
+        {showPauseTarget ? (
+          <div className="button-row">
+            <label>
+              Pause in{" "}
+              <select
+                value={pauseTarget}
+                disabled={disabled}
+                onChange={(event) => {
+                  const target = event.target.value;
+                  send(
+                    { type: "read" },
+                    target === "workspace"
+                      ? { target: "workspace" }
+                      : { target: "folder", folder: target.slice(7) },
+                  );
+                }}
+              >
+                <option value="workspace">Workspace</option>
+                {state.folders.map((folder) => (
+                  <option key={folder.uri} value={`folder:${folder.uri}`}>
+                    Folder: {folder.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
               type="button"
               disabled={
-                disabled || state.scope.target === "user" || recoveryPending
+                disabled ||
+                recoveryPending ||
+                state.scope.target === "user" ||
+                !!state.scope.language
               }
-              onClick={() => send({ type: "pause", revision: state.revision })}
+              onClick={() => {
+                send({ type: "pause", revision: state.revision });
+                setShowPauseTarget(false);
+              }}
             >
-              Preview temporary pause
+              Review pause
             </button>
-            {state.scope.target === "user" && (
-              <p>Select Workspace or a workspace folder to use this pause.</p>
-            )}
+            <button type="button" onClick={() => setShowPauseTarget(false)}>
+              Cancel
+            </button>
           </div>
-        </div>
+        ) : (
+          <button
+            type="button"
+            disabled={disabled || !state.hasWorkspace || recoveryPending}
+            onClick={() => {
+              if (state.scope.target === "user" || state.scope.language)
+                send(
+                  { type: "read" },
+                  state.scope.target === "folder" && state.scope.folder
+                    ? { target: "folder", folder: state.scope.folder }
+                    : { target: "workspace" },
+                );
+              setShowPauseTarget(true);
+            }}
+          >
+            Preview temporary pause
+          </button>
+        )}
       </details>
     </div>
   );

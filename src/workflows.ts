@@ -228,6 +228,12 @@ export class Workflows implements vscode.Disposable {
       scope: journal.scope,
       created: journal.created,
       count: journal.changes.length,
+      languageCount: new Set(
+        journal.changes.flatMap((change) => {
+          const language = change.language ?? journal.scope.language;
+          return language ? [language] : [];
+        }),
+      ).size,
     };
   }
   recovery(): Recovery | null {

@@ -426,7 +426,8 @@ const App = () => {
                     formatting: "Choose a formatter and when it runs.",
                     actions: "Control Auto Save, fixes and import actions.",
                     rules: "Keep language exceptions in one place.",
-                    profiles: "Save and reuse formatting preferences.",
+                    profiles:
+                      "Save and reuse formatting and save-action settings.",
                     diagnostics:
                       "See what applies and trace each setting to its source.",
                     welcome:
@@ -868,7 +869,7 @@ const App = () => {
             >
               Documentation ↗
             </button>
-            {page === "welcome" ? (
+            {page === "welcome" || page === "profiles" ? (
               <button
                 type="button"
                 disabled={disabled}

@@ -1203,12 +1203,13 @@ body.vscode-high-contrast-light {
 }
 .profile-presets {
   display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  align-items: start;
   gap: 14px;
   margin-top: 16px;
 }
 .preset-choices {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   gap: 6px;
   min-width: 0;
   margin: 0;
@@ -1217,10 +1218,25 @@ body.vscode-high-contrast-light {
 }
 .preset-choices button {
   text-align: start;
+  background: transparent;
+  border-color: transparent;
 }
 .preset-choices button[aria-pressed="true"] {
   background: color-mix(in srgb, var(--accent) 18%, var(--surface));
   border-color: var(--vscode-contrastActiveBorder, var(--accent));
+}
+.preset-detail .profile-row {
+  display: grid;
+  justify-content: stretch;
+}
+.profiles-content .profile-row {
+  padding: 10px 14px;
+  row-gap: 8px;
+}
+@media (max-width: 760px) {
+  .profile-presets {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .restore-list {
   margin-top: 16px;
