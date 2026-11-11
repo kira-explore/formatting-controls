@@ -1299,3 +1299,22 @@ body.vscode-high-contrast-light {
 .profile-pause > :last-child {
   margin-inline-start: auto;
 }
+
+.dashboard-confirmation {
+  padding: 14px 16px;
+  margin: 12px 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  overflow-wrap: anywhere;
+}
+.dashboard-confirmation ul {
+  max-height: 240px;
+  overflow: auto;
+}
+.restore-empty {
+  padding: 8px 14px;
+}
+.profile-section-compact .profile-row h3 {
+  margin-bottom: 0;
+}

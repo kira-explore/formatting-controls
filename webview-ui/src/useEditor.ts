@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
+  ConfirmationReply,
   Operation,
   Request,
   Response,
@@ -13,7 +14,7 @@ type DashboardView = { page: string; navigation: number | undefined };
 declare const acquireVsCodeApi:
   | undefined
   | (() => {
-      postMessage(message: Request): void;
+      postMessage(message: Request | ConfirmationReply): void;
       getState(): DashboardView | undefined;
       setState(state: DashboardView): void;
     });
@@ -26,6 +27,8 @@ const diagnosticTimeoutMs = 10000;
 export const useEditor = () => {
   const [state, setState] = useState<Snapshot>();
   const [page, setPage] = useState(restoredView?.page ?? "formatting");
+  const [confirmation, setConfirmation] =
+    useState<Extract<Response, { type: "confirmation" }>>();
   const [pending, setPending] = useState<Operation["type"]>();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -89,6 +92,7 @@ export const useEditor = () => {
         window.clearTimeout(request.timeout);
         pendingRef.current = undefined;
         setPending(undefined);
+        setConfirmation(undefined);
         if (request.onDiagnosticRun && response.type === "state") {
           const report = response.state.diagnosticHistory[0];
           if (report) request.onDiagnosticRun(report.id);
@@ -112,6 +116,10 @@ export const useEditor = () => {
     };
     const receive = ({ data }: MessageEvent<Response>) => {
       const request = pendingRef.current;
+      if (data.type === "confirmation") {
+        if (request?.id === data.id) setConfirmation(data);
+        return;
+      }
       if (
         data.type === "state" &&
         request?.type === "runDiagnostics" &&
@@ -160,6 +168,16 @@ export const useEditor = () => {
     error,
     setError,
     notice,
+    confirmation,
+    replyToConfirmation: (accepted: boolean) => {
+      if (!confirmation) return;
+      api?.postMessage({
+        type: "confirmationReply",
+        token: confirmation.token,
+        accepted,
+      });
+      setConfirmation(undefined);
+    },
     send,
   };
 };

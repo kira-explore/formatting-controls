@@ -37,7 +37,7 @@ In **Profiles**, select **Import profile** and choose the JSON file. Select **Pr
 
 ## Preview and restoration
 
-Dashboard/profile batches display a JSON preview with scope, before/after values and individual action entries, followed by a native VS Code confirmation picker. Cancellation makes no settings changes. The status card's formatting-only Pause/Resume closes the card and opens a native confirmation picker, also available from the Command Palette, using the same durable journal and conditional restoration. User-level changes are labelled as affecting other workspaces. Save/delete overwrite prompts concern profile data, not editor preferences.
+Dashboard/profile batches show the scope, before/after values and individual action entries in an inline confirmation. Cancellation makes no settings changes. The status card's formatting-only Pause/Resume closes the card and opens a native confirmation picker, also available from the Command Palette, using the same durable journal and conditional restoration. User-level changes are labelled as affecting other workspaces. Save/delete overwrite prompts concern profile data, not editor preferences.
 
 A workspace-local recovery journal is durably saved before any write. Each write attempt is journaled before it begins. Unattempted changes are excluded from rollback, including when an external edit happens to equal the requested value. Values are checked again after journal persistence, immediately before starting each write. If persistence yields to an external edit, the unstarted write is excluded from rollback. Partial failures trigger a conditional rollback; failures retain recovery data for review.
 

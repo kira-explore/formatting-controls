@@ -1,6 +1,6 @@
 import type { Finding } from "./diagnostics";
 import type { Adapter } from "./providers";
-import type { ProfileSummary, Recovery } from "./workflows";
+import type { Change, ProfileSummary, Recovery } from "./workflows";
 export const settingKeys = [
   "editor.formatOnSave",
   "editor.formatOnPaste",
@@ -114,7 +114,20 @@ export interface Snapshot {
   diagnosticHistory: DiagnosticReport[];
   rules: LanguageRule[];
 }
+export type ConfirmationReply = {
+  type: "confirmationReply";
+  token: string;
+  accepted: boolean;
+};
 export type Response =
+  | {
+      type: "confirmation";
+      id: string;
+      token: string;
+      title: string;
+      changes: readonly Change[];
+      scope: Scope;
+    }
   | { type: "state"; state: Snapshot; id?: string; message?: string }
   | { type: "error"; id: string; error: string };
 const object = (v: unknown): v is Record<string, unknown> =>

@@ -25,12 +25,48 @@ import {
 import { createDiagnosticReport } from "./diagnostic-report";
 import { flags, status } from "./model";
 import { providersFor } from "./providers";
-import type { Store, Workflows } from "./workflows";
+import type { Confirm, Store, Workflows } from "./workflows";
 
 const diagnosticHistoryKey = "formattingControls.diagnostics.v1";
 const diagnosticHistoryLimit = 20;
 
 export class Dashboard implements vscode.Disposable {
+  private confirmation:
+    | { token: string; finish: (accepted: boolean) => void }
+    | undefined;
+  private confirmInline(id: string): Confirm {
+    return (title, changes, scope) =>
+      new Promise<boolean>((resolve) => {
+        const panel = this.panel;
+        if (!panel) {
+          resolve(false);
+          return;
+        }
+        const token = randomBytes(16).toString("hex");
+        const finish = (accepted: boolean) => {
+          clearTimeout(timeout);
+          if (this.confirmation?.token === token) this.confirmation = undefined;
+          resolve(accepted);
+        };
+        const timeout = setTimeout(() => finish(false), 120_000);
+        this.confirmation = { token, finish };
+        void Promise.resolve(
+          panel.webview.postMessage({
+            type: "confirmation",
+            id,
+            token,
+            title,
+            changes,
+            scope,
+          }),
+        ).then(
+          (delivered) => {
+            if (!delivered) finish(false);
+          },
+          () => finish(false),
+        );
+      });
+  }
   private panel: vscode.WebviewPanel | undefined;
   private listeners: vscode.Disposable[] = [];
   private revision = 0;
@@ -125,6 +161,24 @@ export class Dashboard implements vscode.Disposable {
     panel.webview.html = `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src ${panel.webview.cspSource}; font-src ${panel.webview.cspSource}; img-src ${panel.webview.cspSource};"><title>Formatting Controls</title><link rel="stylesheet" href="${css}"></head><body><div id="root"></div><script nonce="${nonce}" type="module" src="${js}"></script></body></html>`;
     this.listeners = [
       panel.webview.onDidReceiveMessage((raw: unknown) => {
+        if (this.panel !== panel) return;
+        if (
+          raw &&
+          typeof raw === "object" &&
+          "type" in raw &&
+          raw.type === "confirmationReply"
+        ) {
+          const confirmation = this.confirmation;
+          if (
+            confirmation &&
+            "token" in raw &&
+            raw.token === confirmation.token &&
+            "accepted" in raw &&
+            typeof raw.accepted === "boolean"
+          )
+            confirmation.finish(raw.accepted);
+          return;
+        }
         this.queue = this.queue
           .then(() => (this.panel === panel ? this.handle(raw) : undefined))
           .catch(() => undefined);
@@ -190,6 +244,7 @@ export class Dashboard implements vscode.Disposable {
           ]
         : []),
       panel.onDidDispose(() => {
+        this.confirmation?.finish(false);
         this.panel = undefined;
         for (const listener of this.listeners.splice(0)) listener.dispose();
       }),
@@ -498,7 +553,12 @@ export class Dashboard implements vscode.Disposable {
         const message =
           this.workflows.recovery()?.kind === "pause"
             ? await this.workflows.resumePause()
-            : await this.workflows.pauseFormatting(selection, this.scope);
+            : await this.workflows.pauseFormatting(
+                selection,
+                this.scope,
+                "review",
+                this.confirmInline(request.id),
+              );
         this.revision++;
         await this.publish(request.id, message);
         return;
@@ -506,6 +566,7 @@ export class Dashboard implements vscode.Disposable {
       if (request.type === "profile" || request.type === "pause") {
         if (!this.workflows)
           throw new Error("Workflow storage is unavailable.");
+        const confirm = this.confirmInline(request.id);
         let message: string;
         if (request.type === "pause") {
           const language =
@@ -517,6 +578,7 @@ export class Dashboard implements vscode.Disposable {
               ...selection,
               ...(language ? { language } : {}),
             }).get("editor.codeActionsOnSave"),
+            confirm,
           );
         } else
           switch (request.action) {
@@ -525,6 +587,7 @@ export class Dashboard implements vscode.Disposable {
                 request.name as string,
                 selection,
                 this.scope,
+                confirm,
               );
               break;
             case "apply":
@@ -532,12 +595,14 @@ export class Dashboard implements vscode.Disposable {
                 request.name as string,
                 selection,
                 this.scope,
+                confirm,
               );
               break;
             case "delete":
               message = await this.workflows.remove(
                 request.name as string,
                 this.scope,
+                confirm,
               );
               break;
             case "export":
@@ -548,13 +613,19 @@ export class Dashboard implements vscode.Disposable {
               );
               break;
             case "import":
-              message = await this.workflows.import(this.scope);
+              message = await this.workflows.import(this.scope, confirm);
               break;
             case "restore":
-              message = await this.workflows.restore(request.restoreId);
+              message = await this.workflows.restore(
+                request.restoreId,
+                confirm,
+              );
               break;
             case "discard":
-              message = await this.workflows.discard(request.restoreId);
+              message = await this.workflows.discard(
+                request.restoreId,
+                confirm,
+              );
               break;
           }
         this.revision++;
@@ -568,10 +639,10 @@ export class Dashboard implements vscode.Disposable {
       if (request.type === "reset") {
         const preview = structuredClone(own(selection, request.key));
         if (preview !== undefined) {
-          const confirmed = await vscode.window.showWarningMessage(
+          const confirmed = await this.confirmInline(request.id)(
             `Remove ${request.key} = ${JSON.stringify(preview)} from ${request.scope.target}${request.scope.language ? ` / ${request.scope.language}` : ""}? Inherited settings will apply.`,
-            { modal: true },
-            "Reset",
+            [],
+            request.scope,
           );
           if (!confirmed) {
             await this.publish(request.id, "Reset cancelled.");

@@ -20,8 +20,18 @@ import { WorkflowPages } from "./WorkflowPages";
 import "./styles.css";
 
 const App = () => {
-  const { state, page, setPage, pending, error, setError, notice, send } =
-    useEditor();
+  const {
+    state,
+    page,
+    setPage,
+    pending,
+    error,
+    setError,
+    notice,
+    send,
+    confirmation,
+    replyToConfirmation,
+  } = useEditor();
   const [search, setSearch] = useState("");
   const [customAction, setCustomAction] = useState("");
   const [customFormatter, setCustomFormatter] = useState("");
@@ -481,6 +491,66 @@ const App = () => {
                   </p>
                 )}
             </>
+          )}
+          {confirmation && (
+            <section
+              className="dashboard-confirmation"
+              aria-label="Review changes"
+              ref={(element) => {
+                if (element) element.scrollIntoView({ block: "nearest" });
+              }}
+            >
+              <h2>{confirmation.title}</h2>
+              {confirmation.changes.length > 0 && (
+                <p>
+                  {confirmation.scope.target === "user"
+                    ? "User settings · applies across workspaces"
+                    : confirmation.scope.target === "workspace"
+                      ? "Workspace settings"
+                      : `Folder: ${state.folders.find((folder) => folder.uri === confirmation.scope.folder)?.name ?? confirmation.scope.folder}`}
+                  {confirmation.scope.language
+                    ? ` · ${languageName(confirmation.scope.language)}`
+                    : ""}
+                </p>
+              )}
+              {confirmation.changes.length > 0 && (
+                <ul>
+                  {confirmation.changes.map((change, index) => (
+                    <li key={index}>
+                      <strong>{labels[change.key]}</strong>
+                      {change.language
+                        ? ` · ${languageName(change.language)}`
+                        : ""}
+                      {change.action ? ` · ${change.action}` : ""}
+                      <div>
+                        {change.before.present
+                          ? JSON.stringify(change.before.value)
+                          : "Inherited"}{" "}
+                        →{" "}
+                        {change.after.present
+                          ? JSON.stringify(change.after.value)
+                          : "Inherited"}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="button-row">
+                <button
+                  type="button"
+                  onClick={() => replyToConfirmation(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => replyToConfirmation(true)}
+                >
+                  Confirm
+                </button>
+              </div>
+            </section>
           )}
           {page !== "diagnostics" && (
             <div aria-live="polite" className="feedback">

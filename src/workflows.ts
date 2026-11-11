@@ -457,6 +457,7 @@ export class Workflows implements vscode.Disposable {
     scope: Scope,
     kind: "profile" | "pause",
     review = true,
+    confirm = this.confirm,
   ): Promise<string> {
     this.assertSelection(s, scope);
     this.assertNewBatch();
@@ -499,7 +500,7 @@ export class Workflows implements vscode.Disposable {
       changes,
     });
     const title = `${kind === "pause" ? "Pause formatting at this scope" : `Apply profile ${profile.name}`}?${kind === "profile" && this.journals().some((entry) => entry.kind === "profile" && this.destination(entry) === this.destination(journal)) ? " This replaces the restore point for this destination." : ""}`;
-    if (review && !(await this.confirm(title, changes, scopeRecord)))
+    if (review && !(await confirm(title, changes, scopeRecord)))
       return "Cancelled. No settings were changed.";
     if (changes.length) await waitForSettingsSave(s);
     await applyBatch(journal, this.port(journal, true));
@@ -507,7 +508,12 @@ export class Workflows implements vscode.Disposable {
       ? "Paused at the selected scope. Resume from Profiles; overrides may still apply."
       : `Applied ${profile.name} to ${scope.target}. A restore point is saved.`;
   }
-  async save(name: string, s: Selection, scope: Scope): Promise<string> {
+  async save(
+    name: string,
+    s: Selection,
+    scope: Scope,
+    confirm = this.confirm,
+  ): Promise<string> {
     return this.exclusive(async () => {
       this.assertSelection(s, scope);
       if (
@@ -530,21 +536,21 @@ export class Workflows implements vscode.Disposable {
         ...(scope.language ? { language: scope.language } : {}),
         settings,
       });
-      return this.storeProfile(p, scope);
+      return this.storeProfile(p, scope, confirm);
     });
   }
-  private async storeProfile(profile: Profile, scope: Scope): Promise<string> {
+  private async storeProfile(
+    profile: Profile,
+    scope: Scope,
+    confirm: Confirm,
+  ): Promise<string> {
     const expected = structuredClone(
       this.saved().find((p) => p.name === profile.name),
     );
     const existing = expected !== undefined;
     if (
       existing &&
-      !(await this.confirm(
-        `Overwrite saved profile ${profile.name}?`,
-        [],
-        scope,
-      ))
+      !(await confirm(`Overwrite saved profile ${profile.name}?`, [], scope))
     )
       return "Profile save cancelled.";
     const current = this.saved();
@@ -569,12 +575,22 @@ export class Workflows implements vscode.Disposable {
     this.changed.fire();
     return `Saved profile ${profile.name}. No formatting settings were changed.`;
   }
-  async apply(name: string, s: Selection, scope: Scope): Promise<string> {
+  async apply(
+    name: string,
+    s: Selection,
+    scope: Scope,
+    confirm = this.confirm,
+  ): Promise<string> {
     return this.exclusive(() =>
-      this.applyProfile(this.profile(name), s, scope, "profile"),
+      this.applyProfile(this.profile(name), s, scope, "profile", true, confirm),
     );
   }
-  async pause(s: Selection, scope: Scope, effective: unknown): Promise<string> {
+  async pause(
+    s: Selection,
+    scope: Scope,
+    effective: unknown,
+    confirm = this.confirm,
+  ): Promise<string> {
     return this.exclusive(async () => {
       if (scope.target === "user")
         throw new Error(
@@ -591,13 +607,14 @@ export class Workflows implements vscode.Disposable {
           "editor.codeActionsOnSave": this.pausedActions(effective),
         },
       };
-      return this.applyProfile(profile, s, scope, "pause");
+      return this.applyProfile(profile, s, scope, "pause", true, confirm);
     });
   }
   async pauseFormatting(
     s: Selection,
     scope: Scope,
     interaction: "review" | "background" = "review",
+    confirm = this.confirm,
   ): Promise<string> {
     return this.exclusive(async () => {
       if (scope.target === "user")
@@ -619,16 +636,21 @@ export class Workflows implements vscode.Disposable {
         scope,
         "pause",
         interaction === "review",
+        confirm,
       );
     });
   }
-  async restore(id?: string): Promise<string> {
-    return this.restoreSaved(true, id);
+  async restore(id?: string, confirm = this.confirm): Promise<string> {
+    return this.restoreSaved(true, id, confirm);
   }
   async resumePause(): Promise<string> {
     return this.restoreSaved(false);
   }
-  private async restoreSaved(review: boolean, id?: string): Promise<string> {
+  private async restoreSaved(
+    review: boolean,
+    id?: string,
+    confirm = this.confirm,
+  ): Promise<string> {
     return this.exclusive(async () => {
       const journal = this.journal(id);
       if (!journal) return "No restore point is saved for this workspace.";
@@ -649,7 +671,7 @@ export class Workflows implements vscode.Disposable {
       });
       if (
         review &&
-        !(await this.confirm(
+        !(await confirm(
           "Restore unchanged preferences? Externally edited values will be preserved.",
           preview,
           journal.scope,
@@ -670,12 +692,12 @@ export class Workflows implements vscode.Disposable {
         : "Restored previous preferences. Unrelated values were preserved.";
     });
   }
-  async discard(id?: string): Promise<string> {
+  async discard(id?: string, confirm = this.confirm): Promise<string> {
     return this.exclusive(async () => {
       const journal = this.journal(id);
       if (!journal) return "No restore point is saved.";
       if (
-        !(await this.confirm(
+        !(await confirm(
           journal.kind === "pause"
             ? "Keep current settings and discard this restore point?"
             : "Delete this restore point and keep current settings?",
@@ -688,14 +710,18 @@ export class Workflows implements vscode.Disposable {
       return "Kept current preferences and discarded the restore point.";
     });
   }
-  async remove(name: string, scope: Scope): Promise<string> {
+  async remove(
+    name: string,
+    scope: Scope,
+    confirm = this.confirm,
+  ): Promise<string> {
     return this.exclusive(async () => {
       const expected = structuredClone(
         this.saved().find((p) => p.name === name),
       );
       if (!expected)
         throw new Error("Only saved custom profiles can be deleted.");
-      if (!(await this.confirm(`Delete saved profile ${name}?`, [], scope)))
+      if (!(await confirm(`Delete saved profile ${name}?`, [], scope)))
         return "Profile deletion cancelled.";
       const current = this.saved();
       if (
@@ -729,7 +755,7 @@ export class Workflows implements vscode.Disposable {
       return `Exported profile ${name}.`;
     });
   }
-  async import(scope: Scope): Promise<string> {
+  async import(scope: Scope, confirm = this.confirm): Promise<string> {
     return this.exclusive(async () => {
       const uri = await this.files.open();
       if (!uri) return "Profile import cancelled.";
@@ -743,7 +769,7 @@ export class Workflows implements vscode.Disposable {
         builtinNames.some((n) => n.toLowerCase() === profile.name.toLowerCase())
       )
         profile.name = `${profile.name} (imported)`;
-      return this.storeProfile(profile, scope);
+      return this.storeProfile(profile, scope, confirm);
     });
   }
   dispose(): void {

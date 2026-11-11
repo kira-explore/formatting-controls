@@ -432,7 +432,9 @@ export const WorkflowPages = ({
           </div>
         )}
         {!state.recovery && (
-          <p>A restore point appears after you apply a profile or preset.</p>
+          <p className="profile-empty restore-empty">
+            A restore point appears after you apply a profile or preset.
+          </p>
         )}
       </section>
       <section className="profile-section profile-pause">
