@@ -10,7 +10,7 @@ Diagnostics separates verified setting facts from possible conflicts and informa
 
 Language Rules enumerates explicit language override sources for the current resource, using configuration inspection rather than filesystem scans. Editing delegates to the existing language-aware settings writer. Combined-language blocks retain the limitations of the public API.
 
-Built-in presets set only the three automatic formatting triggers. **Manual Formatting** turns all three off, **Format on Save** turns on save only, **Format on Save and Paste** turns on save and paste, and **Format on Save, Paste and Type** turns all three on. Formatter selection and code actions on save are independent.
+Built-in presets set only the three automatic formatting triggers. **Manual Only** turns all three off, **Save Only** turns on save only, **Save & Paste** turns on save and paste, and **Save, Paste & Type** turns all three on. Formatter selection and code actions on save are independent.
 
 Custom profiles capture only values explicitly stored at the selected scope, not copied effective inherited preferences. Profiles are shared through extension-owned storage. See [two-window validation and storage migration](multi-window.md). A profile with a top-level `language` requires selecting that language. Applying a profile merges source-action entries and preserves unrelated configuration.
 

@@ -92,7 +92,7 @@ const runMultiLanguageProfileTest = async (uri: vscode.Uri): Promise<void> => {
       [false, true, false],
     );
     await write(userHtml, key, true);
-    await workflows.apply("Manual Formatting", userHtml, {
+    await workflows.apply("Manual Only", userHtml, {
       target: "user",
       language: "html",
     });
@@ -284,7 +284,7 @@ export const runWorkflowTests = async (
     await workflows.discard();
     const cancelled = new Workflows(global, workspace, async () => false);
     assert.match(
-      await cancelled.apply("Format on Save, Paste and Type", selection, scope),
+      await cancelled.apply("Save, Paste & Type", selection, scope),
       /Cancelled/,
     );
     assert.equal(own(selection, "editor.formatOnSave"), undefined);

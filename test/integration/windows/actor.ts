@@ -212,7 +212,7 @@ export const runWindow = async (role: "a" | "b"): Promise<void> => {
         return true;
       });
       await assert.rejects(
-        apply.apply("Manual Formatting", selection, scope),
+        apply.apply("Manual Only", selection, scope),
         /Settings changed/,
       );
       assert.equal(own(selection, "editor.formatOnSave"), undefined);

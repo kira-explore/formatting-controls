@@ -22,7 +22,7 @@ export const WorkflowPages = ({
   const [applyName, setApplyName] = useState("");
   const [showPauseTarget, setShowPauseTarget] = useState(false);
   const [showSave, setShowSave] = useState(false);
-  const [presetName, setPresetName] = useState("Format on Save and Paste");
+  const [presetName, setPresetName] = useState("Save & Paste");
   const profileNameInput = useRef<HTMLInputElement>(null);
   const saveSettingsButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -436,12 +436,14 @@ export const WorkflowPages = ({
           </p>
         )}
       </section>
-      <section className="profile-section">
-        <h2>Advanced workspace pause</h2>
-        <p>
-          Temporarily turn off automatic formatting and configured save actions
-          for a workspace or folder until you resume.
-        </p>
+      <section className="profile-section profile-pause">
+        <div>
+          <h2>Advanced workspace pause</h2>
+          <p>
+            Temporarily turn off automatic formatting and configured save
+            actions for a workspace or folder until you resume.
+          </p>
+        </div>
         {showPauseTarget ? (
           <div className="button-row">
             <label>

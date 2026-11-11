@@ -369,9 +369,6 @@ summary {
 .formatting-page > .formatting-disclosure:last-of-type {
   border-bottom: 0;
 }
-.formatting-page > footer {
-  margin-top: 0;
-}
 .formatter-tools,
 .setting-overrides {
   margin-bottom: 18px;
@@ -921,7 +918,6 @@ summary {
   color: var(--accent);
   cursor: pointer;
 }
-.diagnostics-page > footer,
 #diagnostic-report {
   margin-top: 20px;
 }
@@ -979,8 +975,20 @@ summary {
 .help-answer p:last-child {
   margin-bottom: 0;
 }
-.help-page footer {
-  margin-top: 26px;
+.workspace > main {
+  box-sizing: border-box;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.workspace > main > * {
+  flex-shrink: 0;
+}
+.workspace > main > footer {
+  margin-top: auto;
+}
+.workspace > main > :nth-last-child(2) {
+  margin-bottom: 16px;
 }
 footer {
   display: flex;
@@ -988,7 +996,6 @@ footer {
   align-items: center;
   gap: 18px;
   padding: 22px 0 0;
-  margin-top: 45px;
   border-top: 1px solid var(--border);
   font-size: 0.87rem;
   color: var(--muted);
@@ -1247,7 +1254,7 @@ body.vscode-high-contrast-light {
   margin-bottom: 10px;
 }
 .profile-section-compact .profile-row {
-  padding: 8px 14px;
+  padding: 5px 14px;
   row-gap: 8px;
 }
 .profile-section-compact .profile-row p {
@@ -1273,6 +1280,21 @@ body.vscode-high-contrast-light {
 .profiles-content > details:last-child {
   border-bottom: 0;
 }
-.profiles-page > footer {
-  margin-top: 0;
+
+.profile-section-compact .profile-row button {
+  min-height: 30px;
+  padding-block: 4px;
+}
+.profile-pause {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+.profile-pause p {
+  margin-bottom: 0;
+}
+.profile-pause > :last-child {
+  margin-inline-start: auto;
 }

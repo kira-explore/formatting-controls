@@ -618,13 +618,13 @@ export const reviewDashboard = async (
     );
     const presetChoice = ".preset-choices button";
     await wait(
-      `document.querySelector('.preset-detail h3')?.textContent === 'Format on Save and Paste'`,
+      `document.querySelector('.preset-detail h3')?.textContent === 'Save & Paste'`,
     );
     await evaluate(
-      `[...document.querySelectorAll('${presetChoice}')].find(b=>b.textContent==='Format on Save, Paste and Type').click()`,
+      `[...document.querySelectorAll('${presetChoice}')].find(b=>b.textContent==='Save, Paste & Type').click()`,
     );
     await wait(
-      `document.querySelector('.preset-detail h3')?.textContent === 'Format on Save, Paste and Type' && document.querySelectorAll('.preset-detail article').length === 1`,
+      `document.querySelector('.preset-detail h3')?.textContent === 'Save, Paste & Type' && document.querySelectorAll('.preset-detail article').length === 1`,
     );
     await evaluate(
       `[...document.querySelectorAll('.profile-section button')].find(b=>b.textContent==='Save current settings').click()`,

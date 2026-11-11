@@ -40,28 +40,28 @@ const profileKey = "formattingControls.profiles.v1",
   journalKey = "formattingControls.recovery.v1";
 const formattingPresets = [
   {
-    name: "Manual Formatting",
+    name: "Manual Only",
     save: false,
     paste: false,
     type: false,
     description: "Format only when you run a formatting command.",
   },
   {
-    name: "Format on Save",
+    name: "Save Only",
     save: true,
     paste: false,
     type: false,
     description: "Format when you save.",
   },
   {
-    name: "Format on Save and Paste",
+    name: "Save & Paste",
     save: true,
     paste: true,
     type: false,
     description: "Format when you save or paste.",
   },
   {
-    name: "Format on Save, Paste and Type",
+    name: "Save, Paste & Type",
     save: true,
     paste: true,
     type: true,
