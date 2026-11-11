@@ -1192,9 +1192,7 @@ body.vscode-high-contrast-light {
   padding: 24px 0;
   border-bottom: 1px solid var(--border);
 }
-.profile-section > p:last-child,
-.profile-section .recovery-card,
-.profiles-content .callout {
+.profile-section > p:last-child {
   margin-bottom: 0;
 }
 .profile-form {
@@ -1202,9 +1200,6 @@ body.vscode-high-contrast-light {
 }
 .profile-section .button-row {
   margin-top: 0;
-}
-.profile-section .recovery-card .button-row {
-  margin-top: 14px;
 }
 .profile-empty,
 .profile-list {
@@ -1307,16 +1302,6 @@ body.vscode-high-contrast-light {
 .restore-attention {
   color: var(--vscode-editorWarning-foreground, #e5c07b);
 }
-.profiles-content .formatting-disclosure > .callout {
-  margin: 0 0 20px;
-}
-.profiles-content .callout button + p {
-  margin-bottom: 0;
-}
-.profiles-content > details:last-child {
-  border-bottom: 0;
-}
-
 .profile-section-compact .profile-row button {
   min-height: 30px;
   padding-block: 4px;
