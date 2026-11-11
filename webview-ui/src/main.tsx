@@ -295,62 +295,68 @@ const App = () => {
     <section className="scope-bar" aria-label="Configuration scope">
       <label>
         Scope
-        <select
-          value={
-            state.scope.target === "folder"
-              ? `folder:${state.scope.folder}`
-              : state.scope.target
-          }
-          disabled={disabled}
-          onChange={(event) => {
-            const value = event.target.value;
-            const target = value.startsWith("folder:")
-              ? "folder"
-              : (value as Scope["target"]);
-            send(
-              { type: "read" },
-              {
-                target,
-                ...(target === "folder" ? { folder: value.slice(7) } : {}),
-                ...(state.scope.language
-                  ? { language: state.scope.language }
-                  : {}),
-              },
-            );
-          }}
-        >
-          <option value="user">User</option>
-          {state.hasWorkspace && <option value="workspace">Workspace</option>}
-          {state.folders.map((f) => (
-            <option key={f.uri} value={`folder:${f.uri}`}>
-              Folder: {f.name}
-            </option>
-          ))}
-        </select>
+        <span className="scope-select">
+          <select
+            value={
+              state.scope.target === "folder"
+                ? `folder:${state.scope.folder}`
+                : state.scope.target
+            }
+            disabled={disabled}
+            onChange={(event) => {
+              const value = event.target.value;
+              const target = value.startsWith("folder:")
+                ? "folder"
+                : (value as Scope["target"]);
+              send(
+                { type: "read" },
+                {
+                  target,
+                  ...(target === "folder" ? { folder: value.slice(7) } : {}),
+                  ...(state.scope.language
+                    ? { language: state.scope.language }
+                    : {}),
+                },
+              );
+            }}
+          >
+            <option value="user">User</option>
+            {state.hasWorkspace && <option value="workspace">Workspace</option>}
+            {state.folders.map((f) => (
+              <option key={f.uri} value={`folder:${f.uri}`}>
+                Folder: {f.name}
+              </option>
+            ))}
+          </select>
+        </span>
       </label>
       <label>
         Language
-        <select
-          value={state.scope.language ?? ""}
-          disabled={disabled}
-          onChange={(event) =>
-            send(
-              { type: "read" },
-              {
-                target: state.scope.target,
-                ...(state.scope.folder ? { folder: state.scope.folder } : {}),
-                ...(event.target.value ? { language: event.target.value } : {}),
-              },
-            )
-          }
-        >
-          <option value="">All languages</option>
-          {languages.map((l) => (
-            <option key={l} value={l}>
-              {languageName(l)}
-            </option>
-          ))}
-        </select>
+        <span className="scope-select">
+          <select
+            value={state.scope.language ?? ""}
+            disabled={disabled}
+            onChange={(event) =>
+              send(
+                { type: "read" },
+                {
+                  target: state.scope.target,
+                  ...(state.scope.folder ? { folder: state.scope.folder } : {}),
+                  ...(event.target.value
+                    ? { language: event.target.value }
+                    : {}),
+                },
+              )
+            }
+          >
+            <option value="">All languages</option>
+            {languages.map((l) => (
+              <option key={l} value={l}>
+                {languageName(l)}
+              </option>
+            ))}
+          </select>
+        </span>
       </label>
       <p className="scope-description">
         {page === "diagnostics" ? inspectionContext : scopeDescription}

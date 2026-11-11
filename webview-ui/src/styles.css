@@ -264,6 +264,29 @@ main {
   border-bottom: 1px solid var(--border);
   padding-bottom: 25px;
 }
+.scope-select {
+  position: relative;
+  min-width: 0;
+}
+.scope-select select {
+  appearance: none;
+  padding-inline-end: 32px;
+}
+.scope-select::after {
+  content: "";
+  position: absolute;
+  inset-inline-end: 13px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: translateY(-75%) rotate(45deg);
+  pointer-events: none;
+}
+.scope-select:has(select:disabled)::after {
+  opacity: 0.5;
+}
 label {
   display: grid;
   gap: 9px;
@@ -792,6 +815,15 @@ summary {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   background: var(--surface);
+}
+.diagnostic-history-row:hover {
+  background: var(
+    --vscode-list-hoverBackground,
+    var(--vscode-toolbar-hoverBackground, #333)
+  );
+}
+.diagnostic-history-row .diagnostic-history-entry:hover {
+  background: transparent;
 }
 .diagnostic-history-row + .diagnostic-history-row {
   border-top: 1px solid var(--border);
