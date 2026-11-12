@@ -1213,18 +1213,22 @@ body.vscode-high-contrast-light {
 }
 .preset-choices {
   display: grid;
-  gap: 6px;
   min-width: 0;
   margin: 0;
   padding: 0;
-  border: 0;
 }
 .preset-choices button {
   text-align: start;
+  border: 0;
+  border-inline-start: 3px solid transparent;
+  border-radius: 0;
   background: transparent;
-  border-color: transparent;
+}
+.preset-choices button + button {
+  border-top: 1px solid var(--border);
 }
 .preset-choices button[aria-pressed="true"] {
+  border-inline-start-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 18%, var(--surface));
 }
 .preset-detail .profile-row {
@@ -1238,8 +1242,15 @@ body.vscode-high-contrast-light {
 .preset-detail .profile-row > div:first-child {
   flex: 0 0 auto;
 }
-.preset-detail .button-row {
-  margin-top: auto;
+.profile-identity {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+}
+.profile-identity p {
+  border-inline-start: 1px solid var(--border);
+  padding-inline-start: 12px;
 }
 .profile-section-compact {
   padding-block: 16px;
@@ -1271,18 +1282,17 @@ body.vscode-high-contrast-light {
   padding-block: 4px;
 }
 .profile-pause {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px 16px;
+  gap: 8px 16px;
   border-bottom: 0;
 }
-.profile-pause p {
-  margin-bottom: 0;
+.profile-pause :is(h2, p) {
+  margin: 0;
 }
-.profile-pause > :last-child {
-  margin-inline-start: auto;
+.profile-pause > :is(p, .button-row) {
+  grid-column: 1 / -1;
 }
 
 .dashboard-confirmation {

@@ -637,7 +637,7 @@ export const reviewDashboard = async (
     await evaluate(
       `document.querySelector('.preset-detail [aria-label="Preview & apply Manual Only"]').click()`,
     );
-    const presetPanel = ".profiles-content > .dashboard-confirmation";
+    const presetPanel = "#built-in-presets > .dashboard-confirmation";
     await wait(
       `document.querySelector('${presetPanel}[aria-label="Apply Manual Only"]')`,
     );
@@ -677,22 +677,34 @@ export const reviewDashboard = async (
     await evaluate(
       `[...document.querySelectorAll('.profile-list button')].find(button => button.getAttribute('aria-label') === ${JSON.stringify(`Preview & apply ${payload}`)}).click()`,
     );
-    await wait(`document.querySelector('${presetPanel} .scope-bar')`);
-    await evaluate(`document.querySelector('${presetPanel} .primary').click()`);
+    const savedPanel = "#saved-profiles > .dashboard-confirmation";
+    await wait(`document.querySelector('${savedPanel} .scope-bar')`);
+    await evaluate(`document.querySelector('${savedPanel} .primary').click()`);
     await wait(
-      `document.querySelector('${presetPanel} h2')?.textContent === 'No changes needed' && !document.querySelector('${presetPanel} .primary')`,
+      `document.querySelector('${savedPanel} h2')?.textContent === 'No changes needed' && !document.querySelector('${savedPanel} .primary')`,
     );
     await evaluate(
-      `[...document.querySelectorAll('${presetPanel} button')].find(button => button.textContent === 'Back').click()`,
+      `[...document.querySelectorAll('${savedPanel} button')].find(button => button.textContent === 'Back').click()`,
     );
     await wait(
-      `document.querySelector('${presetPanel} .primary:not(:disabled)')?.textContent === 'Review changes'`,
+      `document.querySelector('${savedPanel} .primary:not(:disabled)')?.textContent === 'Review changes'`,
     );
     await evaluate(
-      `[...document.querySelectorAll('${presetPanel} button')].find(button => button.textContent === 'Cancel').click()`,
+      `[...document.querySelectorAll('${savedPanel} button')].find(button => button.textContent === 'Cancel').click()`,
     );
-    await wait(`!document.querySelector('${presetPanel}')`);
+    await wait(`!document.querySelector('${savedPanel}')`);
     await page.setViewportSize({ width: 1600, height: 1100 });
+    assert.ok(
+      await evaluate<boolean>(`(() => {
+        const title = document.querySelector('.profile-pause h2').getBoundingClientRect();
+        const button = document.querySelector('.profile-pause > button').getBoundingClientRect();
+        const name = document.querySelector('#saved-profiles .profile-identity h3').getBoundingClientRect();
+        const language = document.querySelector('#saved-profiles .profile-identity p').getBoundingClientRect();
+        return button.left >= title.right && button.top < title.bottom &&
+          language.left >= name.right && language.top < name.bottom;
+      })()`),
+      "The pause button and saved profile language must align beside their headings",
+    );
     await evaluate("document.querySelector('.workspace').scrollTo(0,0)");
     await page.screenshot({ path: join(directory, "text-escaping.png") });
     console.log(

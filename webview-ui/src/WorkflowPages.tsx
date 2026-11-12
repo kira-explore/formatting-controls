@@ -192,7 +192,10 @@ export const WorkflowPages = ({
         className="profile-row"
         key={entry.builtin ? "preset" : entry.name}
       >
-        <div aria-live={entry.builtin ? "polite" : undefined}>
+        <div
+          className={entry.builtin ? undefined : "profile-identity"}
+          aria-live={entry.builtin ? "polite" : undefined}
+        >
           <h3>{entry.name}</h3>
           <p>
             {entry.builtin
@@ -258,6 +261,66 @@ export const WorkflowPages = ({
       </article>
     );
   };
+  const previewName = profileToApply || applyName || applyError?.name;
+  const isPresetPreview = presets.some((entry) => entry.name === previewName);
+  const previewPanel = profileToApply ? (
+    applyReview(closeApply, () => {
+      setApplyName(profileToApply);
+      replyToConfirmation(false);
+    })
+  ) : applyEntry ? (
+    <section
+      key={applyEntry.name}
+      ref={revealApplyPanel}
+      tabIndex={-1}
+      className="dashboard-confirmation"
+      aria-label={`Apply ${applyEntry.name}`}
+    >
+      <h2>Apply {applyEntry.name}</h2>
+      <p>
+        {applyEntry.builtin ? "Built-in preset" : "Saved profile"}
+        {applyEntry.languages?.length
+          ? ` · ${applyEntry.languages.map(languageName).join(" · ")}`
+          : ""}
+      </p>
+      {scopeControls}
+      {languageMismatch && (
+        <p>
+          Choose{" "}
+          {requiredLanguage ? languageName(requiredLanguage) : "All languages"}{" "}
+          to apply this profile.
+        </p>
+      )}
+      {applyError?.name === applyEntry.name && (
+        <p role="alert">{applyError.message}</p>
+      )}
+      <div className="button-row">
+        <button type="button" disabled={reviewing} onClick={closeApply}>
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="primary"
+          disabled={disabled || languageMismatch || recoveryPending}
+          onClick={() => profile("apply", applyEntry.name)}
+        >
+          {reviewing ? "Reviewing changes…" : "Review changes"}
+        </button>
+      </div>
+    </section>
+  ) : (
+    applyError && (
+      <section
+        className="dashboard-confirmation"
+        aria-label={`Apply ${applyError.name}`}
+      >
+        <p role="alert">{applyError.message}</p>
+        <button type="button" onClick={clearApplyError}>
+          Dismiss
+        </button>
+      </section>
+    )
+  );
   return (
     <div className="profiles-content">
       {state.workflowError && (
@@ -266,7 +329,10 @@ export const WorkflowPages = ({
           controls remain available.
         </p>
       )}
-      <section className="profile-section profile-section-compact">
+      <section
+        id="saved-profiles"
+        className="profile-section profile-section-compact"
+      >
         <div className="section-header">
           <div>
             <h2>Saved profiles</h2>
@@ -354,13 +420,17 @@ export const WorkflowPages = ({
             <p>Save your current settings or import a profile from JSON.</p>
           </div>
         )}
+        {!isPresetPreview && previewPanel}
       </section>
       {selectedPreset && (
-        <section className="profile-section">
+        <section id="built-in-presets" className="profile-section">
           <h2>Built-in presets</h2>
           <p>Choose a preset, then preview its changes before applying it.</p>
           <div className="profile-presets">
-            <fieldset className="preset-choices" aria-label="Built-in presets">
+            <fieldset
+              className="profile-list preset-choices"
+              aria-label="Built-in presets"
+            >
               {presets.map((entry) => (
                 <button
                   key={entry.name}
@@ -379,67 +449,8 @@ export const WorkflowPages = ({
               {profileRow(selectedPreset)}
             </div>
           </div>
+          {isPresetPreview && previewPanel}
         </section>
-      )}
-      {profileToApply ? (
-        applyReview(closeApply, () => {
-          setApplyName(profileToApply);
-          replyToConfirmation(false);
-        })
-      ) : applyEntry ? (
-        <section
-          key={applyEntry.name}
-          ref={revealApplyPanel}
-          tabIndex={-1}
-          className="dashboard-confirmation"
-          aria-label={`Apply ${applyEntry.name}`}
-        >
-          <h2>Apply {applyEntry.name}</h2>
-          <p>
-            {applyEntry.builtin ? "Built-in preset" : "Saved profile"}
-            {applyEntry.languages?.length
-              ? ` · ${applyEntry.languages.map(languageName).join(" · ")}`
-              : ""}
-          </p>
-          {scopeControls}
-          {languageMismatch && (
-            <p>
-              Choose{" "}
-              {requiredLanguage
-                ? languageName(requiredLanguage)
-                : "All languages"}{" "}
-              to apply this profile.
-            </p>
-          )}
-          {applyError?.name === applyEntry.name && (
-            <p role="alert">{applyError.message}</p>
-          )}
-          <div className="button-row">
-            <button type="button" disabled={reviewing} onClick={closeApply}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="primary"
-              disabled={disabled || languageMismatch || recoveryPending}
-              onClick={() => profile("apply", applyEntry.name)}
-            >
-              {reviewing ? "Reviewing changes…" : "Review changes"}
-            </button>
-          </div>
-        </section>
-      ) : (
-        applyError && (
-          <section
-            className="dashboard-confirmation"
-            aria-label={`Apply ${applyError.name}`}
-          >
-            <p role="alert">{applyError.message}</p>
-            <button type="button" onClick={clearApplyError}>
-              Dismiss
-            </button>
-          </section>
-        )
       )}
       <section className="profile-section profile-section-compact">
         <h2>Restore previous settings</h2>
@@ -520,14 +531,30 @@ export const WorkflowPages = ({
         )}
       </section>
       <section className="profile-section profile-pause">
-        <div>
-          <h2>Advanced workspace pause</h2>
-          <p>
-            Temporarily turn off automatic formatting and configured save
-            actions for a workspace or folder until you resume.
-          </p>
-        </div>
-        {showPauseTarget ? (
+        <h2>Advanced workspace pause</h2>
+        {!showPauseTarget && (
+          <button
+            type="button"
+            disabled={disabled || !state.hasWorkspace || recoveryPending}
+            onClick={() => {
+              if (state.scope.target === "user" || state.scope.language)
+                send(
+                  { type: "read" },
+                  state.scope.target === "folder" && state.scope.folder
+                    ? { target: "folder", folder: state.scope.folder }
+                    : { target: "workspace" },
+                );
+              setShowPauseTarget(true);
+            }}
+          >
+            Preview temporary pause
+          </button>
+        )}
+        <p>
+          Temporarily turn off automatic formatting and configured save actions
+          for a workspace or folder until you resume.
+        </p>
+        {showPauseTarget && (
           <div className="button-row">
             <label>
               Pause in{" "}
@@ -571,23 +598,6 @@ export const WorkflowPages = ({
               Cancel
             </button>
           </div>
-        ) : (
-          <button
-            type="button"
-            disabled={disabled || !state.hasWorkspace || recoveryPending}
-            onClick={() => {
-              if (state.scope.target === "user" || state.scope.language)
-                send(
-                  { type: "read" },
-                  state.scope.target === "folder" && state.scope.folder
-                    ? { target: "folder", folder: state.scope.folder }
-                    : { target: "workspace" },
-                );
-              setShowPauseTarget(true);
-            }}
-          >
-            Preview temporary pause
-          </button>
         )}
       </section>
     </div>
