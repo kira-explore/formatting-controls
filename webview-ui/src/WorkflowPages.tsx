@@ -1,7 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { languageName } from "../../shared/language";
 import type { Operation, Scope, Snapshot } from "../../shared/protocol";
-import { Icon } from "./Icon";
 
 const focusCancel = (button: HTMLButtonElement | null) => {
   button?.focus();
@@ -14,6 +13,8 @@ interface Props {
   send: (operation: Operation, scope?: Scope) => void;
   scopeControls: ReactNode;
   profileToDelete: string | undefined;
+  profileToApply: string | undefined;
+  applyReview: ReactNode;
   replyToConfirmation: (accepted: boolean) => void;
   selectLanguage: (language: string) => void;
 }
@@ -24,6 +25,8 @@ export const WorkflowPages = ({
   send,
   scopeControls,
   profileToDelete,
+  profileToApply,
+  applyReview,
   replyToConfirmation,
   selectLanguage,
 }: Props) => {
@@ -160,6 +163,9 @@ export const WorkflowPages = ({
       ? `folder:${state.scope.folder}`
       : "workspace";
   const profileRow = (entry: Snapshot["profiles"][number]) => {
+    const required = entry.languages?.length ? "" : entry.language;
+    const mismatch =
+      required !== undefined && (state.scope.language ?? "") !== required;
     const confirmingDelete = !entry.builtin && profileToDelete === entry.name;
     const language = entry.language ? languageName(entry.language) : undefined;
     const languages = entry.languages?.map(languageName).join(" · ");
@@ -177,64 +183,91 @@ export const WorkflowPages = ({
           </p>
         </div>
         <div className="button-row">
-          <button
-            type="button"
-            disabled={disabled || !entry.count || recoveryPending}
-            className={entry.builtin ? "preset-action" : "row-icon"}
-            title={entry.builtin ? "Preview changes" : "Preview & apply"}
-            aria-label={`Preview & apply ${entry.name}`}
-            onClick={() => {
-              setShowSave(false);
-              setApplyName(entry.name);
-            }}
-          >
-            <Icon name="preview" />
-            {entry.builtin && "Preview changes"}
-          </button>
-          <button
-            type="button"
-            disabled={disabled || !entry.count}
-            className={entry.builtin ? "preset-action" : "row-icon"}
-            title="Export"
-            aria-label={`Export ${entry.name}`}
-            onClick={() => profile("export", entry.name)}
-          >
-            <Icon name="export" />
-            {entry.builtin && "Export"}
-          </button>
-          {!entry.builtin && (
-            <div className="diagnostic-run-actions">
-              {confirmingDelete && (
-                <button
-                  type="button"
-                  className="row-icon"
-                  title="Cancel deletion"
-                  aria-label={`Cancel deletion of ${entry.name}`}
-                  ref={focusCancel}
-                  onClick={() => replyToConfirmation(false)}
-                >
-                  <Icon name="close" />
-                </button>
-              )}
+          {confirmingDelete ? (
+            <>
               <button
                 type="button"
-                className="row-icon diagnostic-run-trash"
-                disabled={disabled && !confirmingDelete}
-                title={
-                  confirmingDelete ? "Confirm delete profile" : "Delete profile"
-                }
-                aria-label={`${confirmingDelete ? "Confirm delete" : "Delete"} ${entry.name}`}
-                onClick={() =>
-                  confirmingDelete
-                    ? replyToConfirmation(true)
-                    : profile("delete", entry.name)
-                }
+                ref={focusCancel}
+                onClick={() => replyToConfirmation(false)}
               >
-                <Icon name={confirmingDelete ? "check" : "trash"} />
+                Cancel
               </button>
-            </div>
+              <button type="button" onClick={() => replyToConfirmation(true)}>
+                Delete profile
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                disabled={disabled || !entry.count || recoveryPending}
+                aria-label={`Preview & apply ${entry.name}`}
+                aria-expanded={
+                  applyName === entry.name || profileToApply === entry.name
+                }
+                onClick={() => {
+                  setShowSave(false);
+                  setApplyName(entry.name);
+                }}
+              >
+                Preview &amp; apply
+              </button>
+              <button
+                type="button"
+                disabled={disabled || !entry.count}
+                aria-label={`Export ${entry.name}`}
+                onClick={() => profile("export", entry.name)}
+              >
+                Export
+              </button>
+              {!entry.builtin && (
+                <button
+                  type="button"
+                  disabled={disabled}
+                  aria-label={`Delete ${entry.name}`}
+                  onClick={() => {
+                    setApplyName("");
+                    profile("delete", entry.name);
+                  }}
+                >
+                  Delete
+                </button>
+              )}
+            </>
           )}
         </div>
+        {applyName === entry.name && (
+          <section
+            className="dashboard-confirmation"
+            aria-label={`Apply ${entry.name}`}
+          >
+            <h2>Apply {entry.name}</h2>
+            {scopeControls}
+            {mismatch && (
+              <p>
+                Choose {required ? languageName(required) : "All languages"} to
+                apply this profile.
+              </p>
+            )}
+            <div className="button-row">
+              <button type="button" onClick={() => setApplyName("")}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="primary"
+                disabled={disabled || mismatch || recoveryPending}
+                onClick={() => {
+                  profile("apply", entry.name);
+                  setApplyName("");
+                }}
+              >
+                Review changes
+              </button>
+            </div>
+          </section>
+        )}
+        {profileToApply === entry.name && applyReview}
       </article>
     );
   };
@@ -346,7 +379,11 @@ export const WorkflowPages = ({
                   key={entry.name}
                   type="button"
                   aria-pressed={entry.name === selectedPreset.name}
-                  onClick={() => setPresetName(entry.name)}
+                  disabled={pending}
+                  onClick={() => {
+                    setApplyName("");
+                    setPresetName(entry.name);
+                  }}
                 >
                   {entry.name}
                 </button>
@@ -358,45 +395,6 @@ export const WorkflowPages = ({
           </div>
         </section>
       )}
-      {applyName &&
-        (() => {
-          const entry = state.profiles.find((item) => item.name === applyName);
-          if (!entry) return null;
-          const required = entry.languages?.length ? "" : entry.language;
-          const mismatch =
-            required !== undefined && (state.scope.language ?? "") !== required;
-          return (
-            <section
-              className="profile-section"
-              role="region"
-              aria-label="Apply destination"
-            >
-              <h2>Apply {applyName}</h2>
-              {scopeControls}
-              {mismatch && (
-                <p>
-                  Choose {required ? languageName(required) : "All languages"}{" "}
-                  to apply this profile.
-                </p>
-              )}
-              <div className="button-row">
-                <button
-                  type="button"
-                  disabled={disabled || mismatch || recoveryPending}
-                  onClick={() => {
-                    profile("apply", applyName);
-                    setApplyName("");
-                  }}
-                >
-                  Review changes
-                </button>
-                <button type="button" onClick={() => setApplyName("")}>
-                  Cancel
-                </button>
-              </div>
-            </section>
-          );
-        })()}
       <section className="profile-section profile-section-compact">
         <h2>Restore previous settings</h2>
         {lastApplied && (

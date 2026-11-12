@@ -7,8 +7,6 @@ export type IconName =
   | "trash"
   | "close"
   | "check"
-  | "preview"
-  | "export"
   | "book"
   | "help"
   | "file"
@@ -21,9 +19,6 @@ const paths: Record<IconName, string> = {
   code: "m8 6-6 6 6 6m8-12 6 6-6 6m-3-16-2 20",
   layers: "m12 2 10 6-10 6L2 8l10-6ZM2 12l10 6 10-6M2 16l10 6 10-6",
   scan: "M8 3H3v5m13-5h5v5M3 16v5h5m8 0h5v-5M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z",
-  preview:
-    "M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12ZM15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
-  export: "M12 16V3m-5 5 5-5 5 5M4 14v6h16v-6",
   check: "m5 12 4 4L19 6",
   close: "m6 6 12 12M18 6 6 18",
   trash: "M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v7m4-7v7",

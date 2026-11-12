@@ -24,6 +24,7 @@ const restoredView = api?.getState();
 type DashboardConfirmation = Extract<Response, { type: "confirmation" }> & {
   page: string;
   profileToDelete?: string;
+  profileToApply?: string;
 };
 const diagnosticFeedbackMs = 700;
 const diagnosticTimeoutMs = 10000;
@@ -40,6 +41,7 @@ export const useEditor = () => {
     id: string;
     page: string;
     profileToDelete?: string;
+    profileToApply?: string;
     type: Operation["type"];
     startedAt: number;
     timeout: number | undefined;
@@ -81,6 +83,9 @@ export const useEditor = () => {
       page,
       ...(body.type === "profile" && body.action === "delete" && body.name
         ? { profileToDelete: body.name }
+        : {}),
+      ...(body.type === "profile" && body.action === "apply" && body.name
+        ? { profileToApply: body.name }
         : {}),
       type: body.type,
       startedAt,
@@ -132,6 +137,9 @@ export const useEditor = () => {
           setConfirmation({
             ...data,
             page: request.page,
+            ...(request.profileToApply
+              ? { profileToApply: request.profileToApply }
+              : {}),
             ...(request.profileToDelete
               ? { profileToDelete: request.profileToDelete }
               : {}),

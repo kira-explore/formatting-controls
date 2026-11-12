@@ -626,32 +626,6 @@ summary {
 .search {
   max-width: 200px;
 }
-.provider-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
-  gap: 20px;
-  margin: 20px 0;
-}
-.provider-grid article {
-  border-bottom: 1px solid var(--border);
-  padding: 17px 0;
-  min-width: 0;
-}
-.provider-grid p {
-  font-size: 0.93rem;
-  margin: 12px 0;
-}
-.provider-grid small {
-  font-size: 0.87rem;
-}
-.provider-grid details {
-  font-size: 0.87rem;
-  margin: 15px 0;
-}
-.provider-grid button {
-  margin: 5px 5px 0 0;
-  font-size: 0.93rem;
-}
 .provider-heading {
   display: flex;
   align-items: start;
@@ -673,8 +647,7 @@ summary {
 .tag.installed {
   color: var(--accent);
 }
-.callout,
-.recovery-card {
+.callout {
   display: flex;
   gap: 12px;
   padding: 17px;
@@ -691,13 +664,6 @@ summary {
 }
 .callout button {
   margin-top: 10px;
-}
-.recovery-card {
-  display: block;
-  border-color: var(--vscode-editorWarning-foreground, #a58849);
-}
-.recovery-card p {
-  font-size: 0.93rem;
 }
 .button-row {
   display: flex;
@@ -1272,11 +1238,6 @@ body.vscode-high-contrast-light {
 .preset-detail .profile-row > div:first-child {
   flex: 0 0 auto;
 }
-.preset-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
 .preset-detail .button-row {
   margin-top: auto;
 }
@@ -1332,9 +1293,24 @@ body.vscode-high-contrast-light {
   background: var(--surface);
   overflow-wrap: anywhere;
 }
-.dashboard-confirmation ul {
+.profile-row > .dashboard-confirmation {
+  width: 100%;
+  margin: 0;
+}
+.change-review {
   max-height: 240px;
   overflow: auto;
+  margin-bottom: 12px;
+}
+.change-review table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: start;
+}
+.change-review :is(th, td) {
+  border-bottom: 1px solid var(--border);
+  padding: 6px;
+  text-align: start;
 }
 .restore-empty {
   padding: 8px 14px;

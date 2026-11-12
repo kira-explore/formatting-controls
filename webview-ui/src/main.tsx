@@ -366,6 +366,78 @@ const App = () => {
       </p>
     </section>
   );
+  const confirmationPanel = confirmation && !confirmation.profileToDelete && (
+    <section
+      className="dashboard-confirmation"
+      aria-label="Review changes"
+      ref={(element) => {
+        if (element) element.scrollIntoView({ block: "nearest" });
+      }}
+    >
+      <h2>{confirmation.title}</h2>
+      {confirmation.changes.length > 0 && (
+        <p>
+          {confirmation.scope.target === "user"
+            ? "User settings · applies across workspaces"
+            : confirmation.scope.target === "workspace"
+              ? "Workspace settings"
+              : `Folder: ${state.folders.find((folder) => folder.uri === confirmation.scope.folder)?.name ?? confirmation.scope.folder}`}
+          {confirmation.scope.language
+            ? ` · ${languageName(confirmation.scope.language)}`
+            : ""}
+        </p>
+      )}
+      {confirmation.changes.length > 0 && (
+        <div className="change-review">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Setting</th>
+                <th scope="col">Current</th>
+                <th scope="col">Proposed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {confirmation.changes.map((change, index) => (
+                <tr key={index}>
+                  <th scope="row">
+                    {change.language
+                      ? `${languageName(change.language)} · `
+                      : ""}
+                    {labels[change.key]}
+                    {change.action ? ` · ${change.action}` : ""}
+                  </th>
+                  {[change.before, change.after].map((slot, column) => (
+                    <td key={column}>
+                      {slot.present
+                        ? typeof slot.value === "boolean"
+                          ? slot.value
+                            ? "On"
+                            : "Off"
+                          : display(slot.value)
+                        : "Inherited"}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div className="button-row">
+        <button type="button" onClick={() => replyToConfirmation(false)}>
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="primary"
+          onClick={() => replyToConfirmation(true)}
+        >
+          {confirmation.profileToApply ? "Apply changes" : "Confirm"}
+        </button>
+      </div>
+    </section>
+  );
   return (
     <div className="app">
       <a className="skip-link" href="#page-content">
@@ -498,66 +570,7 @@ const App = () => {
                 )}
             </>
           )}
-          {confirmation && !confirmation.profileToDelete && (
-            <section
-              className="dashboard-confirmation"
-              aria-label="Review changes"
-              ref={(element) => {
-                if (element) element.scrollIntoView({ block: "nearest" });
-              }}
-            >
-              <h2>{confirmation.title}</h2>
-              {confirmation.changes.length > 0 && (
-                <p>
-                  {confirmation.scope.target === "user"
-                    ? "User settings · applies across workspaces"
-                    : confirmation.scope.target === "workspace"
-                      ? "Workspace settings"
-                      : `Folder: ${state.folders.find((folder) => folder.uri === confirmation.scope.folder)?.name ?? confirmation.scope.folder}`}
-                  {confirmation.scope.language
-                    ? ` · ${languageName(confirmation.scope.language)}`
-                    : ""}
-                </p>
-              )}
-              {confirmation.changes.length > 0 && (
-                <ul>
-                  {confirmation.changes.map((change, index) => (
-                    <li key={index}>
-                      <strong>{labels[change.key]}</strong>
-                      {change.language
-                        ? ` · ${languageName(change.language)}`
-                        : ""}
-                      {change.action ? ` · ${change.action}` : ""}
-                      <div>
-                        {change.before.present
-                          ? JSON.stringify(change.before.value)
-                          : "Inherited"}{" "}
-                        →{" "}
-                        {change.after.present
-                          ? JSON.stringify(change.after.value)
-                          : "Inherited"}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <div className="button-row">
-                <button
-                  type="button"
-                  onClick={() => replyToConfirmation(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="primary"
-                  onClick={() => replyToConfirmation(true)}
-                >
-                  Confirm
-                </button>
-              </div>
-            </section>
-          )}
+          {!confirmation?.profileToApply && confirmationPanel}
           {page !== "diagnostics" && (
             <div aria-live="polite" className="feedback">
               {confirmation ? "" : pending ? "Updating editor…" : notice}
@@ -627,6 +640,10 @@ const App = () => {
               send={send}
               scopeControls={scopeControls}
               profileToDelete={confirmation?.profileToDelete}
+              profileToApply={confirmation?.profileToApply}
+              applyReview={
+                confirmation?.profileToApply ? confirmationPanel : undefined
+              }
               replyToConfirmation={replyToConfirmation}
               selectLanguage={(language) => {
                 send({ type: "read" }, { ...state.scope, language });

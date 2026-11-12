@@ -625,6 +625,26 @@ export const reviewDashboard = async (
       `document.querySelector('.preset-detail h3')?.textContent === 'Save, Paste & Type' && document.querySelectorAll('.preset-detail article').length === 1`,
     );
     await evaluate(
+      `[...document.querySelectorAll('${presetChoice}')].find(b=>b.textContent==='Manual Only').click()`,
+    );
+    await evaluate(
+      `document.querySelector('.preset-detail [aria-label="Preview & apply Manual Only"]').click()`,
+    );
+    const presetPanel = ".preset-detail .dashboard-confirmation";
+    await wait(
+      `document.querySelector('${presetPanel}[aria-label="Apply Manual Only"]')`,
+    );
+    await evaluate(`document.querySelector('${presetPanel} .primary').click()`);
+    await wait(
+      `document.querySelector('${presetPanel} table th[scope="col"]') && document.querySelector('${presetPanel} .primary').textContent === 'Apply changes'`,
+    );
+    await evaluate(
+      `document.querySelector('${presetPanel} .button-row button').click()`,
+    );
+    await wait(
+      `!document.querySelector('${presetPanel}') && !document.querySelector('.preset-detail [aria-label="Preview & apply Manual Only"]').disabled`,
+    );
+    await evaluate(
       `[...document.querySelectorAll('.profile-section button')].find(b=>b.textContent==='Save current settings').click()`,
     );
     await wait(
