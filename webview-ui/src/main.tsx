@@ -498,7 +498,7 @@ const App = () => {
                 )}
             </>
           )}
-          {confirmation && (
+          {confirmation && !confirmation.profileToDelete && (
             <section
               className="dashboard-confirmation"
               aria-label="Review changes"
@@ -560,7 +560,7 @@ const App = () => {
           )}
           {page !== "diagnostics" && (
             <div aria-live="polite" className="feedback">
-              {pending ? "Updating editor…" : notice}
+              {confirmation ? "" : pending ? "Updating editor…" : notice}
             </div>
           )}
           {error && (
@@ -626,6 +626,8 @@ const App = () => {
               disabled={disabled}
               send={send}
               scopeControls={scopeControls}
+              profileToDelete={confirmation?.profileToDelete}
+              replyToConfirmation={replyToConfirmation}
               selectLanguage={(language) => {
                 send({ type: "read" }, { ...state.scope, language });
                 setPage("formatting");

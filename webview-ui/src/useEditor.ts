@@ -21,20 +21,25 @@ declare const acquireVsCodeApi:
 const api =
   typeof acquireVsCodeApi === "function" ? acquireVsCodeApi() : undefined;
 const restoredView = api?.getState();
+type DashboardConfirmation = Extract<Response, { type: "confirmation" }> & {
+  page: string;
+  profileToDelete?: string;
+};
 const diagnosticFeedbackMs = 700;
 const diagnosticTimeoutMs = 10000;
 
 export const useEditor = () => {
   const [state, setState] = useState<Snapshot>();
   const [page, setPage] = useState(restoredView?.page ?? "formatting");
-  const [confirmation, setConfirmation] =
-    useState<Extract<Response, { type: "confirmation" }>>();
+  const [confirmation, setConfirmation] = useState<DashboardConfirmation>();
   const [pending, setPending] = useState<Operation["type"]>();
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState<{ page: string; message: string }>();
   const requestId = useRef(0);
   const pendingRef = useRef<{
     id: string;
+    page: string;
+    profileToDelete?: string;
     type: Operation["type"];
     startedAt: number;
     timeout: number | undefined;
@@ -44,6 +49,7 @@ export const useEditor = () => {
   const navigation = useRef(restoredView?.navigation);
   const selectPage = useCallback((page: string) => {
     setPage(page);
+    setNotice(undefined);
     api?.setState({ page, navigation: navigation.current });
   }, []);
   const send = (
@@ -72,6 +78,10 @@ export const useEditor = () => {
         : undefined;
     pendingRef.current = {
       id,
+      page,
+      ...(body.type === "profile" && body.action === "delete" && body.name
+        ? { profileToDelete: body.name }
+        : {}),
       type: body.type,
       startedAt,
       timeout,
@@ -79,7 +89,7 @@ export const useEditor = () => {
     };
     setPending(body.type);
     setError("");
-    setNotice("");
+    setNotice(undefined);
     api.postMessage({ ...body, id, scope } as Request);
   };
   useEffect(() => {
@@ -111,13 +121,22 @@ export const useEditor = () => {
           navigation.current = next.navigation;
           selectPage(next.page === "overview" ? "formatting" : next.page);
         }
-        if (response.message) setNotice(response.message);
+        if (response.message && request && request.id === response.id)
+          setNotice({ page: request.page, message: response.message });
       }
     };
     const receive = ({ data }: MessageEvent<Response>) => {
       const request = pendingRef.current;
       if (data.type === "confirmation") {
-        if (request?.id === data.id) setConfirmation(data);
+        if (request?.id === data.id) {
+          setConfirmation({
+            ...data,
+            page: request.page,
+            ...(request.profileToDelete
+              ? { profileToDelete: request.profileToDelete }
+              : {}),
+          });
+        }
         return;
       }
       if (
@@ -160,6 +179,17 @@ export const useEditor = () => {
     if (state && error.startsWith("The editor")) setError("");
   }, [state, error]);
 
+  useEffect(() => {
+    if (confirmation && confirmation.page !== page) {
+      api?.postMessage({
+        type: "confirmationReply",
+        token: confirmation.token,
+        accepted: false,
+      });
+      setConfirmation(undefined);
+    }
+  }, [confirmation, page]);
+
   return {
     state,
     page,
@@ -167,8 +197,8 @@ export const useEditor = () => {
     pending,
     error,
     setError,
-    notice,
-    confirmation,
+    notice: notice?.page === page ? notice.message : "",
+    confirmation: confirmation?.page === page ? confirmation : undefined,
     replyToConfirmation: (accepted: boolean) => {
       if (!confirmation) return;
       api?.postMessage({

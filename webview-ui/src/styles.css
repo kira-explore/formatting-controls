@@ -848,7 +848,7 @@ summary {
   border-inline-start-color: var(--vscode-contrastActiveBorder, var(--accent));
 }
 .diagnostic-history-entry:focus-visible,
-.diagnostic-delete-run:focus-visible {
+.row-icon:focus-visible {
   outline-offset: -2px;
 }
 .diagnostic-history small {
@@ -860,7 +860,7 @@ summary {
   font-size: 0.8rem;
   margin-inline-start: 8px;
 }
-.diagnostic-delete-run {
+.row-icon {
   display: grid;
   place-items: center;
   min-height: 32px;
@@ -871,7 +871,7 @@ summary {
   background: transparent;
   color: var(--muted);
 }
-.diagnostic-delete-run .icon {
+.row-icon .icon {
   width: 16px;
   height: 16px;
 }
@@ -1222,7 +1222,7 @@ body.vscode-high-contrast-light {
   border-top: 1px solid var(--border);
 }
 .profile-row > div:first-child {
-  flex: 1 1 260px;
+  flex: 1 1 12rem;
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -1262,17 +1262,20 @@ body.vscode-high-contrast-light {
   background: color-mix(in srgb, var(--accent) 18%, var(--surface));
 }
 .preset-detail .profile-row {
-  display: flex;
   flex-direction: column;
   flex-wrap: nowrap;
   align-items: stretch;
   min-height: 100%;
-  box-sizing: border-box;
   gap: 16px;
   padding: 16px;
 }
 .preset-detail .profile-row > div:first-child {
   flex: 0 0 auto;
+}
+.preset-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 .preset-detail .button-row {
   margin-top: auto;
@@ -1312,6 +1315,7 @@ body.vscode-high-contrast-light {
   align-items: center;
   justify-content: space-between;
   gap: 10px 16px;
+  border-bottom: 0;
 }
 .profile-pause p {
   margin-bottom: 0;

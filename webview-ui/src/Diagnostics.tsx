@@ -123,7 +123,7 @@ export const Diagnostics = ({
           ref={cancelButton}
           title="Cancel deletion"
           aria-label="Cancel deletion"
-          className="diagnostic-delete-run"
+          className="row-icon"
           aria-describedby="diagnostic-clear-note"
           disabled={pending}
           onClick={() => {
@@ -135,7 +135,7 @@ export const Diagnostics = ({
         </button>
         <button
           type="button"
-          className="diagnostic-delete-run"
+          className="row-icon"
           aria-describedby="diagnostic-clear-note"
           disabled={pending}
           title="Delete all runs"
@@ -199,7 +199,7 @@ export const Diagnostics = ({
                   {entry.id === deleteTarget && (
                     <button
                       type="button"
-                      className="diagnostic-delete-run"
+                      className="row-icon"
                       ref={cancelButton}
                       title="Cancel deletion"
                       aria-label="Cancel run deletion"
@@ -214,7 +214,7 @@ export const Diagnostics = ({
                   )}
                   <button
                     type="button"
-                    className="diagnostic-delete-run diagnostic-run-trash"
+                    className="row-icon diagnostic-run-trash"
                     title={
                       entry.id === deleteTarget
                         ? "Confirm delete run"

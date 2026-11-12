@@ -1,6 +1,11 @@
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import { languageName } from "../../shared/language";
 import type { Operation, Scope, Snapshot } from "../../shared/protocol";
+import { Icon } from "./Icon";
+
+const focusCancel = (button: HTMLButtonElement | null) => {
+  button?.focus();
+};
 
 interface Props {
   page: string;
@@ -8,6 +13,8 @@ interface Props {
   disabled: boolean;
   send: (operation: Operation, scope?: Scope) => void;
   scopeControls: ReactNode;
+  profileToDelete: string | undefined;
+  replyToConfirmation: (accepted: boolean) => void;
   selectLanguage: (language: string) => void;
 }
 export const WorkflowPages = ({
@@ -16,6 +23,8 @@ export const WorkflowPages = ({
   disabled,
   send,
   scopeControls,
+  profileToDelete,
+  replyToConfirmation,
   selectLanguage,
 }: Props) => {
   const [name, setName] = useState("");
@@ -151,6 +160,7 @@ export const WorkflowPages = ({
       ? `folder:${state.scope.folder}`
       : "workspace";
   const profileRow = (entry: Snapshot["profiles"][number]) => {
+    const confirmingDelete = !entry.builtin && profileToDelete === entry.name;
     const language = entry.language ? languageName(entry.language) : undefined;
     const languages = entry.languages?.map(languageName).join(" · ");
     return (
@@ -170,31 +180,59 @@ export const WorkflowPages = ({
           <button
             type="button"
             disabled={disabled || !entry.count || recoveryPending}
+            className={entry.builtin ? "preset-action" : "row-icon"}
+            title={entry.builtin ? "Preview changes" : "Preview & apply"}
             aria-label={`Preview & apply ${entry.name}`}
             onClick={() => {
               setShowSave(false);
               setApplyName(entry.name);
             }}
           >
-            {entry.builtin ? "Preview changes" : "Preview & apply"}
+            <Icon name="preview" />
+            {entry.builtin && "Preview changes"}
           </button>
           <button
             type="button"
             disabled={disabled || !entry.count}
+            className={entry.builtin ? "preset-action" : "row-icon"}
+            title="Export"
             aria-label={`Export ${entry.name}`}
             onClick={() => profile("export", entry.name)}
           >
-            Export
+            <Icon name="export" />
+            {entry.builtin && "Export"}
           </button>
           {!entry.builtin && (
-            <button
-              type="button"
-              disabled={disabled}
-              aria-label={`Delete ${entry.name}`}
-              onClick={() => profile("delete", entry.name)}
-            >
-              Delete
-            </button>
+            <div className="diagnostic-run-actions">
+              {confirmingDelete && (
+                <button
+                  type="button"
+                  className="row-icon"
+                  title="Cancel deletion"
+                  aria-label={`Cancel deletion of ${entry.name}`}
+                  ref={focusCancel}
+                  onClick={() => replyToConfirmation(false)}
+                >
+                  <Icon name="close" />
+                </button>
+              )}
+              <button
+                type="button"
+                className="row-icon diagnostic-run-trash"
+                disabled={disabled && !confirmingDelete}
+                title={
+                  confirmingDelete ? "Confirm delete profile" : "Delete profile"
+                }
+                aria-label={`${confirmingDelete ? "Confirm delete" : "Delete"} ${entry.name}`}
+                onClick={() =>
+                  confirmingDelete
+                    ? replyToConfirmation(true)
+                    : profile("delete", entry.name)
+                }
+              >
+                <Icon name={confirmingDelete ? "check" : "trash"} />
+              </button>
+            </div>
           )}
         </div>
       </article>
