@@ -34,7 +34,7 @@ export class Dashboard implements vscode.Disposable {
   private confirmation:
     | { token: string; finish: (accepted: boolean) => void }
     | undefined;
-  private confirmInline(id: string): Confirm {
+  protected confirmInline(id: string): Confirm {
     return (title, changes, scope) =>
       new Promise<boolean>((resolve) => {
         const panel = this.panel;

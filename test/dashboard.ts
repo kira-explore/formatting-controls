@@ -121,7 +121,7 @@ export const reviewDashboard = async (
     const wait = async (expression: string, timeoutMs = 5000) => {
       const deadline = Date.now() + timeoutMs;
       while (Date.now() < deadline) {
-        if (await evaluate<boolean>(expression)) return;
+        if (await evaluate<boolean>(`Boolean(${expression})`)) return;
         await delay(50);
       }
       throw new Error(`Dashboard did not settle: ${expression}`);
@@ -132,13 +132,20 @@ export const reviewDashboard = async (
         const scope = bounds('.scope-bar');
         const run = bounds('.diagnostic-run');
         const history = bounds('.diagnostic-history-section');
-        const next = bounds('#diagnostic-report') ?? bounds('.diagnostics-page > footer');
+        const report = bounds('#diagnostic-report');
+        const footer = bounds('.diagnostics-page > footer');
         return [
           (history ?? run).top - scope.bottom,
           ...(history ? [run.top - history.bottom] : []),
-          next.top - run.bottom,
+          ...(report ? [report.top - run.bottom] : []),
+          footer.top - (report ?? run).bottom,
         ];
       })()`);
+      const footerGap = gaps.pop();
+      assert.ok(
+        footerGap !== undefined && footerGap >= 16,
+        "Diagnostics footer must clear the content",
+      );
       const [firstGap] = gaps;
       assert.ok(
         firstGap !== undefined &&

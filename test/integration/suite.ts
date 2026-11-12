@@ -327,7 +327,12 @@ export const run = async (): Promise<void> => {
       new MemoryStore(),
       async () => true,
     );
-    const pauseDashboard = new Dashboard(
+    class ConfirmingDashboard extends Dashboard {
+      protected override confirmInline() {
+        return async () => true;
+      }
+    }
+    const pauseDashboard = new ConfirmingDashboard(
       ext.extensionUri,
       (reply) => {
         pauseReplies.push(reply);

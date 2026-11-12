@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { languageName } from "../../shared/language";
 import type { Key, Scope, Setting } from "../../shared/protocol";
 import { formatterSource, settingForAction } from "../../shared/status-details";
+import type { Slot } from "../../shared/workflows";
 import { BrandMark } from "./BrandMark";
 import {
   actionNames,
@@ -18,6 +19,12 @@ import { Icon } from "./Icon";
 import { useEditor } from "./useEditor";
 import { WorkflowPages } from "./WorkflowPages";
 import "./styles.css";
+
+const reviewValue = (slot: Slot) => {
+  if (!slot.present) return "Inherited";
+  if (typeof slot.value === "boolean") return slot.value ? "On" : "Off";
+  return display(slot.value);
+};
 
 const App = () => {
   const {
@@ -398,8 +405,14 @@ const App = () => {
               </tr>
             </thead>
             <tbody>
-              {confirmation.changes.map((change, index) => (
-                <tr key={index}>
+              {confirmation.changes.map((change) => (
+                <tr
+                  key={JSON.stringify([
+                    change.key,
+                    change.language,
+                    change.action,
+                  ])}
+                >
                   <th scope="row">
                     {change.language
                       ? `${languageName(change.language)} · `
@@ -407,17 +420,8 @@ const App = () => {
                     {labels[change.key]}
                     {change.action ? ` · ${change.action}` : ""}
                   </th>
-                  {[change.before, change.after].map((slot, column) => (
-                    <td key={column}>
-                      {slot.present
-                        ? typeof slot.value === "boolean"
-                          ? slot.value
-                            ? "On"
-                            : "Off"
-                          : display(slot.value)
-                        : "Inherited"}
-                    </td>
-                  ))}
+                  <td>{reviewValue(change.before)}</td>
+                  <td>{reviewValue(change.after)}</td>
                 </tr>
               ))}
             </tbody>
