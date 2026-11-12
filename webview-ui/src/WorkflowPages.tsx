@@ -2,6 +2,10 @@ import { type ReactNode, useEffect, useRef, useState } from "react";
 import { languageName } from "../../shared/language";
 import type { Operation, Scope, Snapshot } from "../../shared/protocol";
 
+const revealApplyPanel = (panel: HTMLElement | null) => {
+  panel?.focus();
+};
+
 const focusCancel = (button: HTMLButtonElement | null) => {
   button?.focus();
 };
@@ -14,7 +18,10 @@ interface Props {
   scopeControls: ReactNode;
   profileToDelete: string | undefined;
   profileToApply: string | undefined;
-  applyReview: ReactNode;
+  applyReview: (onClose: () => void, onBack: () => void) => ReactNode;
+  applyError: { name: string; message: string } | undefined;
+  clearApplyError: () => void;
+  reviewing: boolean;
   replyToConfirmation: (accepted: boolean) => void;
   selectLanguage: (language: string) => void;
 }
@@ -27,6 +34,9 @@ export const WorkflowPages = ({
   profileToDelete,
   profileToApply,
   applyReview,
+  applyError,
+  clearApplyError,
+  reviewing,
   replyToConfirmation,
   selectLanguage,
 }: Props) => {
@@ -162,10 +172,18 @@ export const WorkflowPages = ({
     state.scope.target === "folder"
       ? `folder:${state.scope.folder}`
       : "workspace";
+  const applyEntry = state.profiles.find((entry) => entry.name === applyName);
+  const requiredLanguage = applyEntry?.languages?.length
+    ? ""
+    : applyEntry?.language;
+  const languageMismatch =
+    requiredLanguage !== undefined &&
+    (state.scope.language ?? "") !== requiredLanguage;
+  const closeApply = () => {
+    clearApplyError();
+    setApplyName("");
+  };
   const profileRow = (entry: Snapshot["profiles"][number]) => {
-    const required = entry.languages?.length ? "" : entry.language;
-    const mismatch =
-      required !== undefined && (state.scope.language ?? "") !== required;
     const confirmingDelete = !entry.builtin && profileToDelete === entry.name;
     const language = entry.language ? languageName(entry.language) : undefined;
     const languages = entry.languages?.map(languageName).join(" · ");
@@ -207,6 +225,7 @@ export const WorkflowPages = ({
                 }
                 onClick={() => {
                   setShowSave(false);
+                  clearApplyError();
                   setApplyName(entry.name);
                 }}
               >
@@ -236,38 +255,6 @@ export const WorkflowPages = ({
             </>
           )}
         </div>
-        {applyName === entry.name && (
-          <section
-            className="dashboard-confirmation"
-            aria-label={`Apply ${entry.name}`}
-          >
-            <h2>Apply {entry.name}</h2>
-            {scopeControls}
-            {mismatch && (
-              <p>
-                Choose {required ? languageName(required) : "All languages"} to
-                apply this profile.
-              </p>
-            )}
-            <div className="button-row">
-              <button type="button" onClick={() => setApplyName("")}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="primary"
-                disabled={disabled || mismatch || recoveryPending}
-                onClick={() => {
-                  profile("apply", entry.name);
-                  setApplyName("");
-                }}
-              >
-                Review changes
-              </button>
-            </div>
-          </section>
-        )}
-        {profileToApply === entry.name && applyReview}
       </article>
     );
   };
@@ -381,7 +368,6 @@ export const WorkflowPages = ({
                   aria-pressed={entry.name === selectedPreset.name}
                   disabled={pending}
                   onClick={() => {
-                    setApplyName("");
                     setPresetName(entry.name);
                   }}
                 >
@@ -394,6 +380,66 @@ export const WorkflowPages = ({
             </div>
           </div>
         </section>
+      )}
+      {profileToApply ? (
+        applyReview(closeApply, () => {
+          setApplyName(profileToApply);
+          replyToConfirmation(false);
+        })
+      ) : applyEntry ? (
+        <section
+          key={applyEntry.name}
+          ref={revealApplyPanel}
+          tabIndex={-1}
+          className="dashboard-confirmation"
+          aria-label={`Apply ${applyEntry.name}`}
+        >
+          <h2>Apply {applyEntry.name}</h2>
+          <p>
+            {applyEntry.builtin ? "Built-in preset" : "Saved profile"}
+            {applyEntry.languages?.length
+              ? ` · ${applyEntry.languages.map(languageName).join(" · ")}`
+              : ""}
+          </p>
+          {scopeControls}
+          {languageMismatch && (
+            <p>
+              Choose{" "}
+              {requiredLanguage
+                ? languageName(requiredLanguage)
+                : "All languages"}{" "}
+              to apply this profile.
+            </p>
+          )}
+          {applyError?.name === applyEntry.name && (
+            <p role="alert">{applyError.message}</p>
+          )}
+          <div className="button-row">
+            <button type="button" disabled={reviewing} onClick={closeApply}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="primary"
+              disabled={disabled || languageMismatch || recoveryPending}
+              onClick={() => profile("apply", applyEntry.name)}
+            >
+              {reviewing ? "Reviewing changes…" : "Review changes"}
+            </button>
+          </div>
+        </section>
+      ) : (
+        applyError && (
+          <section
+            className="dashboard-confirmation"
+            aria-label={`Apply ${applyError.name}`}
+          >
+            <p role="alert">{applyError.message}</p>
+            <button type="button" onClick={clearApplyError}>
+              Dismiss
+            </button>
+          </section>
+        )
       )}
       <section className="profile-section profile-section-compact">
         <h2>Restore previous settings</h2>

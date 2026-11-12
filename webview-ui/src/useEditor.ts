@@ -35,6 +35,10 @@ export const useEditor = () => {
   const [confirmation, setConfirmation] = useState<DashboardConfirmation>();
   const [pending, setPending] = useState<Operation["type"]>();
   const [error, setError] = useState("");
+  const [applyError, setApplyError] = useState<{
+    name: string;
+    message: string;
+  }>();
   const [notice, setNotice] = useState<{ page: string; message: string }>();
   const requestId = useRef(0);
   const pendingRef = useRef<{
@@ -51,6 +55,7 @@ export const useEditor = () => {
   const navigation = useRef(restoredView?.navigation);
   const selectPage = useCallback((page: string) => {
     setPage(page);
+    setApplyError(undefined);
     setNotice(undefined);
     api?.setState({ page, navigation: navigation.current });
   }, []);
@@ -93,6 +98,7 @@ export const useEditor = () => {
       onDiagnosticRun,
     };
     setPending(body.type);
+    setApplyError(undefined);
     setError("");
     setNotice(undefined);
     api.postMessage({ ...body, id, scope } as Request);
@@ -114,7 +120,14 @@ export const useEditor = () => {
         }
       }
       if (response.type === "error") {
-        setError(response.error);
+        if (request?.profileToApply && request.id === response.id) {
+          setApplyError({
+            name: request.profileToApply,
+            message: response.error,
+          });
+        } else {
+          setError(response.error);
+        }
       }
       if (response.type === "state") {
         window.clearTimeout(timeout);
@@ -205,6 +218,8 @@ export const useEditor = () => {
     pending,
     error,
     setError,
+    applyError: page === "profiles" ? applyError : undefined,
+    clearApplyError: () => setApplyError(undefined),
     notice: notice?.page === page ? notice.message : "",
     confirmation: confirmation?.page === page ? confirmation : undefined,
     replyToConfirmation: (accepted: boolean) => {

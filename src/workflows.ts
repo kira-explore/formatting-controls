@@ -458,6 +458,7 @@ export class Workflows implements vscode.Disposable {
     kind: "profile" | "pause",
     review = true,
     confirm = this.confirm,
+    reviewUnchanged = false,
   ): Promise<string> {
     this.assertSelection(s, scope);
     this.assertNewBatch();
@@ -480,8 +481,6 @@ export class Workflows implements vscode.Disposable {
     const changes = plan(profile, (key, language) =>
       own(language ? { ...s, language } : s, key),
     );
-    if (!changes.length && !(kind === "pause" && !review))
-      return "These preferences already match the selected scope.";
     const scopeRecord: Scope = {
       target: scope.target,
       ...(scope.target === "folder" && scope.folder
@@ -489,6 +488,10 @@ export class Workflows implements vscode.Disposable {
         : {}),
       ...(scope.language ? { language: scope.language } : {}),
     };
+    if (!changes.length && !(kind === "pause" && !review)) {
+      if (reviewUnchanged) await confirm("No changes needed", [], scopeRecord);
+      return "These preferences already match the selected scope.";
+    }
     const journal = parseJournal({
       version: 1,
       kind,
@@ -579,10 +582,18 @@ export class Workflows implements vscode.Disposable {
     name: string,
     s: Selection,
     scope: Scope,
-    confirm = this.confirm,
+    confirm?: Confirm,
   ): Promise<string> {
     return this.exclusive(() =>
-      this.applyProfile(this.profile(name), s, scope, "profile", true, confirm),
+      this.applyProfile(
+        this.profile(name),
+        s,
+        scope,
+        "profile",
+        true,
+        confirm,
+        !!confirm,
+      ),
     );
   }
   async pause(

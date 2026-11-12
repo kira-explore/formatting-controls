@@ -1293,10 +1293,6 @@ body.vscode-high-contrast-light {
   background: var(--surface);
   overflow-wrap: anywhere;
 }
-.profile-row > .dashboard-confirmation {
-  width: 100%;
-  margin: 0;
-}
 .change-review {
   max-height: 240px;
   overflow: auto;

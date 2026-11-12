@@ -26,6 +26,8 @@ const reviewValue = (slot: Slot) => {
   return display(slot.value);
 };
 
+const focusConfirmation = (panel: HTMLElement | null) => panel?.focus();
+
 const App = () => {
   const {
     state,
@@ -34,6 +36,8 @@ const App = () => {
     pending,
     error,
     setError,
+    applyError,
+    clearApplyError,
     notice,
     send,
     confirmation,
@@ -373,75 +377,94 @@ const App = () => {
       </p>
     </section>
   );
-  const confirmationPanel = confirmation && !confirmation.profileToDelete && (
-    <section
-      className="dashboard-confirmation"
-      aria-label="Review changes"
-      ref={(element) => {
-        if (element) element.scrollIntoView({ block: "nearest" });
-      }}
-    >
-      <h2>{confirmation.title}</h2>
-      {confirmation.changes.length > 0 && (
-        <p>
-          {confirmation.scope.target === "user"
-            ? "User settings · applies across workspaces"
-            : confirmation.scope.target === "workspace"
-              ? "Workspace settings"
-              : `Folder: ${state.folders.find((folder) => folder.uri === confirmation.scope.folder)?.name ?? confirmation.scope.folder}`}
-          {confirmation.scope.language
-            ? ` · ${languageName(confirmation.scope.language)}`
-            : ""}
-        </p>
-      )}
-      {confirmation.changes.length > 0 && (
-        <div className="change-review">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Setting</th>
-                <th scope="col">Current</th>
-                <th scope="col">Proposed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {confirmation.changes.map((change) => (
-                <tr
-                  key={JSON.stringify([
-                    change.key,
-                    change.language,
-                    change.action,
-                  ])}
-                >
-                  <th scope="row">
-                    {change.language
-                      ? `${languageName(change.language)} · `
-                      : ""}
-                    {labels[change.key]}
-                    {change.action ? ` · ${change.action}` : ""}
-                  </th>
-                  <td>{reviewValue(change.before)}</td>
-                  <td>{reviewValue(change.after)}</td>
+  const renderConfirmation = (onClose?: () => void, onBack?: () => void) =>
+    confirmation &&
+    !confirmation.profileToDelete && (
+      <section
+        className="dashboard-confirmation"
+        aria-label="Review changes"
+        ref={focusConfirmation}
+        tabIndex={-1}
+      >
+        <h2>{confirmation.title}</h2>
+        {(confirmation.profileToApply || confirmation.changes.length > 0) && (
+          <p>
+            {confirmation.profileToApply && `${confirmation.profileToApply} · `}
+            {confirmation.scope.target === "user"
+              ? "User settings · applies across workspaces"
+              : confirmation.scope.target === "workspace"
+                ? "Workspace settings"
+                : `Folder: ${state.folders.find((folder) => folder.uri === confirmation.scope.folder)?.name ?? confirmation.scope.folder}`}
+            {confirmation.scope.language
+              ? ` · ${languageName(confirmation.scope.language)}`
+              : ""}
+          </p>
+        )}
+        {confirmation.changes.length > 0 && (
+          <div className="change-review">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Setting</th>
+                  <th scope="col">Current</th>
+                  <th scope="col">Proposed</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {confirmation.changes.map((change) => (
+                  <tr
+                    key={JSON.stringify([
+                      change.key,
+                      change.language,
+                      change.action,
+                    ])}
+                  >
+                    <th scope="row">
+                      {change.language
+                        ? `${languageName(change.language)} · `
+                        : ""}
+                      {labels[change.key]}
+                      {change.action ? ` · ${change.action}` : ""}
+                    </th>
+                    <td>{reviewValue(change.before)}</td>
+                    <td>{reviewValue(change.after)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="button-row">
+          {onBack && (
+            <button type="button" onClick={onBack}>
+              Back
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              replyToConfirmation(false);
+              onClose?.();
+            }}
+          >
+            Cancel
+          </button>
+          {(!confirmation.profileToApply ||
+            confirmation.changes.length > 0) && (
+            <button
+              type="button"
+              className="primary"
+              onClick={() => {
+                replyToConfirmation(true);
+                onClose?.();
+              }}
+            >
+              {confirmation.profileToApply ? "Apply changes" : "Confirm"}
+            </button>
+          )}
         </div>
-      )}
-      <div className="button-row">
-        <button type="button" onClick={() => replyToConfirmation(false)}>
-          Cancel
-        </button>
-        <button
-          type="button"
-          className="primary"
-          onClick={() => replyToConfirmation(true)}
-        >
-          {confirmation.profileToApply ? "Apply changes" : "Confirm"}
-        </button>
-      </div>
-    </section>
-  );
+      </section>
+    );
   return (
     <div className="app">
       <a className="skip-link" href="#page-content">
@@ -574,8 +597,8 @@ const App = () => {
                 )}
             </>
           )}
-          {!confirmation?.profileToApply && confirmationPanel}
-          {page !== "diagnostics" && (
+          {!confirmation?.profileToApply && renderConfirmation()}
+          {page !== "diagnostics" && page !== "profiles" && (
             <div aria-live="polite" className="feedback">
               {confirmation ? "" : pending ? "Updating editor…" : notice}
             </div>
@@ -645,9 +668,10 @@ const App = () => {
               scopeControls={scopeControls}
               profileToDelete={confirmation?.profileToDelete}
               profileToApply={confirmation?.profileToApply}
-              applyReview={
-                confirmation?.profileToApply ? confirmationPanel : undefined
-              }
+              applyReview={renderConfirmation}
+              applyError={applyError}
+              clearApplyError={clearApplyError}
+              reviewing={pending === "profile"}
               replyToConfirmation={replyToConfirmation}
               selectLanguage={(language) => {
                 send({ type: "read" }, { ...state.scope, language });

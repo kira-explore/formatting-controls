@@ -637,7 +637,7 @@ export const reviewDashboard = async (
     await evaluate(
       `document.querySelector('.preset-detail [aria-label="Preview & apply Manual Only"]').click()`,
     );
-    const presetPanel = ".preset-detail .dashboard-confirmation";
+    const presetPanel = ".profiles-content > .dashboard-confirmation";
     await wait(
       `document.querySelector('${presetPanel}[aria-label="Apply Manual Only"]')`,
     );
@@ -646,7 +646,7 @@ export const reviewDashboard = async (
       `document.querySelector('${presetPanel} table th[scope="col"]') && document.querySelector('${presetPanel} .primary').textContent === 'Apply changes'`,
     );
     await evaluate(
-      `document.querySelector('${presetPanel} .button-row button').click()`,
+      `[...document.querySelectorAll('${presetPanel} button')].find(button => button.textContent === 'Cancel').click()`,
     );
     await wait(
       `!document.querySelector('${presetPanel}') && !document.querySelector('.preset-detail [aria-label="Preview & apply Manual Only"]').disabled`,
@@ -674,6 +674,24 @@ export const reviewDashboard = async (
       0,
       "Profile names must render as text",
     );
+    await evaluate(
+      `[...document.querySelectorAll('.profile-list button')].find(button => button.getAttribute('aria-label') === ${JSON.stringify(`Preview & apply ${payload}`)}).click()`,
+    );
+    await wait(`document.querySelector('${presetPanel} .scope-bar')`);
+    await evaluate(`document.querySelector('${presetPanel} .primary').click()`);
+    await wait(
+      `document.querySelector('${presetPanel} h2')?.textContent === 'No changes needed' && !document.querySelector('${presetPanel} .primary')`,
+    );
+    await evaluate(
+      `[...document.querySelectorAll('${presetPanel} button')].find(button => button.textContent === 'Back').click()`,
+    );
+    await wait(
+      `document.querySelector('${presetPanel} .primary:not(:disabled)')?.textContent === 'Review changes'`,
+    );
+    await evaluate(
+      `[...document.querySelectorAll('${presetPanel} button')].find(button => button.textContent === 'Cancel').click()`,
+    );
+    await wait(`!document.querySelector('${presetPanel}')`);
     await page.setViewportSize({ width: 1600, height: 1100 });
     await evaluate("document.querySelector('.workspace').scrollTo(0,0)");
     await page.screenshot({ path: join(directory, "text-escaping.png") });
