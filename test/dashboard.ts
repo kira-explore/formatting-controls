@@ -707,6 +707,37 @@ export const reviewDashboard = async (
     );
     await evaluate("document.querySelector('.workspace').scrollTo(0,0)");
     await page.screenshot({ path: join(directory, "text-escaping.png") });
+    await evaluate(
+      `document.querySelector('.preset-detail [aria-label="Preview & apply Manual Only"]').click()`,
+    );
+    await wait(`document.querySelector('${presetPanel} .scope-bar')`);
+    await evaluate(`document.querySelector('${presetPanel} .primary').click()`);
+    await wait(
+      `document.querySelector('${presetPanel} .primary')?.textContent === 'Apply changes'`,
+    );
+    await evaluate(`document.querySelector('${presetPanel} .primary').click()`);
+    const restoreRow = ".restore-list .profile-row";
+    await wait(`document.querySelector('${restoreRow} button:not(:disabled)')`);
+    await evaluate(
+      `document.querySelector('${restoreRow} .button-row button:last-child').click()`,
+    );
+    await wait(
+      `document.querySelector('${restoreRow} .button-row button')?.textContent.trim() === 'Cancel' && document.querySelectorAll('.dashboard-confirmation').length === 0`,
+    );
+    await evaluate(
+      `document.querySelector('${restoreRow} .button-row button').click()`,
+    );
+    await wait(
+      `document.querySelector('${restoreRow} button:not(:disabled)')?.textContent.trim() === 'Review restore'`,
+    );
+    await evaluate(`document.querySelector('${restoreRow} button').click()`);
+    await wait(
+      `document.querySelector('${restoreRow} .dashboard-confirmation .primary')?.textContent.trim() === 'Restore settings' && document.querySelectorAll('.dashboard-confirmation').length === 1`,
+    );
+    await evaluate(
+      `document.querySelector('${restoreRow} .dashboard-confirmation .primary').click()`,
+    );
+    await wait(`!document.querySelector('${restoreRow}')`);
     console.log(
       `Dashboard verification passed: ${reports.length} page/layout accessibility scans, keyboard focus, reduced motion, CSP and escaped profile names.`,
     );

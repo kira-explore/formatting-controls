@@ -18,10 +18,11 @@ interface Props {
   scopeControls: ReactNode;
   profileToDelete: string | undefined;
   profileToApply: string | undefined;
-  applyReview: (onClose: () => void, onBack: () => void) => ReactNode;
+  applyReview: (onClose?: () => void, onBack?: () => void) => ReactNode;
   applyError: { name: string; message: string } | undefined;
   clearApplyError: () => void;
-  reviewing: boolean;
+  reviewingProfile: string | undefined;
+  restoreRequest: { action: "restore" | "discard"; id?: string } | undefined;
   replyToConfirmation: (accepted: boolean) => void;
   selectLanguage: (language: string) => void;
 }
@@ -36,7 +37,8 @@ export const WorkflowPages = ({
   applyReview,
   applyError,
   clearApplyError,
-  reviewing,
+  reviewingProfile,
+  restoreRequest,
   replyToConfirmation,
   selectLanguage,
 }: Props) => {
@@ -263,6 +265,7 @@ export const WorkflowPages = ({
   };
   const previewName = profileToApply || applyName || applyError?.name;
   const isPresetPreview = presets.some((entry) => entry.name === previewName);
+  const reviewing = !!applyEntry && reviewingProfile === applyEntry.name;
   const previewPanel = profileToApply ? (
     applyReview(closeApply, () => {
       setApplyName(profileToApply);
@@ -468,60 +471,89 @@ export const WorkflowPages = ({
             {[
               ...(state.recovery?.kind === "pause" ? [state.recovery] : []),
               ...restorePoints,
-            ].map((point) => (
-              <article className="profile-row" key={point.id}>
-                <div>
-                  <h3>
-                    {point.kind === "pause"
-                      ? "Temporary pause / recovery"
-                      : destination(point.scope)}
-                  </h3>
+            ].map((point) => {
+              const matches =
+                restoreRequest &&
+                (point.kind === "pause"
+                  ? !restoreRequest.id
+                  : restoreRequest.id === point.id);
+              const deleting = matches && restoreRequest.action === "discard";
+              const runRestoreAction = (action: "restore" | "discard") => {
+                closeApply();
+                profile(
+                  action,
+                  undefined,
+                  point.kind === "profile" ? point.id : undefined,
+                );
+              };
+              return (
+                <article className="profile-row" key={point.id}>
+                  <div>
+                    <h3>
+                      {point.kind === "pause"
+                        ? "Temporary pause / recovery"
+                        : destination(point.scope)}
+                    </h3>
 
-                  <p>
-                    {point.name} · {point.count}{" "}
-                    {point.count === 1 ? "change" : "changes"}
-                    {point.scope.language
-                      ? ` · ${languageName(point.scope.language)}`
-                      : ""}
-                  </p>
-                </div>
-                {point.phase !== "applied" && (
-                  <span className="restore-attention">Needs attention</span>
-                )}
-                <div className="button-row">
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() =>
-                      profile(
-                        "restore",
-                        undefined,
-                        point.kind === "profile" ? point.id : undefined,
-                      )
-                    }
-                  >
-                    {point.kind === "pause"
-                      ? "Resume / restore"
-                      : "Review restore"}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() =>
-                      profile(
-                        "discard",
-                        undefined,
-                        point.kind === "profile" ? point.id : undefined,
-                      )
-                    }
-                  >
-                    {point.kind === "pause"
-                      ? "Keep current values"
-                      : "Delete restore point"}
-                  </button>
-                </div>
-              </article>
-            ))}
+                    <p>
+                      {point.name} · {point.count}{" "}
+                      {point.count === 1 ? "change" : "changes"}
+                      {point.scope.language
+                        ? ` · ${languageName(point.scope.language)}`
+                        : ""}
+                    </p>
+                  </div>
+                  {point.phase !== "applied" && (
+                    <span className="restore-attention">Needs attention</span>
+                  )}
+                  <div className="button-row">
+                    {deleting ? (
+                      <>
+                        <button
+                          type="button"
+                          ref={focusCancel}
+                          onClick={() => replyToConfirmation(false)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => replyToConfirmation(true)}
+                        >
+                          {point.kind === "pause"
+                            ? "Keep current values"
+                            : "Delete restore point"}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          disabled={pending}
+                          onClick={() => runRestoreAction("restore")}
+                        >
+                          {point.kind === "pause"
+                            ? "Resume / restore"
+                            : "Review restore"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={pending}
+                          onClick={() => runRestoreAction("discard")}
+                        >
+                          {point.kind === "pause"
+                            ? "Keep current values"
+                            : "Delete restore point"}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {matches &&
+                    restoreRequest.action === "restore" &&
+                    applyReview()}
+                </article>
+              );
+            })}
           </div>
         )}
         {!state.recovery && (

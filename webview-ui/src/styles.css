@@ -1274,6 +1274,10 @@ body.vscode-high-contrast-light {
 .restore-list {
   margin-top: 8px;
 }
+.restore-list .dashboard-confirmation {
+  flex: 0 0 100%;
+  margin: 0;
+}
 .restore-attention {
   color: var(--vscode-editorWarning-foreground, #e5c07b);
 }

@@ -21,10 +21,12 @@ declare const acquireVsCodeApi:
 const api =
   typeof acquireVsCodeApi === "function" ? acquireVsCodeApi() : undefined;
 const restoredView = api?.getState();
+type RestoreRequest = { action: "restore" | "discard"; id?: string };
 type DashboardConfirmation = Extract<Response, { type: "confirmation" }> & {
   page: string;
   profileToDelete?: string;
   profileToApply?: string;
+  restoreRequest?: RestoreRequest;
 };
 const diagnosticFeedbackMs = 700;
 const diagnosticTimeoutMs = 10000;
@@ -46,6 +48,7 @@ export const useEditor = () => {
     page: string;
     profileToDelete?: string;
     profileToApply?: string;
+    restoreRequest?: RestoreRequest;
     type: Operation["type"];
     startedAt: number;
     timeout: number | undefined;
@@ -91,6 +94,15 @@ export const useEditor = () => {
         : {}),
       ...(body.type === "profile" && body.action === "apply" && body.name
         ? { profileToApply: body.name }
+        : {}),
+      ...(body.type === "profile" &&
+      (body.action === "restore" || body.action === "discard")
+        ? {
+            restoreRequest: {
+              action: body.action,
+              ...(body.restoreId ? { id: body.restoreId } : {}),
+            },
+          }
         : {}),
       type: body.type,
       startedAt,
@@ -150,6 +162,9 @@ export const useEditor = () => {
           setConfirmation({
             ...data,
             page: request.page,
+            ...(request.restoreRequest
+              ? { restoreRequest: request.restoreRequest }
+              : {}),
             ...(request.profileToApply
               ? { profileToApply: request.profileToApply }
               : {}),
@@ -216,6 +231,8 @@ export const useEditor = () => {
     page,
     setPage: selectPage,
     pending,
+    reviewingProfile:
+      pending === "profile" ? pendingRef.current?.profileToApply : undefined,
     error,
     setError,
     applyError: page === "profiles" ? applyError : undefined,

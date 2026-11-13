@@ -34,6 +34,7 @@ const App = () => {
     page,
     setPage,
     pending,
+    reviewingProfile,
     error,
     setError,
     applyError,
@@ -379,7 +380,8 @@ const App = () => {
   );
   const renderConfirmation = (onClose?: () => void, onBack?: () => void) =>
     confirmation &&
-    !confirmation.profileToDelete && (
+    !confirmation.profileToDelete &&
+    confirmation.restoreRequest?.action !== "discard" && (
       <section
         className="dashboard-confirmation"
         aria-label="Review changes"
@@ -459,7 +461,11 @@ const App = () => {
                 onClose?.();
               }}
             >
-              {confirmation.profileToApply ? "Apply changes" : "Confirm"}
+              {confirmation.profileToApply
+                ? "Apply changes"
+                : confirmation.restoreRequest
+                  ? "Restore settings"
+                  : "Confirm"}
             </button>
           )}
         </div>
@@ -597,7 +603,9 @@ const App = () => {
                 )}
             </>
           )}
-          {!confirmation?.profileToApply && renderConfirmation()}
+          {!confirmation?.profileToApply &&
+            !confirmation?.restoreRequest &&
+            renderConfirmation()}
           {page !== "diagnostics" && page !== "profiles" && (
             <div aria-live="polite" className="feedback">
               {confirmation ? "" : pending ? "Updating editor…" : notice}
@@ -671,7 +679,8 @@ const App = () => {
               applyReview={renderConfirmation}
               applyError={applyError}
               clearApplyError={clearApplyError}
-              reviewing={pending === "profile"}
+              reviewingProfile={reviewingProfile}
+              restoreRequest={confirmation?.restoreRequest}
               replyToConfirmation={replyToConfirmation}
               selectLanguage={(language) => {
                 send({ type: "read" }, { ...state.scope, language });
