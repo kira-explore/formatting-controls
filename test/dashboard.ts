@@ -121,7 +121,7 @@ export const reviewDashboard = async (
     const wait = async (expression: string, timeoutMs = 5000) => {
       const deadline = Date.now() + timeoutMs;
       while (Date.now() < deadline) {
-        if (await evaluate<boolean>(expression)) return;
+        if (await evaluate<boolean>(`Boolean(${expression})`)) return;
         await delay(50);
       }
       throw new Error(`Dashboard did not settle: ${expression}`);
@@ -132,13 +132,20 @@ export const reviewDashboard = async (
         const scope = bounds('.scope-bar');
         const run = bounds('.diagnostic-run');
         const history = bounds('.diagnostic-history-section');
-        const next = bounds('#diagnostic-report') ?? bounds('.diagnostics-page > footer');
+        const report = bounds('#diagnostic-report');
+        const footer = bounds('.diagnostics-page > footer');
         return [
           (history ?? run).top - scope.bottom,
           ...(history ? [run.top - history.bottom] : []),
-          next.top - run.bottom,
+          ...(report ? [report.top - run.bottom] : []),
+          footer.top - (report ?? run).bottom,
         ];
       })()`);
+      const footerGap = gaps.pop();
+      assert.ok(
+        footerGap !== undefined && footerGap >= 16,
+        "Diagnostics footer must clear the content",
+      );
       const [firstGap] = gaps;
       assert.ok(
         firstGap !== undefined &&
@@ -184,11 +191,19 @@ export const reviewDashboard = async (
         );
         if (name === "Diagnostics") {
           await assertDiagnosticsSpacing();
+          assert.equal(
+            await evaluate(
+              "document.querySelectorAll('.diagnostic-history-entry').length",
+            ),
+            narrow ? 2 : 0,
+          );
+          assert.equal(
+            await evaluate(
+              `!!document.querySelector('#diagnostic-report, .diagnostic-history-entry[aria-pressed="true"]')`,
+            ),
+            false,
+          );
           if (!narrow) {
-            assert.equal(
-              await evaluate("!!document.querySelector('#diagnostic-report')"),
-              false,
-            );
             assert.equal(
               await evaluate<boolean>(`new Promise(resolve => {
                 const row = document.querySelector('.diagnostic-run');
@@ -211,14 +226,14 @@ export const reviewDashboard = async (
               true,
             );
             await wait(
-              "document.querySelectorAll('.diagnostic-history-entry').length === 1",
+              "document.querySelectorAll('.diagnostic-history-entry').length === 1 && !!document.querySelector('#diagnostic-report time')",
             );
           }
           await evaluate(
             "document.querySelector('.diagnostic-run button').click()",
           );
           await wait(
-            `document.querySelectorAll('.diagnostic-history-entry').length === ${narrow ? 3 : 2}`,
+            `document.querySelectorAll('.diagnostic-history-entry').length === ${narrow ? 3 : 2} && document.querySelector('.diagnostic-history-entry')?.getAttribute('aria-pressed') === 'true' && !!document.querySelector('#diagnostic-report time')`,
           );
           await evaluate(
             "document.querySelector('.diagnostic-history li:last-child .diagnostic-history-entry').click()",
@@ -295,14 +310,14 @@ export const reviewDashboard = async (
           );
           if (narrow) {
             const deleteRun =
-              "document.querySelector('.diagnostic-history li:last-child .diagnostic-delete-run')";
+              "document.querySelector('.diagnostic-history li:last-child .diagnostic-run-trash')";
             await evaluate(`${deleteRun}.click()`);
             await wait(
-              "document.querySelector('.diagnostic-history li:last-child #diagnostic-clear-note')?.textContent.startsWith('Delete the run from')",
+              `document.querySelector('.diagnostic-history li:last-child [aria-label="Cancel run deletion"]') && !document.querySelector('.diagnostic-history #diagnostic-clear-note')`,
             );
             await assertDiagnosticsSpacing();
             await evaluate(
-              "document.querySelector('.diagnostic-history-actions button:first-child').click()",
+              `document.querySelector('.diagnostic-run-actions button[title="Cancel deletion"]').click()`,
             );
             assert.equal(
               await evaluate(
@@ -315,11 +330,10 @@ export const reviewDashboard = async (
               true,
             );
             await evaluate(`${deleteRun}.click()`);
-            await evaluate(
-              "document.querySelector('.diagnostic-history-actions button:last-child').click()",
-            );
+            await wait(`${deleteRun}.title === 'Confirm delete run'`);
+            await evaluate(`${deleteRun}.click()`);
             await wait(
-              "document.querySelectorAll('.diagnostic-history-entry').length === 2 && document.querySelector('#diagnostic-report-title').textContent.trim() === 'Last run results'",
+              `document.querySelectorAll('.diagnostic-history-entry').length === 2 && !document.querySelector('#diagnostic-report, .diagnostic-history-entry[aria-pressed="true"]')`,
             );
             await wait(
               "document.querySelector('.diagnostic-run [role=status]').textContent.startsWith('Diagnostic run deleted.')",
@@ -349,11 +363,16 @@ export const reviewDashboard = async (
             }
             for (const count of [1, 0]) {
               await evaluate(`${deleteRun}.click()`);
-              await evaluate(
-                "document.querySelector('.diagnostic-history-actions button:last-child').click()",
-              );
+              await wait(`${deleteRun}.title === 'Confirm delete run'`);
+              await evaluate(`${deleteRun}.click()`);
               await wait(
                 `!${runDiagnostics}.disabled && document.querySelectorAll('.diagnostic-history-entry').length === ${count}`,
+              );
+              assert.equal(
+                await evaluate(
+                  "!!document.querySelector('#diagnostic-report')",
+                ),
+                count > 0,
               );
             }
             await evaluate(`${runDiagnostics}.click()`);
@@ -384,11 +403,11 @@ export const reviewDashboard = async (
               /Diagnostics did not respond/,
             );
             await wait(
-              "document.querySelectorAll('.diagnostic-history-entry').length === 2",
+              "document.querySelectorAll('.diagnostic-history-entry').length === 2 && !document.querySelector('#diagnostic-report')",
             );
             await evaluate(`${runDiagnostics}.click()`);
             await wait(
-              `!${runDiagnostics}.disabled && document.querySelectorAll('.diagnostic-history-entry').length === 3`,
+              `!${runDiagnostics}.disabled && document.querySelectorAll('.diagnostic-history-entry').length === 3 && !!document.querySelector('#diagnostic-report')`,
             );
           }
         }
@@ -434,6 +453,23 @@ export const reviewDashboard = async (
                 ),
                 clip,
               });
+            }
+            if (index === 1) {
+              assert.ok(
+                await evaluate<boolean>(`(() => {
+                  const workspace = document.querySelector('.workspace');
+                  const chromeTop = (selector) => document.querySelector(selector).getBoundingClientRect().top;
+                  const sidebarTop = chromeTop('.sidebar');
+                  const headerTop = chromeTop('.topbar');
+                  workspace.scrollTop = 0;
+                  workspace.scrollTop = workspace.scrollHeight;
+                  return workspace.scrollTop > 0 &&
+                    chromeTop('.sidebar') === sidebarTop &&
+                    chromeTop('.topbar') === headerTop &&
+                    window.scrollY === 0;
+                })()`),
+                "Scrolling the workspace must leave the dashboard navigation and header fixed",
+              );
             }
             await evaluate(
               `document.querySelectorAll('.formatting-disclosure > summary')[${index}].click()`,
@@ -585,6 +621,42 @@ export const reviewDashboard = async (
     await evaluate(
       `[...document.querySelectorAll('nav button, .help-setup, .help-button')].find(b=>b.textContent.includes('Profiles')).click()`,
     );
+    const presetChoice = ".preset-choices button";
+    await wait(
+      `document.querySelector('.preset-detail h3')?.textContent === 'Save & Paste'`,
+    );
+    await evaluate(
+      `[...document.querySelectorAll('${presetChoice}')].find(b=>b.textContent==='Save, Paste & Type').click()`,
+    );
+    await wait(
+      `document.querySelector('.preset-detail h3')?.textContent === 'Save, Paste & Type' && document.querySelectorAll('.preset-detail article').length === 1`,
+    );
+    await evaluate(
+      `[...document.querySelectorAll('${presetChoice}')].find(b=>b.textContent==='Manual Only').click()`,
+    );
+    await evaluate(
+      `document.querySelector('.preset-detail [aria-label="Preview & apply Manual Only"]').click()`,
+    );
+    const presetPanel = "#built-in-presets > .dashboard-confirmation";
+    await wait(
+      `document.querySelector('${presetPanel}[aria-label="Apply Manual Only"]')`,
+    );
+    await evaluate(`document.querySelector('${presetPanel} .primary').click()`);
+    await wait(
+      `document.querySelector('${presetPanel} table th[scope="col"]') && document.querySelector('${presetPanel} .primary').textContent === 'Apply changes'`,
+    );
+    await evaluate(
+      `[...document.querySelectorAll('${presetPanel} button')].find(button => button.textContent === 'Cancel').click()`,
+    );
+    await wait(
+      `!document.querySelector('${presetPanel}') && !document.querySelector('.preset-detail [aria-label="Preview & apply Manual Only"]').disabled`,
+    );
+    await evaluate(
+      `[...document.querySelectorAll('.profile-section button')].find(b=>b.textContent==='Save current settings').click()`,
+    );
+    await wait(
+      `document.activeElement.getAttribute('aria-label') === 'New profile name'`,
+    );
     const payload = "<img src=x onerror=alert(1)>";
     await evaluate(
       `(()=>{const i=document.querySelector('[aria-label="New profile name"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(i,${JSON.stringify(payload)});i.dispatchEvent(new Event('input',{bubbles:true}));})()`,
@@ -593,18 +665,92 @@ export const reviewDashboard = async (
       `document.querySelector('.custom-action').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))`,
     );
     await wait(
-      `document.querySelector('.provider-grid').textContent.includes(${JSON.stringify(payload)})&&!document.querySelector('[aria-label="New profile name"]').disabled`,
+      `document.querySelector('.profile-list')?.textContent.includes(${JSON.stringify(payload)})&&!document.querySelector('[aria-label="New profile name"]').disabled`,
     );
     assert.equal(
       await evaluate<number>(
-        'document.querySelectorAll(".provider-grid img").length',
+        'document.querySelectorAll(".profile-list img").length',
       ),
       0,
       "Profile names must render as text",
     );
+    await evaluate(
+      `[...document.querySelectorAll('.profile-list button')].find(button => button.getAttribute('aria-label') === ${JSON.stringify(`Preview & apply ${payload}`)}).click()`,
+    );
+    const savedPanel = "#saved-profiles > .dashboard-confirmation";
+    await wait(`document.querySelector('${savedPanel} .scope-bar')`);
+    assert.equal(
+      await evaluate<string>(
+        `getComputedStyle(document.querySelector('${savedPanel} .scope-bar')).borderBottomStyle`,
+      ),
+      "none",
+    );
+    await evaluate(`document.querySelector('${savedPanel} .primary').click()`);
+    await wait(
+      `document.querySelector('${savedPanel} h2')?.textContent === 'No changes needed' && !document.querySelector('${savedPanel} .primary')`,
+    );
+    await evaluate(
+      `[...document.querySelectorAll('${savedPanel} button')].find(button => button.textContent === 'Back').click()`,
+    );
+    await wait(
+      `document.querySelector('${savedPanel} .primary:not(:disabled)')?.textContent === 'Review changes'`,
+    );
+    await evaluate(
+      `[...document.querySelectorAll('${savedPanel} button')].find(button => button.textContent === 'Cancel').click()`,
+    );
+    await wait(`!document.querySelector('${savedPanel}')`);
     await page.setViewportSize({ width: 1600, height: 1100 });
-    await evaluate("window.scrollTo(0,0)");
+    assert.ok(
+      await evaluate<boolean>(`(() => {
+        const title = document.querySelector('.profile-pause h2').getBoundingClientRect();
+        const button = document.querySelector('.profile-pause > button').getBoundingClientRect();
+        const name = document.querySelector('#saved-profiles .profile-identity h3').getBoundingClientRect();
+        const language = document.querySelector('#saved-profiles .profile-identity p').getBoundingClientRect();
+        return button.left >= title.right && button.top < title.bottom &&
+          language.left >= name.right && language.top < name.bottom;
+      })()`),
+      "The pause button and saved profile language must align beside their headings",
+    );
+    await evaluate("document.querySelector('.workspace').scrollTo(0,0)");
     await page.screenshot({ path: join(directory, "text-escaping.png") });
+    await evaluate(
+      `document.querySelector('.preset-detail [aria-label="Preview & apply Manual Only"]').click()`,
+    );
+    await wait(`document.querySelector('${presetPanel} .scope-bar')`);
+    assert.equal(
+      await evaluate<string>(
+        `getComputedStyle(document.querySelector('${presetPanel} .scope-bar')).borderBottomStyle`,
+      ),
+      "none",
+    );
+    await evaluate(`document.querySelector('${presetPanel} .primary').click()`);
+    await wait(
+      `document.querySelector('${presetPanel} .primary')?.textContent === 'Apply changes'`,
+    );
+    await evaluate(`document.querySelector('${presetPanel} .primary').click()`);
+    const restoreRow = ".restore-list .profile-row";
+    await wait(`document.querySelector('${restoreRow} button:not(:disabled)')`);
+    await evaluate(
+      `document.querySelector('${restoreRow} .button-row button:last-child').click()`,
+    );
+    await wait(
+      `document.querySelector('${restoreRow} .button-row button')?.textContent.trim() === 'Cancel' && document.querySelectorAll('.dashboard-confirmation').length === 0`,
+    );
+    await evaluate(
+      `document.querySelector('${restoreRow} .button-row button').click()`,
+    );
+    await wait(
+      `document.querySelector('${restoreRow} button:not(:disabled)')?.textContent.trim() === 'Review restore'`,
+    );
+    await evaluate(`document.querySelector('${restoreRow} button').click()`);
+    const restoreReview = ".restore-list + .dashboard-confirmation";
+    await wait(
+      `document.querySelector('${restoreReview} .primary')?.textContent.trim() === 'Restore settings' && document.querySelectorAll('.dashboard-confirmation').length === 1`,
+    );
+    await evaluate(
+      `document.querySelector('${restoreReview} .primary').click()`,
+    );
+    await wait(`!document.querySelector('${restoreRow}')`);
     console.log(
       `Dashboard verification passed: ${reports.length} page/layout accessibility scans, keyboard focus, reduced motion, CSP and escaped profile names.`,
     );

@@ -12,6 +12,7 @@ import {
   parseJournal,
   parseProfile,
   plan,
+  profileLanguages,
   type Recovery,
   restoreBatch,
   same,
@@ -20,7 +21,6 @@ import {
 } from "../shared/workflows";
 import {
   assertSettingsSaved,
-  configuration,
   own,
   type Selection,
   waitForSettingsSave,
@@ -38,13 +38,39 @@ export type Confirm = (
 ) => Promise<boolean>;
 const profileKey = "formattingControls.profiles.v1",
   journalKey = "formattingControls.recovery.v1";
-const builtinNames = [
-  "Minimal",
-  "Strict",
-  "Formatting Only",
-  "Project Default",
+const formattingPresets = [
+  {
+    name: "Manual Only",
+    save: false,
+    paste: false,
+    type: false,
+    description: "Format only when you run a formatting command.",
+  },
+  {
+    name: "Save Only",
+    save: true,
+    paste: false,
+    type: false,
+    description: "Format when you save.",
+  },
+  {
+    name: "Save & Paste",
+    save: true,
+    paste: true,
+    type: false,
+    description: "Format when you save or paste.",
+  },
+  {
+    name: "Save, Paste & Type",
+    save: true,
+    paste: true,
+    type: true,
+    description: "Format when you save, paste, or type.",
+  },
 ];
+const builtinNames = formattingPresets.map(({ name }) => name);
 export const confirmChanges: Confirm = async (title, changes, scope) => {
+  let previewUri: string | undefined;
   if (changes.length) {
     const preview = await vscode.workspace.openTextDocument({
       language: "json",
@@ -54,6 +80,7 @@ export const confirmChanges: Confirm = async (title, changes, scope) => {
           target: scope,
           changes: changes.map((c) => ({
             setting: c.key,
+            ...(c.language ? { language: c.language } : {}),
             ...(c.action ? { action: c.action } : {}),
             before: c.before.present ? c.before.value : "Inherited (unset)",
             after: c.after.present ? c.after.value : "Inherited (unset)",
@@ -68,23 +95,45 @@ export const confirmChanges: Confirm = async (title, changes, scope) => {
       preserveFocus: true,
       preview: true,
     });
+    previewUri = preview.uri.toString();
   }
-  const choice = await vscode.window.showQuickPick(
-    [
+  const cancellation = new vscode.CancellationTokenSource();
+  const showsPreview = ({ input }: vscode.Tab) =>
+    input instanceof vscode.TabInputText && input.uri.toString() === previewUri;
+  const previewIsOpen = () =>
+    vscode.window.tabGroups.all.some((group) => group.tabs.some(showsPreview));
+  const tabListener = previewUri
+    ? vscode.window.tabGroups.onDidChangeTabs(({ closed }) => {
+        if (closed.some(showsPreview) && !previewIsOpen())
+          cancellation.cancel();
+      })
+    : undefined;
+  try {
+    if (previewUri && !previewIsOpen()) return false;
+    const choice = await vscode.window.showQuickPick(
+      [
+        {
+          label: "Continue",
+          description: `${scope.target} · ${changes.some((c) => c.language) ? "language overrides" : (scope.language ?? "all languages")}`,
+          detail: `${scope.folder ?? ""} ${changes.length ? `${changes.length} setting/action changes. Review the JSON preview.` : "No editor preferences will change."}${scope.target === "user" && changes.length ? " User settings affect other workspaces." : ""}`,
+        },
+        { label: "Cancel", description: "Keep current preferences" },
+      ],
       {
-        label: "Continue",
-        description: `${scope.target} · ${scope.language ?? "all languages"}`,
-        detail: `${scope.folder ?? ""} ${changes.length ? `${changes.length} setting/action changes. Review the JSON preview.` : "No editor preferences will change."}${scope.target === "user" && changes.length ? " User settings affect other workspaces." : ""}`,
+        title,
+        placeHolder: "Review the preview, then choose Continue to confirm.",
+        ignoreFocusOut: true,
       },
-      { label: "Cancel", description: "Keep current preferences" },
-    ],
-    {
-      title,
-      placeHolder: "Review the preview, then choose Continue to confirm.",
-      ignoreFocusOut: true,
-    },
-  );
-  return choice?.label === "Continue";
+      cancellation.token,
+    );
+    return (
+      choice?.label === "Continue" &&
+      !cancellation.token.isCancellationRequested
+    );
+  } finally {
+    tabListener?.dispose();
+    cancellation.dispose();
+  }
 };
 export interface ProfileFiles {
   open(): PromiseLike<vscode.Uri | undefined>;
@@ -142,22 +191,59 @@ export class Workflows implements vscode.Disposable {
       throw new Error("Invalid stored profiles.");
     return raw.map(parseProfile);
   }
-  journal(): Journal | undefined {
+  private journals(): Journal[] {
     const raw = this.workspace.get<unknown>(journalKey);
-    return raw === undefined ? undefined : parseJournal(raw);
+    return raw === undefined
+      ? []
+      : (Array.isArray(raw) ? raw : [raw]).map(parseJournal);
+  }
+  private destination(journal: Journal): string {
+    return JSON.stringify([journal.scope.target, journal.scope.folder]);
+  }
+  journal(id?: string): Journal | undefined {
+    const journals = this.journals();
+    return id
+      ? journals.find(
+          (journal) =>
+            JSON.stringify([
+              journal.scope.target,
+              journal.scope.folder,
+              journal.created,
+            ]) === id && journal.kind === "profile",
+        )
+      : (journals.find(
+          (journal) => journal.kind === "pause" || journal.phase !== "applied",
+        ) ?? journals[0]);
+  }
+  private recoverySummary(journal: Journal): Recovery {
+    return {
+      id: JSON.stringify([
+        journal.scope.target,
+        journal.scope.folder,
+        journal.created,
+      ]),
+      kind: journal.kind,
+      phase: journal.phase,
+      name: journal.name,
+      scope: journal.scope,
+      created: journal.created,
+      count: journal.changes.length,
+      languageCount: new Set(
+        journal.changes.flatMap((change) => {
+          const language = change.language ?? journal.scope.language;
+          return language ? [language] : [];
+        }),
+      ).size,
+    };
   }
   recovery(): Recovery | null {
-    const j = this.journal();
-    return j
-      ? {
-          kind: j.kind,
-          phase: j.phase,
-          name: j.name,
-          scope: j.scope,
-          created: j.created,
-          count: j.changes.length,
-        }
-      : null;
+    const journal = this.journal();
+    return journal ? this.recoverySummary(journal) : null;
+  }
+  restorePoints(): Recovery[] {
+    return this.journals()
+      .filter((journal) => journal.kind === "profile")
+      .map((journal) => this.recoverySummary(journal));
   }
   private owner(): string {
     return (
@@ -173,121 +259,51 @@ export class Workflows implements vscode.Disposable {
       ),
     );
   }
-  private presets(s: Selection, scope: Scope): Profile[] {
-    const base = {
-      version: 1 as const,
-      ...(scope.language ? { language: scope.language } : {}),
-    };
-    let disabled: Record<string, "never"> = {};
-    try {
-      disabled = this.pausedActions(
-        configuration(s).get("editor.codeActionsOnSave"),
-      );
-    } catch {
-      /* Legacy actions remain visible; applying a preset will explain migration. */
-    }
-    const project: Profile["settings"] = {};
-    if (
-      vscode.workspace.workspaceFile ||
-      vscode.workspace.workspaceFolders?.length
-    ) {
-      const levels: Selection[] = [
-        { ...s, target: vscode.ConfigurationTarget.Workspace },
-        { ...s, target: vscode.ConfigurationTarget.WorkspaceFolder },
-      ];
-      for (const level of [
-        ...levels.map((level) => {
-          const regular = { ...level };
-          delete regular.language;
-          return regular;
-        }),
-        ...(scope.language ? levels : []),
-      ])
-        for (const key of settingKeys) {
-          if (scope.language && key.startsWith("files.")) continue;
-          const value = own(level, key);
-          if (value !== undefined)
-            project[key] =
-              key === "editor.codeActionsOnSave" && !Array.isArray(value)
-                ? {
-                    ...actionMap(
-                      Array.isArray(project[key]) ? {} : (project[key] ?? {}),
-                    ),
-                    ...actionMap(value),
-                  }
-                : (value as Value);
-        }
-    }
-    return [
-      {
-        ...base,
-        name: "Minimal",
-        settings: {
-          "editor.formatOnSave": false,
-          "editor.formatOnPaste": false,
-          "editor.formatOnType": false,
-          "editor.codeActionsOnSave": disabled,
-        },
+  private presets(): Profile[] {
+    return formattingPresets.map(({ name, save, paste, type }) => ({
+      version: 1,
+      name,
+      settings: {
+        "editor.formatOnSave": save,
+        "editor.formatOnPaste": paste,
+        "editor.formatOnType": type,
       },
-      {
-        ...base,
-        name: "Strict",
-        settings: {
-          "editor.formatOnSave": true,
-          "editor.formatOnPaste": false,
-          "editor.formatOnType": false,
-          "editor.codeActionsOnSave": {
-            "source.fixAll": "explicit",
-            "source.organizeImports": "explicit",
-          },
-        },
-      },
-      {
-        ...base,
-        name: "Formatting Only",
-        settings: {
-          "editor.formatOnSave": true,
-          "editor.formatOnPaste": false,
-          "editor.formatOnType": false,
-          "editor.codeActionsOnSave": disabled,
-        },
-      },
-      { ...base, name: "Project Default", settings: project },
-    ];
+    }));
   }
-  summaries(s: Selection, scope: Scope): ProfileSummary[] {
-    const description: Record<string, string> = {
-      Minimal:
-        "Disable formatting triggers and currently configured save actions at this scope.",
-      Strict:
-        "Enable save formatting and generic explicit fix-all/import actions; provider-specific choices remain.",
-      "Formatting Only":
-        "Format on save and disable currently configured source actions at this scope.",
-      "Project Default":
-        "Copy explicit project settings for this context into the selected scope; no built-in defaults are invented.",
-    };
+  summaries(_s: Selection, _scope: Scope): ProfileSummary[] {
     return [
-      ...this.presets(s, scope).map((p) => ({
+      ...this.presets().map((p) => ({
         name: p.name,
         builtin: true,
-        description: description[p.name] ?? "",
-        count: Object.keys(p.settings).length,
-        ...(p.language ? { language: p.language } : {}),
-      })),
-      ...this.saved().map((p) => ({
-        name: p.name,
-        builtin: false,
         description:
-          "Saved explicit preferences; unrelated action entries are preserved on apply.",
+          formattingPresets.find(({ name }) => name === p.name)?.description ??
+          "",
         count: Object.keys(p.settings).length,
         ...(p.language ? { language: p.language } : {}),
       })),
+      ...this.saved().map((p) => {
+        const languages = profileLanguages(p);
+        return {
+          name: p.name,
+          builtin: false,
+          description:
+            "Saved explicit preferences; unrelated action entries are preserved on apply.",
+          count: Object.entries(p.settings).reduce(
+            (count, [key, value]) =>
+              count +
+              (key.startsWith("[") && value && typeof value === "object"
+                ? Object.keys(value).length
+                : 1),
+            0,
+          ),
+          ...(p.language ? { language: p.language } : {}),
+          ...(languages.length ? { languages } : {}),
+        };
+      }),
     ];
   }
-  private profile(name: string, s: Selection, scope: Scope): Profile {
-    const p = [...this.presets(s, scope), ...this.saved()].find(
-      (p) => p.name === name,
-    );
+  private profile(name: string): Profile {
+    const p = [...this.presets(), ...this.saved()].find((p) => p.name === name);
     if (!p) throw new Error("Profile not found.");
     return p;
   }
@@ -325,7 +341,14 @@ export class Workflows implements vscode.Disposable {
       throw new Error("Reopen the recorded workspace folder before restoring.");
     return s;
   }
-  private port(journal: Journal): BatchPort {
+  private port(journal: Journal, applying = false): BatchPort {
+    const others = this.journals().filter(
+      (entry) =>
+        applying ||
+        entry.kind !== journal.kind ||
+        this.destination(entry) !== this.destination(journal) ||
+        entry.created !== journal.created,
+    );
     const s = this.journalSelection(journal);
     const ensure = () => {
       if (
@@ -343,7 +366,19 @@ export class Workflows implements vscode.Disposable {
     };
     return {
       save: async (value) => {
-        await this.workspace.update(journalKey, value);
+        const remaining =
+          applying && value?.phase === "applied" && value.kind === "profile"
+            ? others.filter(
+                (entry) =>
+                  entry.kind !== "profile" ||
+                  this.destination(entry) !== this.destination(journal),
+              )
+            : others;
+        const records = value ? [value, ...remaining] : remaining;
+        await this.workspace.update(
+          journalKey,
+          records.length ? records : undefined,
+        );
         this.changed.fire();
       },
       read: (c) => {
@@ -352,7 +387,10 @@ export class Workflows implements vscode.Disposable {
         // the saved configuration cache. Keep recovery instead of concluding
         // that the old disk value means this change was already restored.
         assertSettingsSaved(s);
-        const current = own(s, c.key);
+        const current = own(
+          c.language ? { ...s, language: c.language } : s,
+          c.key,
+        );
         if (!c.action) return slot(current);
         try {
           const actions = current === undefined ? {} : actionMap(current);
@@ -367,11 +405,16 @@ export class Workflows implements vscode.Disposable {
       },
       write: async (c, value) => {
         ensure();
+        const selection = c.language ? { ...s, language: c.language } : s;
         if (!c.action) {
-          await write(s, c.key, value.present ? value.value : undefined);
+          await write(
+            selection,
+            c.key,
+            value.present ? value.value : undefined,
+          );
           return;
         }
-        const current = own(s, c.key),
+        const current = own(selection, c.key),
           map = { ...actionMap(current ?? {}) };
         if (value.present)
           map[c.action] = value.value as
@@ -381,7 +424,7 @@ export class Workflows implements vscode.Disposable {
             | boolean;
         else delete map[c.action];
         await write(
-          s,
+          selection,
           c.key,
           Object.keys(map).length || c.containerPresent ? map : undefined,
         );
@@ -414,12 +457,18 @@ export class Workflows implements vscode.Disposable {
     scope: Scope,
     kind: "profile" | "pause",
     review = true,
+    confirm = this.confirm,
+    reviewUnchanged = false,
   ): Promise<string> {
     this.assertSelection(s, scope);
     this.assertNewBatch();
     if (profile.language && profile.language !== scope.language)
       throw new Error(
         `Select language ${profile.language} before applying this profile.`,
+      );
+    if (scope.language && profileLanguages(profile).length)
+      throw new Error(
+        "Select All languages to apply this profile's language blocks.",
       );
     if (
       scope.language &&
@@ -429,9 +478,9 @@ export class Workflows implements vscode.Disposable {
         "This profile includes Auto Save. Select All languages before applying.",
       );
     if (Object.keys(profile.settings).length) parseProfile(profile);
-    const changes = plan(profile, (key) => own(s, key));
-    if (!changes.length && !(kind === "pause" && !review))
-      return "These preferences already match the selected scope.";
+    const changes = plan(profile, (key, language) =>
+      own(language ? { ...s, language } : s, key),
+    );
     const scopeRecord: Scope = {
       target: scope.target,
       ...(scope.target === "folder" && scope.folder
@@ -439,6 +488,10 @@ export class Workflows implements vscode.Disposable {
         : {}),
       ...(scope.language ? { language: scope.language } : {}),
     };
+    if (!changes.length && !(kind === "pause" && !review)) {
+      if (reviewUnchanged) await confirm("No changes needed", [], scopeRecord);
+      return "These preferences already match the selected scope.";
+    }
     const journal = parseJournal({
       version: 1,
       kind,
@@ -449,16 +502,21 @@ export class Workflows implements vscode.Disposable {
       created: new Date().toISOString(),
       changes,
     });
-    const title = `${kind === "pause" ? "Pause formatting at this scope" : `Apply profile ${profile.name}`}?${this.journal() ? " This replaces the previous restore point." : ""}`;
-    if (review && !(await this.confirm(title, changes, scopeRecord)))
+    const title = `${kind === "pause" ? "Pause formatting at this scope" : `Apply profile ${profile.name}`}?${kind === "profile" && this.journals().some((entry) => entry.kind === "profile" && this.destination(entry) === this.destination(journal)) ? " This replaces the restore point for this destination." : ""}`;
+    if (review && !(await confirm(title, changes, scopeRecord)))
       return "Cancelled. No settings were changed.";
     if (changes.length) await waitForSettingsSave(s);
-    await applyBatch(journal, this.port(journal));
+    await applyBatch(journal, this.port(journal, true));
     return kind === "pause"
       ? "Paused at the selected scope. Resume from Profiles; overrides may still apply."
       : `Applied ${profile.name} to ${scope.target}. A restore point is saved.`;
   }
-  async save(name: string, s: Selection, scope: Scope): Promise<string> {
+  async save(
+    name: string,
+    s: Selection,
+    scope: Scope,
+    confirm = this.confirm,
+  ): Promise<string> {
     return this.exclusive(async () => {
       this.assertSelection(s, scope);
       if (
@@ -481,21 +539,21 @@ export class Workflows implements vscode.Disposable {
         ...(scope.language ? { language: scope.language } : {}),
         settings,
       });
-      return this.storeProfile(p, scope);
+      return this.storeProfile(p, scope, confirm);
     });
   }
-  private async storeProfile(profile: Profile, scope: Scope): Promise<string> {
+  private async storeProfile(
+    profile: Profile,
+    scope: Scope,
+    confirm: Confirm,
+  ): Promise<string> {
     const expected = structuredClone(
       this.saved().find((p) => p.name === profile.name),
     );
     const existing = expected !== undefined;
     if (
       existing &&
-      !(await this.confirm(
-        `Overwrite saved profile ${profile.name}?`,
-        [],
-        scope,
-      ))
+      !(await confirm(`Overwrite saved profile ${profile.name}?`, [], scope))
     )
       return "Profile save cancelled.";
     const current = this.saved();
@@ -520,24 +578,30 @@ export class Workflows implements vscode.Disposable {
     this.changed.fire();
     return `Saved profile ${profile.name}. No formatting settings were changed.`;
   }
-  async apply(name: string, s: Selection, scope: Scope): Promise<string> {
-    return this.exclusive(() => {
-      if (
-        ["Minimal", "Formatting Only", "Project Default"].includes(name) &&
-        Array.isArray(configuration(s).get("editor.codeActionsOnSave"))
-      )
-        throw new Error(
-          "Migrate legacy save-action arrays in Settings before applying this preset.",
-        );
-      return this.applyProfile(
-        this.profile(name, s, scope),
+  async apply(
+    name: string,
+    s: Selection,
+    scope: Scope,
+    confirm?: Confirm,
+  ): Promise<string> {
+    return this.exclusive(() =>
+      this.applyProfile(
+        this.profile(name),
         s,
         scope,
         "profile",
-      );
-    });
+        true,
+        confirm,
+        !!confirm,
+      ),
+    );
   }
-  async pause(s: Selection, scope: Scope, effective: unknown): Promise<string> {
+  async pause(
+    s: Selection,
+    scope: Scope,
+    effective: unknown,
+    confirm = this.confirm,
+  ): Promise<string> {
     return this.exclusive(async () => {
       if (scope.target === "user")
         throw new Error(
@@ -554,13 +618,14 @@ export class Workflows implements vscode.Disposable {
           "editor.codeActionsOnSave": this.pausedActions(effective),
         },
       };
-      return this.applyProfile(profile, s, scope, "pause");
+      return this.applyProfile(profile, s, scope, "pause", true, confirm);
     });
   }
   async pauseFormatting(
     s: Selection,
     scope: Scope,
     interaction: "review" | "background" = "review",
+    confirm = this.confirm,
   ): Promise<string> {
     return this.exclusive(async () => {
       if (scope.target === "user")
@@ -582,18 +647,23 @@ export class Workflows implements vscode.Disposable {
         scope,
         "pause",
         interaction === "review",
+        confirm,
       );
     });
   }
-  async restore(): Promise<string> {
-    return this.restoreSaved(true);
+  async restore(id?: string, confirm = this.confirm): Promise<string> {
+    return this.restoreSaved(true, id, confirm);
   }
   async resumePause(): Promise<string> {
     return this.restoreSaved(false);
   }
-  private async restoreSaved(review: boolean): Promise<string> {
+  private async restoreSaved(
+    review: boolean,
+    id?: string,
+    confirm = this.confirm,
+  ): Promise<string> {
     return this.exclusive(async () => {
-      const journal = this.journal();
+      const journal = this.journal(id);
       if (!journal) return "No restore point is saved for this workspace.";
       if (
         !review &&
@@ -612,7 +682,7 @@ export class Workflows implements vscode.Disposable {
       });
       if (
         review &&
-        !(await this.confirm(
+        !(await confirm(
           "Restore unchanged preferences? Externally edited values will be preserved.",
           preview,
           journal.scope,
@@ -633,31 +703,36 @@ export class Workflows implements vscode.Disposable {
         : "Restored previous preferences. Unrelated values were preserved.";
     });
   }
-  async discard(): Promise<string> {
+  async discard(id?: string, confirm = this.confirm): Promise<string> {
     return this.exclusive(async () => {
-      const journal = this.journal();
+      const journal = this.journal(id);
       if (!journal) return "No restore point is saved.";
       if (
-        !(await this.confirm(
-          "Keep current settings and discard this restore point?",
+        !(await confirm(
+          journal.kind === "pause"
+            ? "Keep current settings and discard this restore point?"
+            : "Delete this restore point and keep current settings?",
           [],
           journal.scope,
         ))
       )
         return "Restore point kept.";
-      await this.workspace.update(journalKey, undefined);
-      this.changed.fire();
+      await this.port(journal).save(undefined);
       return "Kept current preferences and discarded the restore point.";
     });
   }
-  async remove(name: string, scope: Scope): Promise<string> {
+  async remove(
+    name: string,
+    scope: Scope,
+    confirm = this.confirm,
+  ): Promise<string> {
     return this.exclusive(async () => {
       const expected = structuredClone(
         this.saved().find((p) => p.name === name),
       );
       if (!expected)
         throw new Error("Only saved custom profiles can be deleted.");
-      if (!(await this.confirm(`Delete saved profile ${name}?`, [], scope)))
+      if (!(await confirm(`Delete saved profile ${name}?`, [], scope)))
         return "Profile deletion cancelled.";
       const current = this.saved();
       if (
@@ -679,9 +754,9 @@ export class Workflows implements vscode.Disposable {
       return `Deleted saved profile ${name}.`;
     });
   }
-  async export(name: string, s: Selection, scope: Scope): Promise<string> {
+  async export(name: string, _s: Selection, _scope: Scope): Promise<string> {
     return this.exclusive(async () => {
-      const profile = parseProfile(this.profile(name, s, scope));
+      const profile = parseProfile(this.profile(name));
       const uri = await this.files.save(name);
       if (!uri) return "Profile export cancelled.";
       await vscode.workspace.fs.writeFile(
@@ -691,7 +766,7 @@ export class Workflows implements vscode.Disposable {
       return `Exported profile ${name}.`;
     });
   }
-  async import(scope: Scope): Promise<string> {
+  async import(scope: Scope, confirm = this.confirm): Promise<string> {
     return this.exclusive(async () => {
       const uri = await this.files.open();
       if (!uri) return "Profile import cancelled.";
@@ -705,7 +780,7 @@ export class Workflows implements vscode.Disposable {
         builtinNames.some((n) => n.toLowerCase() === profile.name.toLowerCase())
       )
         profile.name = `${profile.name} (imported)`;
-      return this.storeProfile(profile, scope);
+      return this.storeProfile(profile, scope, confirm);
     });
   }
   dispose(): void {

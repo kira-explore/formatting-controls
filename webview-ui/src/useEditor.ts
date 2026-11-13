@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
+  ConfirmationReply,
   Operation,
   Request,
   Response,
@@ -8,33 +9,63 @@ import type {
 } from "../../shared/protocol";
 import { isCurrentSnapshot } from "../../shared/state";
 
+type DashboardView = { page: string; navigation: number | undefined };
+
 declare const acquireVsCodeApi:
   | undefined
-  | (() => { postMessage(message: Request): void });
+  | (() => {
+      postMessage(message: Request | ConfirmationReply): void;
+      getState(): DashboardView | undefined;
+      setState(state: DashboardView): void;
+    });
 const api =
   typeof acquireVsCodeApi === "function" ? acquireVsCodeApi() : undefined;
+const restoredView = api?.getState();
+type RestoreRequest = { action: "restore" | "discard"; id?: string };
+type DashboardConfirmation = Extract<Response, { type: "confirmation" }> & {
+  page: string;
+  profileToDelete?: string;
+  profileToApply?: string;
+  restoreRequest?: RestoreRequest;
+};
 const diagnosticFeedbackMs = 700;
 const diagnosticTimeoutMs = 10000;
 
 export const useEditor = () => {
   const [state, setState] = useState<Snapshot>();
-  const [page, setPage] = useState<string>("formatting");
+  const [page, setPage] = useState(restoredView?.page ?? "formatting");
+  const [confirmation, setConfirmation] = useState<DashboardConfirmation>();
   const [pending, setPending] = useState<Operation["type"]>();
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [applyError, setApplyError] = useState<{
+    name: string;
+    message: string;
+  }>();
+  const [notice, setNotice] = useState<{ page: string; message: string }>();
   const requestId = useRef(0);
   const pendingRef = useRef<{
     id: string;
+    page: string;
+    profileToDelete?: string;
+    profileToApply?: string;
+    restoreRequest?: RestoreRequest;
     type: Operation["type"];
     startedAt: number;
     timeout: number | undefined;
+    onDiagnosticRun: ((runId: string) => void) | undefined;
   }>(undefined);
   const latest = useRef<Snapshot | undefined>(undefined);
-  const initial = useRef(true);
-  const navigation = useRef(0);
+  const navigation = useRef(restoredView?.navigation);
+  const selectPage = useCallback((page: string) => {
+    setPage(page);
+    setApplyError(undefined);
+    setNotice(undefined);
+    api?.setState({ page, navigation: navigation.current });
+  }, []);
   const send = (
     body: Operation,
     scope: Scope = state?.scope ?? { target: "user" },
+    onDiagnosticRun?: (runId: string) => void,
   ) => {
     if (!api || pendingRef.current) return;
     const id = `request-${++requestId.current}`;
@@ -55,10 +86,33 @@ export const useEditor = () => {
             });
           }, diagnosticTimeoutMs)
         : undefined;
-    pendingRef.current = { id, type: body.type, startedAt, timeout };
+    pendingRef.current = {
+      id,
+      page,
+      ...(body.type === "profile" && body.action === "delete" && body.name
+        ? { profileToDelete: body.name }
+        : {}),
+      ...(body.type === "profile" && body.action === "apply" && body.name
+        ? { profileToApply: body.name }
+        : {}),
+      ...(body.type === "profile" &&
+      (body.action === "restore" || body.action === "discard")
+        ? {
+            restoreRequest: {
+              action: body.action,
+              ...(body.restoreId ? { id: body.restoreId } : {}),
+            },
+          }
+        : {}),
+      type: body.type,
+      startedAt,
+      timeout,
+      onDiagnosticRun,
+    };
     setPending(body.type);
+    setApplyError(undefined);
     setError("");
-    setNotice("");
+    setNotice(undefined);
     api.postMessage({ ...body, id, scope } as Request);
   };
   useEffect(() => {
@@ -71,9 +125,21 @@ export const useEditor = () => {
         window.clearTimeout(request.timeout);
         pendingRef.current = undefined;
         setPending(undefined);
+        setConfirmation(undefined);
+        if (request.onDiagnosticRun && response.type === "state") {
+          const report = response.state.diagnosticHistory[0];
+          if (report) request.onDiagnosticRun(report.id);
+        }
       }
       if (response.type === "error") {
-        setError(response.error);
+        if (request?.profileToApply && request.id === response.id) {
+          setApplyError({
+            name: request.profileToApply,
+            message: response.error,
+          });
+        } else {
+          setError(response.error);
+        }
       }
       if (response.type === "state") {
         window.clearTimeout(timeout);
@@ -81,16 +147,34 @@ export const useEditor = () => {
         if (!isCurrentSnapshot(latest.current, next)) return;
         latest.current = next;
         setState(next);
-        if (initial.current || navigation.current !== next.navigation) {
+        if (navigation.current !== next.navigation) {
           navigation.current = next.navigation;
-          setPage(next.page === "overview" ? "formatting" : next.page);
-          initial.current = false;
+          selectPage(next.page === "overview" ? "formatting" : next.page);
         }
-        if (response.message) setNotice(response.message);
+        if (response.message && request && request.id === response.id)
+          setNotice({ page: request.page, message: response.message });
       }
     };
     const receive = ({ data }: MessageEvent<Response>) => {
       const request = pendingRef.current;
+      if (data.type === "confirmation") {
+        if (request?.id === data.id) {
+          setConfirmation({
+            ...data,
+            page: request.page,
+            ...(request.restoreRequest
+              ? { restoreRequest: request.restoreRequest }
+              : {}),
+            ...(request.profileToApply
+              ? { profileToApply: request.profileToApply }
+              : {}),
+            ...(request.profileToDelete
+              ? { profileToDelete: request.profileToDelete }
+              : {}),
+          });
+        }
+        return;
+      }
       if (
         data.type === "state" &&
         request?.type === "runDiagnostics" &&
@@ -125,11 +209,45 @@ export const useEditor = () => {
       window.clearTimeout(pendingRef.current?.timeout);
       window.clearTimeout(diagnosticFeedback);
     };
-  }, []);
+  }, [selectPage]);
   // Clear the connection warning once the host has delivered state.
   useEffect(() => {
     if (state && error.startsWith("The editor")) setError("");
   }, [state, error]);
 
-  return { state, page, setPage, pending, error, setError, notice, send };
+  useEffect(() => {
+    if (confirmation && confirmation.page !== page) {
+      api?.postMessage({
+        type: "confirmationReply",
+        token: confirmation.token,
+        accepted: false,
+      });
+      setConfirmation(undefined);
+    }
+  }, [confirmation, page]);
+
+  return {
+    state,
+    page,
+    setPage: selectPage,
+    pending,
+    reviewingProfile:
+      pending === "profile" ? pendingRef.current?.profileToApply : undefined,
+    error,
+    setError,
+    applyError: page === "profiles" ? applyError : undefined,
+    clearApplyError: () => setApplyError(undefined),
+    notice: notice?.page === page ? notice.message : "",
+    confirmation: confirmation?.page === page ? confirmation : undefined,
+    replyToConfirmation: (accepted: boolean) => {
+      if (!confirmation) return;
+      api?.postMessage({
+        type: "confirmationReply",
+        token: confirmation.token,
+        accepted,
+      });
+      setConfirmation(undefined);
+    },
+    send,
+  };
 };

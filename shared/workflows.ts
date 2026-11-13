@@ -8,11 +8,14 @@ import {
 export type ActionMap = Record<string, boolean | ActionValue>;
 export type Value = boolean | string | number | null | ActionMap;
 export type Slot = { present: false } | { present: true; value: Value };
+type ProfileSettings = Partial<Record<Key, Value>>;
+const maxBatchChanges = 110;
+
 export interface Profile {
   version: 1;
   name: string;
   language?: string;
-  settings: Partial<Record<Key, Value>>;
+  settings: ProfileSettings & Partial<Record<`[${string}]`, ProfileSettings>>;
 }
 export interface ProfileSummary {
   name: string;
@@ -20,10 +23,12 @@ export interface ProfileSummary {
   description: string;
   count: number;
   language?: string;
+  languages?: string[];
 }
 export interface Change {
   attempted?: boolean;
   key: Key;
+  language?: string;
   action?: string;
   containerPresent?: boolean;
   before: Slot;
@@ -40,12 +45,14 @@ export interface Journal {
   changes: Change[];
 }
 export interface Recovery {
+  id: string;
   kind: Journal["kind"];
   phase: Journal["phase"];
   name: string;
   scope: Scope;
   created: string;
   count: number;
+  languageCount: number;
 }
 export const absent: Slot = { present: false };
 export const record = (v: unknown): v is Record<string, unknown> =>
@@ -69,6 +76,38 @@ export const actionMap = (value: unknown): ActionMap => {
       throw new Error(`Unsupported save action: ${id}`);
   return value as ActionMap;
 };
+const validBlockLanguage = (value: unknown): value is string =>
+  typeof value === "string" &&
+  value.length > 0 &&
+  value.length <= 100 &&
+  /^[^\s\p{Cc}[\]]+$/u.test(value);
+
+export const profileLanguages = (profile: Profile): string[] =>
+  Object.keys(profile.settings)
+    .filter((key) => key.startsWith("["))
+    .map((key) => key.slice(1, -1));
+
+const validateProfileSetting = (
+  key: string,
+  value: unknown,
+  language?: string,
+) => {
+  if (!settingKeys.includes(key as Key))
+    throw new Error(
+      "Profiles may only contain supported formatting and save settings.",
+    );
+  if (language && key.startsWith("files."))
+    throw new Error("Auto Save cannot be language-specific.");
+  if (key === "editor.codeActionsOnSave")
+    return Object.keys(actionMap(value)).length;
+  if (
+    !(key === "editor.defaultFormatter" && value === null) &&
+    !validValue(key as Key, value)
+  )
+    throw new Error(`Invalid profile value for ${key}`);
+  return 1;
+};
+
 export const parseProfile = (raw: unknown): Profile => {
   if (
     !record(raw) ||
@@ -90,21 +129,46 @@ export const parseProfile = (raw: unknown): Profile => {
       raw.language.length > 100)
   )
     throw new Error("Invalid profile language.");
-  const keys = Object.keys(raw.settings);
-  if (!keys.length || keys.some((key) => !settingKeys.includes(key as Key)))
+  const entries = Object.entries(raw.settings);
+  if (!entries.length)
     throw new Error(
       "Profiles may only contain supported formatting and save settings.",
     );
-  for (const [key, value] of Object.entries(raw.settings)) {
-    if (key === "editor.codeActionsOnSave") actionMap(value);
-    else if (
-      !(key === "editor.defaultFormatter" && value === null) &&
-      !validValue(key as Key, value)
+  const legacyLanguage =
+    typeof raw.language === "string" ? raw.language : undefined;
+  let hasBlocks = false;
+  let changeCount = 0;
+  let actionCount = 0;
+  for (const [key, value] of entries) {
+    if (!key.startsWith("[")) {
+      const count = validateProfileSetting(key, value, legacyLanguage);
+      changeCount += count;
+      if (key === "editor.codeActionsOnSave") actionCount += count;
+      continue;
+    }
+    hasBlocks = true;
+    const language = key.slice(1, -1);
+    if (legacyLanguage)
+      throw new Error("Use either the profile language or language blocks.");
+    if (
+      !key.endsWith("]") ||
+      !validBlockLanguage(language) ||
+      !record(value) ||
+      !Object.keys(value).length
     )
-      throw new Error(`Invalid profile value for ${key}`);
-    if (raw.language && key.startsWith("files."))
-      throw new Error("Auto Save cannot be language-specific.");
+      throw new Error(
+        "Use a separate, non-empty block for each language, such as [html].",
+      );
+    for (const [setting, settingValue] of Object.entries(value)) {
+      const count = validateProfileSetting(setting, settingValue, language);
+      changeCount += count;
+      if (setting === "editor.codeActionsOnSave") actionCount += count;
+    }
   }
+  if (hasBlocks && (changeCount > maxBatchChanges || actionCount > 100))
+    throw new Error(
+      `Profiles with language blocks may contain up to ${maxBatchChanges} settings and action entries combined, including at most 100 action entries.`,
+    );
   return {
     version: 1,
     name: raw.name.trim(),
@@ -132,19 +196,32 @@ export const same = (a: Slot, b: Slot): boolean => {
 };
 export const plan = (
   profile: Profile,
-  read: (key: Key) => unknown,
+  read: (key: Key, language?: string) => unknown,
 ): Change[] => {
   const changes: Change[] = [];
-  for (const [key, value] of Object.entries(profile.settings) as [
-    Key,
-    Value,
-  ][]) {
-    const current = read(key);
+  const entries = Object.entries(profile.settings).flatMap<{
+    key: Key;
+    value: Value;
+    language?: string;
+  }>(([key, value]) =>
+    key.startsWith("[")
+      ? Object.entries(value as ProfileSettings).map(
+          ([setting, settingValue]) => ({
+            key: setting as Key,
+            value: settingValue,
+            language: key.slice(1, -1),
+          }),
+        )
+      : [{ key: key as Key, value: value as Value }],
+  );
+  for (const { key, value, language } of entries) {
+    const current = read(key, language);
+    const location = language ? { key, language } : { key };
     if (key === "editor.codeActionsOnSave") {
       const before = current === undefined ? {} : actionMap(current);
       for (const [action, mode] of Object.entries(actionMap(value))) {
         const item: Change = {
-          key,
+          ...location,
           action,
           containerPresent: current !== undefined,
           before: slot(before[action]),
@@ -153,7 +230,11 @@ export const plan = (
         if (!same(item.before, item.after)) changes.push(item);
       }
     } else {
-      const item: Change = { key, before: slot(current), after: slot(value) };
+      const item: Change = {
+        ...location,
+        before: slot(current),
+        after: slot(value),
+      };
       if (!same(item.before, item.after)) changes.push(item);
     }
   }
@@ -258,7 +339,7 @@ export const parseJournal = (raw: unknown): Journal => {
     typeof raw.owner !== "string" ||
     typeof raw.created !== "string" ||
     !Array.isArray(raw.changes) ||
-    raw.changes.length > 110
+    raw.changes.length > maxBatchChanges
   )
     throw new Error(
       "Invalid recovery record. Open an issue before changing the stored recovery data.",
@@ -275,6 +356,10 @@ export const parseJournal = (raw: unknown): Journal => {
       !record(c) ||
       (c.attempted !== undefined && typeof c.attempted !== "boolean") ||
       !settingKeys.includes(c.key as Key) ||
+      (c.language !== undefined &&
+        (raw.kind !== "profile" ||
+          raw.scope.language !== undefined ||
+          !validBlockLanguage(c.language))) ||
       (c.action !== undefined &&
         (c.key !== "editor.codeActionsOnSave" || !actionId(c.action))) ||
       (c.containerPresent !== undefined &&
@@ -299,7 +384,10 @@ export const parseJournal = (raw: unknown): Journal => {
           throw new Error("Invalid recovery setting value.");
       }
     }
-    if (raw.scope.language && String(c.key).startsWith("files."))
+    if (
+      (raw.scope.language || c.language) &&
+      String(c.key).startsWith("files.")
+    )
       throw new Error("Invalid language-specific recovery setting.");
   }
   return raw as unknown as Journal;

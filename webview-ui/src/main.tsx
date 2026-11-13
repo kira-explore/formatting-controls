@@ -1,8 +1,9 @@
-import { StrictMode, useEffect, useMemo, useState } from "react";
+import { StrictMode, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { languageName } from "../../shared/language";
 import type { Key, Scope, Setting } from "../../shared/protocol";
 import { formatterSource, settingForAction } from "../../shared/status-details";
+import type { Slot } from "../../shared/workflows";
 import { BrandMark } from "./BrandMark";
 import {
   actionNames,
@@ -19,13 +20,35 @@ import { useEditor } from "./useEditor";
 import { WorkflowPages } from "./WorkflowPages";
 import "./styles.css";
 
+const reviewValue = (slot: Slot) => {
+  if (!slot.present) return "Inherited";
+  if (typeof slot.value === "boolean") return slot.value ? "On" : "Off";
+  return display(slot.value);
+};
+
+const focusConfirmation = (panel: HTMLElement | null) => panel?.focus();
+
 const App = () => {
-  const { state, page, setPage, pending, error, setError, notice, send } =
-    useEditor();
+  const {
+    state,
+    page,
+    setPage,
+    pending,
+    reviewingProfile,
+    error,
+    setError,
+    applyError,
+    clearApplyError,
+    notice,
+    send,
+    confirmation,
+    replyToConfirmation,
+  } = useEditor();
   const [search, setSearch] = useState("");
   const [customAction, setCustomAction] = useState("");
   const [customFormatter, setCustomFormatter] = useState("");
   const [delay, setDelay] = useState("");
+  const workspace = useRef<HTMLDivElement>(null);
   const settingsByKey = useMemo(
     () => new Map(state?.settings.map((setting) => [setting.key, setting])),
     [state?.settings],
@@ -40,7 +63,7 @@ const App = () => {
   useEffect(() => {
     if (navigation === undefined) return;
     document.getElementById(`page-${page}`)?.focus({ preventScroll: true });
-    window.scrollTo(0, 0);
+    workspace.current?.scrollTo(0, 0);
   }, [page, navigation]);
   if (!state)
     return (
@@ -280,6 +303,174 @@ const App = () => {
       </select>
     </article>
   );
+  const scopeControls = (
+    <section className="scope-bar" aria-label="Configuration scope">
+      <label>
+        Scope
+        <span className="scope-select">
+          <select
+            value={
+              state.scope.target === "folder"
+                ? `folder:${state.scope.folder}`
+                : state.scope.target
+            }
+            disabled={disabled}
+            onChange={(event) => {
+              const value = event.target.value;
+              const target = value.startsWith("folder:")
+                ? "folder"
+                : (value as Scope["target"]);
+              send(
+                { type: "read" },
+                {
+                  target,
+                  ...(target === "folder" ? { folder: value.slice(7) } : {}),
+                  ...(state.scope.language
+                    ? { language: state.scope.language }
+                    : {}),
+                },
+              );
+            }}
+          >
+            <option value="user">User</option>
+            {state.hasWorkspace && <option value="workspace">Workspace</option>}
+            {state.folders.map((f) => (
+              <option key={f.uri} value={`folder:${f.uri}`}>
+                Folder: {f.name}
+              </option>
+            ))}
+          </select>
+        </span>
+      </label>
+      <label>
+        Language
+        <span className="scope-select">
+          <select
+            value={state.scope.language ?? ""}
+            disabled={disabled}
+            onChange={(event) =>
+              send(
+                { type: "read" },
+                {
+                  target: state.scope.target,
+                  ...(state.scope.folder ? { folder: state.scope.folder } : {}),
+                  ...(event.target.value
+                    ? { language: event.target.value }
+                    : {}),
+                },
+              )
+            }
+          >
+            <option value="">All languages</option>
+            {languages.map((l) => (
+              <option key={l} value={l}>
+                {languageName(l)}
+              </option>
+            ))}
+          </select>
+        </span>
+      </label>
+      <p className="scope-description">
+        {page === "diagnostics" ? inspectionContext : scopeDescription}
+        {page !== "diagnostics" && state.scope.language
+          ? ` Editing ${languageName(state.scope.language)} rules.`
+          : ""}
+      </p>
+    </section>
+  );
+  const renderConfirmation = (onClose?: () => void, onBack?: () => void) =>
+    confirmation &&
+    !confirmation.profileToDelete &&
+    confirmation.restoreRequest?.action !== "discard" && (
+      <section
+        className="dashboard-confirmation"
+        aria-label="Review changes"
+        ref={focusConfirmation}
+        tabIndex={-1}
+      >
+        <h2>{confirmation.title}</h2>
+        {(confirmation.profileToApply || confirmation.changes.length > 0) && (
+          <p>
+            {confirmation.profileToApply && `${confirmation.profileToApply} · `}
+            {confirmation.scope.target === "user"
+              ? "User settings · applies across workspaces"
+              : confirmation.scope.target === "workspace"
+                ? "Workspace settings"
+                : `Folder: ${state.folders.find((folder) => folder.uri === confirmation.scope.folder)?.name ?? confirmation.scope.folder}`}
+            {confirmation.scope.language
+              ? ` · ${languageName(confirmation.scope.language)}`
+              : ""}
+          </p>
+        )}
+        {confirmation.changes.length > 0 && (
+          <div className="change-review">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Setting</th>
+                  <th scope="col">Current</th>
+                  <th scope="col">Proposed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {confirmation.changes.map((change) => (
+                  <tr
+                    key={JSON.stringify([
+                      change.key,
+                      change.language,
+                      change.action,
+                    ])}
+                  >
+                    <th scope="row">
+                      {change.language
+                        ? `${languageName(change.language)} · `
+                        : ""}
+                      {labels[change.key]}
+                      {change.action ? ` · ${change.action}` : ""}
+                    </th>
+                    <td>{reviewValue(change.before)}</td>
+                    <td>{reviewValue(change.after)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="button-row">
+          {onBack && (
+            <button type="button" onClick={onBack}>
+              Back
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => {
+              replyToConfirmation(false);
+              onClose?.();
+            }}
+          >
+            Cancel
+          </button>
+          {(!confirmation.profileToApply ||
+            confirmation.changes.length > 0) && (
+            <button
+              type="button"
+              className="primary"
+              onClick={() => {
+                replyToConfirmation(true);
+                onClose?.();
+              }}
+            >
+              {confirmation.profileToApply
+                ? "Apply changes"
+                : confirmation.restoreRequest
+                  ? "Restore settings"
+                  : "Confirm"}
+            </button>
+          )}
+        </div>
+      </section>
+    );
   return (
     <div className="app">
       <a className="skip-link" href="#page-content">
@@ -338,7 +529,7 @@ const App = () => {
           </p>
         </div>
       </aside>
-      <div className="workspace">
+      <div className="workspace" ref={workspace}>
         <main
           id="page-content"
           className={page === "welcome" ? "help-page" : `${page}-page`}
@@ -356,7 +547,8 @@ const App = () => {
                     formatting: "Choose a formatter and when it runs.",
                     actions: "Control Auto Save, fixes and import actions.",
                     rules: "Keep language exceptions in one place.",
-                    profiles: "Save and reuse formatting preferences.",
+                    profiles:
+                      "Save and reuse formatting and save-action settings.",
                     diagnostics:
                       "See what applies and trace each setting to its source.",
                     welcome:
@@ -365,117 +557,41 @@ const App = () => {
                 }
               </p>
             </div>
-            {page !== "welcome" && (
-              <button
-                type="button"
-                className="settings-button"
-                aria-label="Open VS Code Settings"
-                disabled={disabled}
-                onClick={() => open("settings")}
-              >
-                <Icon name="sliders" />
-              </button>
-            )}
+            <button
+              type="button"
+              className="settings-button"
+              aria-label="Open VS Code Settings"
+              disabled={disabled}
+              onClick={() => open("settings")}
+            >
+              <Icon name="sliders" />
+            </button>
           </div>
           {page !== "welcome" && (
             <>
-              <section className="active-context" aria-label="Active editor">
-                <Icon name="file" />
-                <div>
-                  <span>
-                    {state.activeFile
-                      ? `${state.activeFile.name} · ${languageName(state.activeFile.language)}`
-                      : "No active file"}
-                  </span>
-                  <p>
-                    {state.workspaceName
-                      ? `Workspace: ${state.workspaceName}`
-                      : state.hasWorkspace
-                        ? "Workspace open"
-                        : "No workspace open"}
-                  </p>
-                  {state.folders.length > 1 && state.activeFile?.folder && (
-                    <p>Folder: {state.activeFile.folder}</p>
-                  )}
-                </div>
-              </section>
-              <section className="scope-bar" aria-label="Configuration scope">
-                <label>
-                  Scope
-                  <select
-                    value={
-                      state.scope.target === "folder"
-                        ? `folder:${state.scope.folder}`
-                        : state.scope.target
-                    }
-                    disabled={disabled}
-                    onChange={(event) => {
-                      const value = event.target.value;
-                      const target = value.startsWith("folder:")
-                        ? "folder"
-                        : (value as Scope["target"]);
-                      send(
-                        { type: "read" },
-                        {
-                          target,
-                          ...(target === "folder"
-                            ? { folder: value.slice(7) }
-                            : {}),
-                          ...(state.scope.language
-                            ? { language: state.scope.language }
-                            : {}),
-                        },
-                      );
-                    }}
-                  >
-                    <option value="user">User</option>
-                    {state.hasWorkspace && (
-                      <option value="workspace">Workspace</option>
+              {page !== "profiles" && (
+                <section className="active-context" aria-label="Active editor">
+                  <Icon name="file" />
+                  <div>
+                    <span>
+                      {state.activeFile
+                        ? `${state.activeFile.name} · ${languageName(state.activeFile.language)}`
+                        : "No active file"}
+                    </span>
+                    <p>
+                      {state.workspaceName
+                        ? `Workspace: ${state.workspaceName}`
+                        : state.hasWorkspace
+                          ? "Workspace open"
+                          : "No workspace open"}
+                    </p>
+                    {state.folders.length > 1 && state.activeFile?.folder && (
+                      <p>Folder: {state.activeFile.folder}</p>
                     )}
-                    {state.folders.map((f) => (
-                      <option key={f.uri} value={`folder:${f.uri}`}>
-                        Folder: {f.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Language
-                  <select
-                    value={state.scope.language ?? ""}
-                    disabled={disabled}
-                    onChange={(event) =>
-                      send(
-                        { type: "read" },
-                        {
-                          target: state.scope.target,
-                          ...(state.scope.folder
-                            ? { folder: state.scope.folder }
-                            : {}),
-                          ...(event.target.value
-                            ? { language: event.target.value }
-                            : {}),
-                        },
-                      )
-                    }
-                  >
-                    <option value="">All languages</option>
-                    {languages.map((l) => (
-                      <option key={l} value={l}>
-                        {languageName(l)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <p className="scope-description">
-                  {page === "diagnostics"
-                    ? inspectionContext
-                    : scopeDescription}
-                  {page !== "diagnostics" && state.scope.language
-                    ? ` Editing ${languageName(state.scope.language)} rules.`
-                    : ""}
-                </p>
-              </section>
+                  </div>
+                </section>
+              )}
+              {page !== "profiles" && scopeControls}
               {page !== "diagnostics" &&
                 state.remoteName &&
                 state.scope.target === "user" && (
@@ -487,9 +603,12 @@ const App = () => {
                 )}
             </>
           )}
-          {page !== "diagnostics" && (
+          {!confirmation?.profileToApply &&
+            !confirmation?.restoreRequest &&
+            renderConfirmation()}
+          {page !== "diagnostics" && page !== "profiles" && (
             <div aria-live="polite" className="feedback">
-              {pending ? "Updating editor…" : notice}
+              {confirmation ? "" : pending ? "Updating editor…" : notice}
             </div>
           )}
           {error && (
@@ -525,8 +644,12 @@ const App = () => {
               pending={disabled}
               running={pending === "runDiagnostics"}
               notice={notice}
-              run={() =>
-                send({ type: "runDiagnostics", revision: state.revision })
+              run={(onDiagnosticRun) =>
+                send(
+                  { type: "runDiagnostics", revision: state.revision },
+                  state.scope,
+                  onDiagnosticRun,
+                )
               }
               remove={(runId) =>
                 send(
@@ -550,6 +673,15 @@ const App = () => {
               state={state}
               disabled={disabled}
               send={send}
+              scopeControls={scopeControls}
+              profileToDelete={confirmation?.profileToDelete}
+              profileToApply={confirmation?.profileToApply}
+              applyReview={renderConfirmation}
+              applyError={applyError}
+              clearApplyError={clearApplyError}
+              reviewingProfile={reviewingProfile}
+              restoreRequest={confirmation?.restoreRequest}
+              replyToConfirmation={replyToConfirmation}
               selectLanguage={(language) => {
                 send({ type: "read" }, { ...state.scope, language });
                 setPage("formatting");
@@ -867,7 +999,7 @@ const App = () => {
             >
               Documentation ↗
             </button>
-            {page === "welcome" ? (
+            {page === "welcome" || page === "profiles" ? (
               <button
                 type="button"
                 disabled={disabled}

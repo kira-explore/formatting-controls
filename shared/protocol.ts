@@ -1,6 +1,6 @@
 import type { Finding } from "./diagnostics";
 import type { Adapter } from "./providers";
-import type { ProfileSummary, Recovery } from "./workflows";
+import type { Change, ProfileSummary, Recovery } from "./workflows";
 export const settingKeys = [
   "editor.formatOnSave",
   "editor.formatOnPaste",
@@ -45,6 +45,7 @@ export type Operation =
         | "restore"
         | "discard";
       name?: string;
+      restoreId?: string;
       revision: number;
     }
   | {
@@ -108,11 +109,25 @@ export interface Snapshot {
   hasWorkspace: boolean;
   profiles: ProfileSummary[];
   recovery: Recovery | null;
+  restorePoints: Recovery[];
   workflowError: string | null;
   diagnosticHistory: DiagnosticReport[];
   rules: LanguageRule[];
 }
+export type ConfirmationReply = {
+  type: "confirmationReply";
+  token: string;
+  accepted: boolean;
+};
 export type Response =
+  | {
+      type: "confirmation";
+      id: string;
+      token: string;
+      title: string;
+      changes: readonly Change[];
+      scope: Scope;
+    }
   | { type: "state"; state: Snapshot; id?: string; message?: string }
   | { type: "error"; id: string; error: string };
 const object = (v: unknown): v is Record<string, unknown> =>
@@ -205,6 +220,12 @@ export const parseRequest = (raw: unknown): Request => {
       "discard",
     ].includes(raw.action)
   ) {
+    if (
+      raw.restoreId !== undefined &&
+      (!["restore", "discard"].includes(raw.action) ||
+        !string(raw.restoreId, 16384))
+    )
+      throw new Error("Invalid restore point.");
     if (
       ["save", "apply", "delete", "export"].includes(raw.action) &&
       (!string(raw.name, 80) ||

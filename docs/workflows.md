@@ -2,7 +2,7 @@
 
 ## Providers and diagnostics
 
-Select **Run diagnostics** to capture a read-only report for the current scope and language. **Run history** appears above the button and keeps up to 20 reports per workspace in VS Code's extension storage. Selecting a report shows the original results below the button. Use the trash button to delete one report or **Clear all** to remove every saved run. Both actions ask for confirmation. In an empty VS Code window, history lasts for the current window session.
+Select **Run diagnostics** to capture a read-only report for the current scope and language. The new report opens below the button. **Run history** appears above the button and keeps up to 20 reports per workspace in VS Code's extension storage. When you return to Diagnostics, select a saved run to see its original results. Use the trash button to delete one report or **Clear all** to remove every saved run. Both actions ask for confirmation. Deleting the open run closes its report. In an empty VS Code window, history lasts for the current window session.
 
 Provider adapters declare known languages, formatting capability, supported setting keys and candidate source actions for Biome, ESLint, Prettier and built-in JavaScript/TypeScript, JSON, HTML and CSS tooling. Runtime evidence comes from public VS Code configuration and extension metadata. Prettier has no invented fix-all actions; ESLint formatting is conditional on its formatting flag. Unknown formatter extensions remain selectable by ID without claiming adapter capabilities.
 
@@ -10,17 +10,38 @@ Diagnostics separates verified setting facts from possible conflicts and informa
 
 Language Rules enumerates explicit language override sources for the current resource, using configuration inspection rather than filesystem scans. Editing delegates to the existing language-aware settings writer. Combined-language blocks retain the limitations of the public API.
 
-Profiles include Minimal, Strict, Formatting Only, Project Default and saved custom profiles. Minimal/Formatting Only disable currently configured save actions; higher-priority overrides can still win. Strict enables generic explicit fix-all and import organization without inventing provider availability. Project Default copies explicit project settings (ordinary workspace/folder values followed by language-specific workspace/folder values) into the chosen scope; an empty project preset has no invented defaults.
+Built-in presets set only the three automatic formatting triggers. **Manual Only** turns all three off, **Save Only** turns on save only, **Save & Paste** turns on save and paste, and **Save, Paste & Type** turns all three on. Formatter selection and code actions on save are independent.
 
-Custom profiles capture only values explicitly stored at the selected scope, not copied effective inherited preferences. Profiles are shared through extension-owned storage. See [two-window validation and storage migration](multi-window.md). Applying a language-specific profile requires selecting that language. Applying a profile merges source-action entries and preserves unrelated configuration.
+Custom profiles capture only values explicitly stored at the selected scope, not copied effective inherited preferences. Profiles are shared through extension-owned storage. See [two-window validation and storage migration](multi-window.md). A profile with a top-level `language` requires selecting that language. Applying a profile merges source-action entries and preserves unrelated configuration.
+
+To apply rules for multiple languages in one operation, put separate VS Code-style language blocks inside `settings`. You can also include general settings alongside the blocks.
+
+```json
+{
+  "version": 1,
+  "name": "Web formatting",
+  "settings": {
+    "[html]": {
+      "editor.defaultFormatter": "vscode.html-language-features",
+      "editor.formatOnSave": true
+    },
+    "[css]": {
+      "editor.defaultFormatter": "vscode.css-language-features",
+      "editor.formatOnSave": true
+    }
+  }
+}
+```
+
+In **Profiles**, select **Import profile** and choose the JSON file. Select **Preview & apply**, choose the destination scope and **All languages**, then select **Review changes**. The preview lists the affected language for each override. A single restore point covers the batch.
 
 ## Preview and restoration
 
-Dashboard/profile batches display a JSON preview with scope, before/after values and individual action entries, followed by a native VS Code confirmation picker. Cancellation makes no settings changes. The status card's formatting-only Pause/Resume closes the card and opens a native confirmation picker, also available from the Command Palette, using the same durable journal and conditional restoration. User-level changes are labelled as affecting other workspaces. Save/delete overwrite prompts concern profile data, not editor preferences.
+Dashboard/profile batches show the scope, before/after values and individual action entries in an inline confirmation. Cancellation makes no settings changes. The status card's formatting-only Pause/Resume closes the card and opens a native confirmation picker, also available from the Command Palette, using the same durable journal and conditional restoration. User-level changes are labelled as affecting other workspaces. Save/delete overwrite prompts concern profile data, not editor preferences.
 
 A workspace-local recovery journal is durably saved before any write. Each write attempt is journaled before it begins. Unattempted changes are excluded from rollback, including when an external edit happens to equal the requested value. Values are checked again after journal persistence, immediately before starting each write. If persistence yields to an external edit, the unstarted write is excluded from rollback. Partial failures trigger a conditional rollback; failures retain recovery data for review.
 
-Restore compares each current value with the recorded before/after values. Unchanged values are restored, already-restored values are skipped, and externally edited values are preserved. Source actions are tracked per entry, so unrelated or newly added actions survive restoration. Restore is restricted to the entries eligible when its plan was prepared; reviewed workflows also restrict it to the confirmed preview. Externally edited legacy or unsupported action maps remain conflicts without blocking unrelated formatting flags. Dashboard/profile Restore keeps conflicts in the journal until reviewed, restored, or explicitly kept through Keep current values. Status-card and Command Palette Resume instead finishes the pause after successfully restoring unchanged values and keeping newer edits; its next Pause captures a fresh baseline. Failed or dirty writes still retain recovery. The latest completed profile restore point can be replaced by another confirmed batch or a confirmed status pause. An active pause or incomplete recovery record blocks a new batch.
+Restore compares each current value with the recorded before/after values. Unchanged values are restored, already-restored values are skipped, and externally edited values are preserved. Source actions are tracked per entry, so unrelated or newly added actions survive restoration. Restore is restricted to the entries eligible when its plan was prepared; reviewed workflows also restrict it to the confirmed preview. Externally edited legacy or unsupported action maps remain conflicts without blocking unrelated formatting flags. Dashboard/profile Restore keeps conflicts in the journal until reviewed, restored, or explicitly kept through Keep current values. Status-card and Command Palette Resume instead finishes the pause after successfully restoring unchanged values and keeping newer edits; its next Pause captures a fresh baseline. Failed or dirty writes still retain recovery. Each destination keeps its latest completed profile restore point. Applying another profile to that destination replaces its point. A temporary pause uses a separate recovery record. An active pause or incomplete recovery record blocks a new batch.
 
 Project batches check the destination settings document for unsaved edits before creating or changing the journal. Each write checks again. A dirty destination stops the operation without saving or discarding edits; unrelated dirty documents do not block it. The native command warning offers Open settings file so the user can save and retry.
 
