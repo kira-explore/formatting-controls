@@ -730,6 +730,25 @@ export const reviewDashboard = async (
     await evaluate(`document.querySelector('${presetPanel} .primary').click()`);
     const restoreRow = ".restore-list .profile-row";
     await wait(`document.querySelector('${restoreRow} button:not(:disabled)')`);
+    for (const name of names.filter((name) => name !== "Profiles")) {
+      await evaluate(
+        `[...document.querySelectorAll('nav button, .help-setup')].find(b => b.textContent.trim() === ${JSON.stringify(name)}).click()`,
+      );
+      await wait(
+        `document.querySelector('h1').textContent === ${JSON.stringify(name)}`,
+      );
+      assert.equal(
+        await evaluate<boolean>(
+          "document.body.textContent.includes('A profile restore point is available')",
+        ),
+        false,
+        `The restore point banner should be absent from ${name}`,
+      );
+    }
+    await evaluate(
+      `[...document.querySelectorAll('nav button')].find(b => b.textContent.trim() === 'Profiles').click()`,
+    );
+    await wait(`document.querySelector('${restoreRow} button:not(:disabled)')`);
     await evaluate(
       `document.querySelector('${restoreRow} .button-row button:last-child').click()`,
     );

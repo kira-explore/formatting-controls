@@ -619,23 +619,6 @@ const App = () => {
               </button>
             </div>
           )}
-          {state.recovery &&
-            page !== "profiles" &&
-            state.recovery.kind !== "pause" && (
-              <div className="callout">
-                <div>
-                  <strong>A profile restore point is available</strong>
-                  <p>External edits are preserved on restore.</p>
-                  <button
-                    type="button"
-                    className="text-button"
-                    onClick={() => setPage("profiles")}
-                  >
-                    Review in Profiles →
-                  </button>
-                </div>
-              </div>
-            )}
           {page === "diagnostics" && (
             <Diagnostics
               key={navigation}
