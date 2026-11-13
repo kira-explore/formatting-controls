@@ -679,6 +679,12 @@ export const reviewDashboard = async (
     );
     const savedPanel = "#saved-profiles > .dashboard-confirmation";
     await wait(`document.querySelector('${savedPanel} .scope-bar')`);
+    assert.equal(
+      await evaluate<string>(
+        `getComputedStyle(document.querySelector('${savedPanel} .scope-bar')).borderBottomStyle`,
+      ),
+      "none",
+    );
     await evaluate(`document.querySelector('${savedPanel} .primary').click()`);
     await wait(
       `document.querySelector('${savedPanel} h2')?.textContent === 'No changes needed' && !document.querySelector('${savedPanel} .primary')`,
@@ -711,6 +717,12 @@ export const reviewDashboard = async (
       `document.querySelector('.preset-detail [aria-label="Preview & apply Manual Only"]').click()`,
     );
     await wait(`document.querySelector('${presetPanel} .scope-bar')`);
+    assert.equal(
+      await evaluate<string>(
+        `getComputedStyle(document.querySelector('${presetPanel} .scope-bar')).borderBottomStyle`,
+      ),
+      "none",
+    );
     await evaluate(`document.querySelector('${presetPanel} .primary').click()`);
     await wait(
       `document.querySelector('${presetPanel} .primary')?.textContent === 'Apply changes'`,
@@ -731,11 +743,12 @@ export const reviewDashboard = async (
       `document.querySelector('${restoreRow} button:not(:disabled)')?.textContent.trim() === 'Review restore'`,
     );
     await evaluate(`document.querySelector('${restoreRow} button').click()`);
+    const restoreReview = ".restore-list + .dashboard-confirmation";
     await wait(
-      `document.querySelector('${restoreRow} .dashboard-confirmation .primary')?.textContent.trim() === 'Restore settings' && document.querySelectorAll('.dashboard-confirmation').length === 1`,
+      `document.querySelector('${restoreReview} .primary')?.textContent.trim() === 'Restore settings' && document.querySelectorAll('.dashboard-confirmation').length === 1`,
     );
     await evaluate(
-      `document.querySelector('${restoreRow} .dashboard-confirmation .primary').click()`,
+      `document.querySelector('${restoreReview} .primary').click()`,
     );
     await wait(`!document.querySelector('${restoreRow}')`);
     console.log(

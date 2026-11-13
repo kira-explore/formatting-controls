@@ -1274,9 +1274,9 @@ body.vscode-high-contrast-light {
 .restore-list {
   margin-top: 8px;
 }
-.restore-list .dashboard-confirmation {
-  flex: 0 0 100%;
-  margin: 0;
+.profiles-content .scope-bar {
+  border-bottom: 0;
+  padding-bottom: 12px;
 }
 .restore-attention {
   color: var(--vscode-editorWarning-foreground, #e5c07b);
@@ -1321,6 +1321,9 @@ body.vscode-high-contrast-light {
   border-bottom: 1px solid var(--border);
   padding: 6px;
   text-align: start;
+}
+.change-review tbody tr:last-child > * {
+  border-bottom: 0;
 }
 .restore-empty {
   padding: 8px 14px;
