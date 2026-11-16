@@ -17,10 +17,25 @@ export interface Profile {
   language?: string;
   settings: ProfileSettings & Partial<Record<`[${string}]`, ProfileSettings>>;
 }
+export const formattingPresets: readonly [
+  name: string,
+  save: boolean,
+  paste: boolean,
+  type: boolean,
+][] = [
+  ["Manual Only", false, false, false],
+  ["Save Only", true, false, false],
+  ["Paste Only", false, true, false],
+  ["Type Only", false, false, true],
+  ["Save & Paste", true, true, false],
+  ["Save & Type", true, false, true],
+  ["Paste & Type", false, true, true],
+  ["Save, Paste & Type", true, true, true],
+];
+
 export interface ProfileSummary {
   name: string;
   builtin: boolean;
-  description: string;
   count: number;
   language?: string;
   languages?: string[];
@@ -53,6 +68,7 @@ export interface Recovery {
   created: string;
   count: number;
   languageCount: number;
+  pauseChanges?: { formatting: number; saveActions: number };
 }
 export const absent: Slot = { present: false };
 export const record = (v: unknown): v is Record<string, unknown> =>

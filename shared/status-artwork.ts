@@ -278,11 +278,13 @@ export const statusArtwork = (
     )
     .join(" ");
   const pauseLabel = context.paused ? "Resume" : "Pause";
-  const pauseCaption = context.paused
-    ? statusHelp.resume
-    : context.canPause
-      ? statusHelp.pause
-      : "Choose a project scope in the dashboard";
+  const pauseCaption =
+    context.pauseStatus ??
+    (context.paused
+      ? statusHelp.resume
+      : context.canPause
+        ? statusHelp.pause
+        : "Choose a project scope in the dashboard");
   const fieldLabel = (label: string, height = 36) =>
     image(
       height,
@@ -465,14 +467,12 @@ export const statusArtwork = (
       pauseLabel,
       66,
     ),
-    // Unlinked artwork centers the button and explanation without expanding
-    // the button's click target into the caption or vertical padding.
-    pauseInset: image(44, "", "", 5),
     pauseCaption: image(
-      44,
-      centeredText(12, 22, pauseCaption, 12.5, p.muted),
+      25,
+      centeredText(5, 10, shortened(pauseCaption, 47), 12.5, p.muted),
       pauseCaption,
-      309,
+      width,
+      pauseCaption,
     ),
     reset: image(
       44,

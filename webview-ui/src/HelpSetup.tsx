@@ -9,71 +9,121 @@ export const HelpSetup = ({
   >
     <section className="setup-guide" aria-labelledby="get-started">
       <h2 id="get-started">Get started</h2>
-      <ol className="setup-steps">
-        <li>
-          <h3>Choose where settings apply</h3>
-          <p>Select User, Workspace or a folder.</p>
-        </li>
-        <li>
-          <h3>Choose a language</h3>
-          <p>
-            Select All languages or a specific language for language-specific
-            settings.
-          </p>
-        </li>
-        <li>
-          <h3>Pick a formatter</h3>
-          <p>Choose the tool VS Code should use to format your code.</p>
-        </li>
-        <li>
-          <h3>Choose when it runs</h3>
-          <p>Turn on formatting for save, paste or type.</p>
-        </li>
-      </ol>
-      <button
-        type="button"
-        className="primary"
-        onClick={() => navigate("formatting")}
-      >
-        Open Formatting →
-      </button>
+      <div className="profile-list help-panel">
+        <ol className="setup-steps">
+          <li>
+            <span className="setup-number" aria-hidden="true">
+              1
+            </span>
+            <div>
+              <h3>Choose a scope</h3>
+              <p>
+                Use User across projects, Workspace for this project, or Folder
+                for one folder.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span className="setup-number" aria-hidden="true">
+              2
+            </span>
+            <div>
+              <h3>Choose a language</h3>
+              <p>
+                Use All languages for shared settings, or pick one language for
+                an exception.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span className="setup-number" aria-hidden="true">
+              3
+            </span>
+            <div>
+              <h3>Pick a formatter</h3>
+              <p>Choose which tool VS Code uses to format your code.</p>
+            </div>
+          </li>
+          <li>
+            <span className="setup-number" aria-hidden="true">
+              4
+            </span>
+            <div>
+              <h3>Choose when it runs</h3>
+              <p>Turn on formatting when you save, paste, or type.</p>
+            </div>
+          </li>
+        </ol>
+        <div className="profile-picker-actions">
+          <button
+            type="button"
+            className="primary"
+            onClick={() => navigate("formatting")}
+          >
+            Open Formatting →
+          </button>
+        </div>
+      </div>
     </section>
     <section className="common-questions" aria-labelledby="common-questions">
       <h2 id="common-questions">Common questions</h2>
-      <details name="help-questions" open>
-        <summary>My file isn’t formatting as expected</summary>
-        <div className="help-answer">
-          <p>
-            Open the file, then check its effective formatter and formatting
-            triggers in Diagnostics. The setting sources show where each value
-            comes from.
+      <div className="profile-list help-panel help-questions">
+        <details name="help-questions" open>
+          <summary>Why isn’t my file formatting as expected?</summary>
+          <div className="help-answer">
+            <p>
+              Open the file and run Diagnostics. Check the formatter, the
+              formatting triggers, and where their settings came from.
+            </p>
+            <button type="button" onClick={() => navigate("diagnostics")}>
+              Open Diagnostics →
+            </button>
+          </div>
+        </details>
+        <details name="help-questions">
+          <summary>Why does my file change with formatting off?</summary>
+          <div className="help-answer">
+            <p>
+              Code actions can still fix your code or organize imports when you
+              save. Check which actions are enabled in Save actions.
+            </p>
+            <button type="button" onClick={() => navigate("actions")}>
+              Open Save actions →
+            </button>
+          </div>
+        </details>
+        <details name="help-questions">
+          <summary>Why did my setting get overridden?</summary>
+          <p className="help-answer">
+            Folder settings can override workspace settings, and a
+            language-specific setting can override an all-language setting. Run
+            Diagnostics with the file open to see which value applies.
           </p>
-          <button type="button" onClick={() => navigate("diagnostics")}>
-            Open Diagnostics →
-          </button>
-        </div>
-      </details>
-      <details name="help-questions">
-        <summary>My file changes even with formatting off</summary>
-        <div className="help-answer">
-          <p>
-            Fixes and import organization can run separately from formatting.
-            Check the code actions configured to run when you save.
+        </details>
+        <details name="help-questions">
+          <summary>Why can formatting still run while paused?</summary>
+          <p className="help-answer">
+            A pause applies to the folder or workspace shown beside Pause
+            active. Another folder or a language override can still have
+            formatting enabled.
           </p>
-          <button type="button" onClick={() => navigate("actions")}>
-            Open Save actions →
-          </button>
-        </div>
-      </details>
-      <details name="help-questions">
-        <summary>What does Resume restore?</summary>
-        <div className="help-answer">
-          <p>
-            Resume restores formatting settings saved when you paused and
-            preserves changes you made during the pause.
+        </details>
+        <details name="help-questions">
+          <summary>What does Resume restore?</summary>
+          <p className="help-answer">
+            Resume restores the previous values for settings changed by the
+            pause. Edits you made after pausing are kept.
           </p>
-        </div>
-      </details>
+        </details>
+        <details name="help-questions">
+          <summary>Why did my restore point disappear?</summary>
+          <p className="help-answer">
+            A successful restore uses up that restore point. Applying another
+            profile or preset at the same scope replaces the previous restore
+            point.
+          </p>
+        </details>
+      </div>
     </section>
   </section>
 );

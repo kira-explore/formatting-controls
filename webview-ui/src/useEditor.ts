@@ -22,11 +22,14 @@ const api =
   typeof acquireVsCodeApi === "function" ? acquireVsCodeApi() : undefined;
 const restoredView = api?.getState();
 type RestoreRequest = { action: "restore" | "discard"; id?: string };
+type NoticeSection = "restore" | "pause" | "save" | "saved" | "preset";
 type DashboardConfirmation = Extract<Response, { type: "confirmation" }> & {
   page: string;
   profileToDelete?: string;
   profileToApply?: string;
   restoreRequest?: RestoreRequest;
+  workspacePause?: boolean;
+  formattingPause?: boolean;
 };
 const diagnosticFeedbackMs = 700;
 const diagnosticTimeoutMs = 10000;
@@ -41,13 +44,19 @@ export const useEditor = () => {
     name: string;
     message: string;
   }>();
-  const [notice, setNotice] = useState<{ page: string; message: string }>();
+  const [notice, setNotice] = useState<{
+    page: string;
+    message: string;
+    section?: NoticeSection;
+  }>();
   const requestId = useRef(0);
   const pendingRef = useRef<{
     id: string;
     page: string;
     profileToDelete?: string;
     profileToApply?: string;
+    savingProfile?: boolean;
+    noticeSection?: NoticeSection;
     restoreRequest?: RestoreRequest;
     type: Operation["type"];
     startedAt: number;
@@ -89,6 +98,18 @@ export const useEditor = () => {
     pendingRef.current = {
       id,
       page,
+      ...(body.type === "profile" && body.action === "save"
+        ? { savingProfile: true }
+        : {}),
+      ...(body.type === "profile" &&
+      (body.action === "apply" ||
+        body.action === "export" ||
+        body.action === "import" ||
+        body.action === "delete")
+        ? {
+            noticeSection: body.builtin ? "preset" : "saved",
+          }
+        : {}),
       ...(body.type === "profile" && body.action === "delete" && body.name
         ? { profileToDelete: body.name }
         : {}),
@@ -144,15 +165,38 @@ export const useEditor = () => {
       if (response.type === "state") {
         window.clearTimeout(timeout);
         const next = response.state;
-        if (!isCurrentSnapshot(latest.current, next)) return;
-        latest.current = next;
-        setState(next);
-        if (navigation.current !== next.navigation) {
-          navigation.current = next.navigation;
-          selectPage(next.page === "overview" ? "formatting" : next.page);
+        if (isCurrentSnapshot(latest.current, next)) {
+          latest.current = next;
+          setState(next);
+          if (navigation.current !== next.navigation) {
+            navigation.current = next.navigation;
+            selectPage(next.page === "overview" ? "formatting" : next.page);
+          }
         }
-        if (response.message && request && request.id === response.id)
-          setNotice({ page: request.page, message: response.message });
+        if (
+          response.message &&
+          request &&
+          request.id === response.id &&
+          (!(request.profileToApply || request.type === "pause") ||
+            !response.message.startsWith("Cancelled."))
+        ) {
+          const section =
+            request.savingProfile &&
+            response.message.startsWith("Saved profile ")
+              ? "save"
+              : request.type === "pause"
+                ? "pause"
+                : request.restoreRequest
+                  ? request.restoreRequest.id
+                    ? "restore"
+                    : "pause"
+                  : request.noticeSection;
+          setNotice({
+            page: request.page,
+            message: response.message,
+            ...(section ? { section } : {}),
+          });
+        }
       }
     };
     const receive = ({ data }: MessageEvent<Response>) => {
@@ -162,6 +206,10 @@ export const useEditor = () => {
           setConfirmation({
             ...data,
             page: request.page,
+            ...(request.type === "pause" ? { workspacePause: true } : {}),
+            ...(request.type === "formattingPause"
+              ? { formattingPause: true }
+              : {}),
             ...(request.restoreRequest
               ? { restoreRequest: request.restoreRequest }
               : {}),
@@ -233,11 +281,13 @@ export const useEditor = () => {
     pending,
     reviewingProfile:
       pending === "profile" ? pendingRef.current?.profileToApply : undefined,
+    savingProfile: !!pendingRef.current?.savingProfile,
     error,
     setError,
     applyError: page === "profiles" ? applyError : undefined,
     clearApplyError: () => setApplyError(undefined),
     notice: notice?.page === page ? notice.message : "",
+    profileNotice: notice?.page === "profiles" ? notice : undefined,
     confirmation: confirmation?.page === page ? confirmation : undefined,
     replyToConfirmation: (accepted: boolean) => {
       if (!confirmation) return;

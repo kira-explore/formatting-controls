@@ -150,13 +150,13 @@ The formatter list is a set of known integrations, not a complete provider regis
 
 ## Profiles and temporary pause
 
-Choose a scope and optional language first. **Save profile** captures only explicit values at that scope. Presets include Minimal, Strict, Formatting Only and Project Default; Project Default requires explicit project preferences. **Preview & apply** opens a JSON change preview and a native confirmation picker. Source-action entries merge with the selected scope, preserving unrelated entries.
+Choose a scope and optional language first. **Save** captures only explicit values at that scope. Built-in presets cover all eight combinations of formatting on save, paste, and type. **Preview** opens the scope picker and settings review. Source-action entries merge with the selected scope, preserving unrelated entries.
 
-**Import JSON** saves a validated version 1 profile without applying it. **Export** uses a native file picker. Profile files contain formatting preferences, not workspace paths. Language-specific profiles require selecting the same language before applying.
+**Import** saves a validated version 1 profile without applying it. **Export** uses a native file picker. Profile files contain formatting preferences, not workspace paths. Language-specific profiles require selecting the same language before applying.
 
-**Preview temporary pause** is available for Workspace and Workspace Folder. It changes real formatting flags and currently configured actions at that scope. Higher-priority overrides may still run. Pause persists until **Resume / restore**, including after reloads; a recovery reminder appears when needed. User-wide pause is unavailable because it could affect other windows.
+In **Workspace pause**, choose a workspace or folder and select **Review** to see the formatting flags and save actions that will change. Higher-priority overrides may still run. The pause persists across reloads. Select **Resume** to review which settings to restore, or **Keep settings** to review keeping the current values.
 
-Restore preserves externally edited settings and newly added actions. If conflicts remain, review them in Profiles or choose **Keep current values** to discard the remaining restore point. The Command Palette's **Formatting Controls: Restore Previous Settings** works without the dashboard open. Restore points belong to the workspace/window where the batch was applied; saved custom profiles are shared across workspaces.
+Restore preserves externally edited settings and newly added actions. A completed restore uses up its restore point. If conflicts remain, review the point in Profiles or choose **Delete** under **Restore points** to keep the current settings. The Command Palette's **Formatting Controls: Restore Previous Settings** works without the dashboard open. Restore points belong to the workspace/window where the batch was applied. Saved custom profiles are shared across workspaces.
 
 Settings APIs are not atomic transactions. Concurrent edits between checking and writing cannot be perfectly isolated. See the [workflow and recovery limits](docs/workflows.md).
 

@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import * as vscode from "vscode";
 import { settingKeys } from "../../shared/protocol";
-import type { Change } from "../../shared/workflows";
+import {
+  type Change,
+  formattingPresets,
+  type Profile,
+} from "../../shared/workflows";
 import { configuration, own, write } from "../../src/configuration";
 import { Dashboard } from "../../src/dashboard";
 import { providersFor } from "../../src/providers";
@@ -70,7 +74,7 @@ const runMultiLanguageProfileTest = async (uri: vscode.Uri): Promise<void> => {
       [own(selection, key), own(html, key), own(css, key)],
       [true, undefined, true],
     );
-    await workflows.export(profile.name, selection, scope);
+    await workflows.export(profile.name);
     assert.deepEqual(
       JSON.parse(
         new TextDecoder().decode(await vscode.workspace.fs.readFile(file)),
@@ -217,7 +221,47 @@ export const runWorkflowTests = async (
       async () => true,
       { open: async () => exported, save: async () => exported },
     );
-    await exportedWorkflows.export("TSX Project", selection, scope);
+    const profilesKey = "formattingControls.profiles.v1";
+    const savedProfiles = global.get<Profile[]>(profilesKey) ?? [];
+    const sameNameProfile: Profile = {
+      version: 1,
+      name: "Paste Only",
+      settings: { "editor.formatOnSave": false },
+    };
+    await global.update(profilesKey, [...savedProfiles, sameNameProfile]);
+    const readExport = async () =>
+      JSON.parse(
+        new TextDecoder().decode(await vscode.workspace.fs.readFile(exported)),
+      );
+    for (const [name, save, paste, type] of formattingPresets) {
+      await exportedWorkflows.export(name, true);
+      assert.deepEqual(await readExport(), {
+        version: 1,
+        name,
+        settings: {
+          "editor.formatOnSave": save,
+          "editor.formatOnPaste": paste,
+          "editor.formatOnType": type,
+        },
+      });
+    }
+    await exportedWorkflows.export(sameNameProfile.name, false);
+    assert.deepEqual(await readExport(), sameNameProfile);
+    await exportedWorkflows.apply(
+      sameNameProfile.name,
+      selection,
+      scope,
+      async (_, changes) => {
+        assert.deepEqual(
+          changes.map(({ key }) => key),
+          ["editor.formatOnSave"],
+        );
+        return false;
+      },
+      false,
+    );
+    await global.update(profilesKey, savedProfiles);
+    await exportedWorkflows.export("TSX Project");
     const importedGlobal = new MemoryStore(),
       imported = new Workflows(
         importedGlobal,

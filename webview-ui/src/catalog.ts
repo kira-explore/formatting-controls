@@ -44,6 +44,12 @@ export const actionNames: Record<string, string> = {
   "source.addMissingImports": "Add missing imports",
   "source.removeUnusedImports": "Remove unused imports",
 };
+export const detailedActionNames: Record<string, string> = {
+  ...actionNames,
+  "source.action.useSortedAttributes.biome": "Sort attributes · Biome",
+  "source.action.useSortedKeys.biome": "Sort keys · Biome",
+  "source.action.useSortedProperties.biome": "Sort properties · Biome",
+};
 export const display = (value: unknown): string =>
   value === null || value === undefined
     ? "Not configured"

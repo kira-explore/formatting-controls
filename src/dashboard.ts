@@ -35,7 +35,7 @@ export class Dashboard implements vscode.Disposable {
     | { token: string; finish: (accepted: boolean) => void }
     | undefined;
   protected confirmInline(id: string): Confirm {
-    return (title, changes, scope) =>
+    return (title, changes, scope, applyBlocked) =>
       new Promise<boolean>((resolve) => {
         const panel = this.panel;
         if (!panel) {
@@ -58,6 +58,7 @@ export class Dashboard implements vscode.Disposable {
             title,
             changes,
             scope,
+            ...(applyBlocked ? { applyBlocked } : {}),
           }),
         ).then(
           (delivered) => {
@@ -109,7 +110,7 @@ export class Dashboard implements vscode.Disposable {
     await this.panel?.webview.postMessage(message);
   }
   async open(
-    welcome = false,
+    page: "formatting" | "welcome" | "profiles" = "formatting",
     diagnostics?: {
       finding: string;
       scope: Scope;
@@ -122,11 +123,7 @@ export class Dashboard implements vscode.Disposable {
       this.revision++;
     }
     this.reconcileScope();
-    this.page = diagnostics
-      ? "diagnostics"
-      : welcome
-        ? "welcome"
-        : "formatting";
+    this.page = diagnostics ? "diagnostics" : page;
     this.focusFinding = diagnostics?.finding;
     this.navigation++;
     this.active =
@@ -494,9 +491,10 @@ export class Dashboard implements vscode.Disposable {
       }
       if (
         request.revision !== this.revision ||
-        request.scope.target !== this.scope.target ||
-        request.scope.folder !== this.scope.folder ||
-        request.scope.language !== this.scope.language
+        (request.type !== "pause" &&
+          (request.scope.target !== this.scope.target ||
+            request.scope.folder !== this.scope.folder ||
+            request.scope.language !== this.scope.language))
       )
         throw new Error(
           "Settings changed. Review the refreshed values and try again.",
@@ -552,7 +550,7 @@ export class Dashboard implements vscode.Disposable {
           throw new Error("Workflow storage is unavailable.");
         const message =
           this.workflows.recovery()?.kind === "pause"
-            ? await this.workflows.resumePause()
+            ? await this.workflows.resumePause(this.confirmInline(request.id))
             : await this.workflows.pauseFormatting(
                 selection,
                 this.scope,
@@ -567,13 +565,13 @@ export class Dashboard implements vscode.Disposable {
         if (!this.workflows)
           throw new Error("Workflow storage is unavailable.");
         const confirm = this.confirmInline(request.id);
-        let message: string;
+        let message: string | undefined;
         if (request.type === "pause") {
           const language =
-            this.scope.language ?? this.activeDocument?.languageId;
+            request.scope.language ?? this.activeDocument?.languageId;
           message = await this.workflows.pause(
             selection,
-            this.scope,
+            request.scope,
             configuration({
               ...selection,
               ...(language ? { language } : {}),
@@ -596,6 +594,7 @@ export class Dashboard implements vscode.Disposable {
                 selection,
                 this.scope,
                 confirm,
+                request.builtin,
               );
               break;
             case "delete":
@@ -608,8 +607,7 @@ export class Dashboard implements vscode.Disposable {
             case "export":
               message = await this.workflows.export(
                 request.name as string,
-                selection,
-                this.scope,
+                request.builtin,
               );
               break;
             case "import":

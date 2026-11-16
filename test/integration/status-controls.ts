@@ -38,6 +38,7 @@ export const runStatusTests = async (uri: vscode.Uri): Promise<void> => {
     },
   );
   let pausePrompts = 0;
+  let pauseDestination: string | undefined;
   let acceptPause = true;
   let pendingChoice: Promise<boolean> | undefined;
   let promptOpened: (() => void) | undefined;
@@ -46,8 +47,9 @@ export const runStatusTests = async (uri: vscode.Uri): Promise<void> => {
     item,
     () => document,
     workflows,
-    async () => {
+    async (_paused, destination) => {
       pausePrompts++;
+      pauseDestination = destination;
       promptOpened?.();
       return pendingChoice ?? acceptPause;
     },
@@ -215,6 +217,26 @@ export const runStatusTests = async (uri: vscode.Uri): Promise<void> => {
     assert.equal(own(selection, "editor.formatOnType"), false);
     assert.deepEqual(own(selection, "editor.codeActionsOnSave"), actions);
     assert.match((item.tooltip as vscode.MarkdownString).value, /Resume/);
+    assert.match(
+      (item.tooltip as vscode.MarkdownString).value,
+      /alt="Pause active · Folder: [^"]+"/,
+    );
+    const pausedFolder = vscode.workspace.getWorkspaceFolder(uri)?.name;
+    assert.ok(pausedFolder);
+    const pausedDocument = document;
+    document = undefined;
+    controls.refresh();
+    const workspaceCard = (item.tooltip as vscode.MarkdownString).value;
+    assert.match(workspaceCard, /alt="Scope: Workspace\. Read-only\."/);
+    assert.ok(
+      workspaceCard.includes(`alt="Pause active · Folder: ${pausedFolder}"`),
+    );
+    acceptPause = false;
+    await controls.pause();
+    assert.equal(pauseDestination, `Folder: ${pausedFolder}`);
+    acceptPause = true;
+    document = pausedDocument;
+    controls.refresh();
     await dirtySettingsFailure("Resume");
     assert.equal(workflows.recovery()?.kind, "pause");
     const recoveryBeforeFailure = workflows.recovery();

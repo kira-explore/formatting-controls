@@ -137,7 +137,7 @@ import { reviewDashboard } from "./dashboard";
                 );
               await delay(100);
             }
-            await reviewDashboard(report, statusUi);
+            await reviewDashboard(report, workspace, statusUi);
           } catch (error) {
             console.error("UI verification failed:", error);
             throw error;

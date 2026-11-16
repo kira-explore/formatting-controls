@@ -292,7 +292,9 @@ export const run = async (): Promise<void> => {
     await vscode.workspace.fs.writeFile(uri, new Uint8Array());
     const activeDocument = await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(activeDocument);
-    await dashboard.open(true);
+    await dashboard.open("profiles");
+    assert.equal((await dashboard.snapshot()).page, "profiles");
+    await dashboard.open("welcome");
     assert.equal((await dashboard.snapshot()).page, "welcome");
     await dashboard.handle({
       id: "other-folder",
@@ -415,7 +417,7 @@ export const run = async (): Promise<void> => {
     }
 
     const navigation = (await dashboard.snapshot()).navigation;
-    await dashboard.open(false, {
+    await dashboard.open("formatting", {
       finding: "formatter-unavailable",
       scope: { target: "folder", folder: folder.uri.toString() },
       document: vscode.window.activeTextEditor?.document ?? activeDocument,
@@ -599,12 +601,13 @@ export const run = async (): Promise<void> => {
           }),
         );
       } else {
+        await write(workspace, "editor.formatOnSave", true);
         await setAction(
           workspace,
           "source.fixAll.veryLongProviderActionForDashboardDiagnostics",
           "explicit",
         );
-        await dashboard.open();
+        await dashboard.open("profiles");
       }
       await vscode.commands.executeCommand("workbench.action.closeSidebar");
       await vscode.commands.executeCommand("workbench.action.closePanel");

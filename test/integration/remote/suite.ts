@@ -178,7 +178,7 @@ export const run = async (): Promise<void> => {
       context.globalStorageUri.fsPath.startsWith(homedir()),
       "Profiles must be stored on the Linux host",
     );
-    await workflows.export("Remote saved", selection, scope);
+    await workflows.export("Remote saved");
     const document = JSON.parse(
       new TextDecoder().decode(await vscode.workspace.fs.readFile(exported)),
     );

@@ -45,6 +45,7 @@ export type Operation =
         | "restore"
         | "discard";
       name?: string;
+      builtin?: boolean;
       restoreId?: string;
       revision: number;
     }
@@ -95,7 +96,7 @@ export interface Snapshot {
   revision: number;
   navigation: number;
   scope: Scope;
-  page: "overview" | "formatting" | "welcome" | "diagnostics";
+  page: "overview" | "formatting" | "welcome" | "diagnostics" | "profiles";
   workspaceName?: string;
   activeFile?: { name: string; language: string; folder?: string };
   focusFinding?: string;
@@ -127,6 +128,7 @@ export type Response =
       title: string;
       changes: readonly Change[];
       scope: Scope;
+      applyBlocked?: string;
     }
   | { type: "state"; state: Snapshot; id?: string; message?: string }
   | { type: "error"; id: string; error: string };
@@ -209,6 +211,7 @@ export const parseRequest = (raw: unknown): Request => {
     return raw as Request;
   if (
     raw.type === "profile" &&
+    (raw.builtin === undefined || typeof raw.builtin === "boolean") &&
     typeof raw.action === "string" &&
     [
       "save",

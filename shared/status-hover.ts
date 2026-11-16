@@ -20,6 +20,7 @@ export interface HoverContext {
   scope: string;
   languageScope: string;
   paused?: boolean;
+  pauseStatus?: string;
   canPause?: boolean;
   revision: number;
 }
@@ -56,6 +57,7 @@ export const statusHover = (
       `${image(art.formatterLabel)}${image(art.formatterInfo)}${image(art.formatterGap)}${image(art.formatterValue)}`,
     ),
     fullRow(image(art.summary)),
+    ...(context.pauseStatus ? [fullRow(image(art.pauseCaption))] : []),
     fullRow(image(art.formatting)),
     ...(context.diagnostic
       ? [
