@@ -66,7 +66,7 @@ export const HelpSetup = ({
       <section className="faq-group" aria-labelledby="faq-formatting">
         <h3 id="faq-formatting">Formatting and saves</h3>
         <div className="profile-list help-questions">
-          <details name="help-questions" open>
+          <details name="faq-formatting-and-saves" open>
             <summary>Why isn’t my file formatting as expected?</summary>
             <div className="help-answer">
               <p>
@@ -82,7 +82,7 @@ export const HelpSetup = ({
               </button>
             </div>
           </details>
-          <details name="help-questions">
+          <details name="faq-formatting-and-saves">
             <summary>Why does my file change with formatting off?</summary>
             <div className="help-answer">
               <p>
@@ -98,7 +98,7 @@ export const HelpSetup = ({
               </button>
             </div>
           </details>
-          <details name="help-questions">
+          <details name="faq-formatting-and-saves">
             <summary>Why did my setting get overridden?</summary>
             <p className="help-answer">
               A folder or language-specific setting can take precedence.
@@ -110,21 +110,21 @@ export const HelpSetup = ({
       <section className="faq-group" aria-labelledby="faq-recovery">
         <h3 id="faq-recovery">Pause and restore</h3>
         <div className="profile-list help-questions">
-          <details name="help-questions">
+          <details name="faq-pause-and-restore">
             <summary>Why can formatting still run while paused?</summary>
             <p className="help-answer">
               A pause applies to its selected scope. Another folder or a
               language override can still have formatting enabled.
             </p>
           </details>
-          <details name="help-questions">
+          <details name="faq-pause-and-restore">
             <summary>What does Resume restore?</summary>
             <p className="help-answer">
               Resume restores the previous values for settings changed by the
               pause and preserves edits you made during it.
             </p>
           </details>
-          <details name="help-questions">
+          <details name="faq-pause-and-restore">
             <summary>Why did my restore point disappear?</summary>
             <p className="help-answer">
               Restoring uses up the point. Applying another profile or preset at

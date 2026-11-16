@@ -643,15 +643,23 @@ export const reviewDashboard = async (
         ["Pause and restore", 3],
       ],
     );
-    for (const question of [1, 2, 3, 5, 4, 0]) {
+    for (const [question, openQuestions] of [
+      [3, [0, 3]],
+      [1, [1, 3]],
+      [5, [1, 5]],
+      [2, [2, 5]],
+      [4, [2, 4]],
+      [0, [0, 4]],
+    ] as const) {
       await evaluate(
         `document.querySelectorAll('.common-questions summary')[${question}].click()`,
       );
-      assert.ok(
-        await evaluate<boolean>(
-          `document.querySelectorAll('.common-questions details[open]').length === 1 && document.querySelectorAll('.common-questions details')[${question}].open`,
+      assert.deepEqual(
+        await evaluate<number[]>(
+          "[...document.querySelectorAll('.common-questions details')].flatMap((answer, index) => answer.open ? [index] : [])",
         ),
-        "Opening a help question closes the previous answer",
+        openQuestions,
+        "Opening a question only closes the previous answer in its group",
       );
     }
     await evaluate("document.querySelector('.help-answer button').click()");
