@@ -767,6 +767,9 @@ summary {
 .picker-scroll {
   overflow-y: auto;
 }
+.picker-scroll:has(> :nth-child(4)) {
+  scrollbar-gutter: stable;
+}
 .diagnostic-history-row + .diagnostic-history-row {
   border-top: 1px solid var(--border);
 }
@@ -894,22 +897,31 @@ summary {
   gap: 28px;
 }
 .setup-steps {
+  display: grid;
+  gap: 14px;
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 14px 0 18px;
 }
 .setup-steps li {
+  position: relative;
   display: grid;
   grid-template-columns: 2.5rem minmax(0, 1fr);
   align-items: start;
   gap: 12px;
-  padding: 10px 14px;
+}
+.setup-steps li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  inset: 2.75rem auto -10px calc(1.25rem - 0.5px);
+  width: 1px;
+  background: var(--border);
 }
 .setup-number {
   display: grid;
   place-items: center;
   aspect-ratio: 1;
-  border-radius: 6px;
+  border-radius: 50%;
   color: var(--accent);
   background: color-mix(in srgb, var(--accent) 15%, var(--surface));
   font-size: 1.45rem;
@@ -921,16 +933,15 @@ summary {
 .setup-steps p {
   margin-bottom: 0;
 }
-.help-panel {
+.help-questions {
   margin-top: 14px;
 }
-.setup-steps li + li,
 .help-questions details + details {
   border-top: 1px solid var(--border);
 }
 .help-questions summary {
   min-height: 44px;
-  padding: 10px 14px;
+  padding: 8px 14px;
 }
 .help-questions details:not([open]) > summary::after {
   margin-bottom: 0;
@@ -940,12 +951,15 @@ summary {
 .help-questions details[open] > summary {
   color: var(--accent);
 }
+.help-questions details[open] {
+  box-shadow: inset 2px 0 var(--accent);
+}
 .help-answer {
   margin: 0;
-  padding: 0 14px 14px;
+  padding: 0 14px 12px;
 }
 .help-answer p {
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 .help-answer p:last-child {
   margin-bottom: 0;

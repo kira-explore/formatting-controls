@@ -9,65 +9,61 @@ export const HelpSetup = ({
   >
     <section className="setup-guide" aria-labelledby="get-started">
       <h2 id="get-started">Get started</h2>
-      <div className="profile-list help-panel">
-        <ol className="setup-steps">
-          <li>
-            <span className="setup-number" aria-hidden="true">
-              1
-            </span>
-            <div>
-              <h3>Choose a scope</h3>
-              <p>
-                Use User across projects, Workspace for this project, or Folder
-                for one folder.
-              </p>
-            </div>
-          </li>
-          <li>
-            <span className="setup-number" aria-hidden="true">
-              2
-            </span>
-            <div>
-              <h3>Choose a language</h3>
-              <p>
-                Use All languages for shared settings, or pick one language for
-                an exception.
-              </p>
-            </div>
-          </li>
-          <li>
-            <span className="setup-number" aria-hidden="true">
-              3
-            </span>
-            <div>
-              <h3>Pick a formatter</h3>
-              <p>Choose which tool VS Code uses to format your code.</p>
-            </div>
-          </li>
-          <li>
-            <span className="setup-number" aria-hidden="true">
-              4
-            </span>
-            <div>
-              <h3>Choose when it runs</h3>
-              <p>Turn on formatting when you save, paste, or type.</p>
-            </div>
-          </li>
-        </ol>
-        <div className="profile-picker-actions">
-          <button
-            type="button"
-            className="primary"
-            onClick={() => navigate("formatting")}
-          >
-            Open Formatting →
-          </button>
-        </div>
-      </div>
+      <ol className="setup-steps">
+        <li>
+          <span className="setup-number" aria-hidden="true">
+            1
+          </span>
+          <div>
+            <h3>Choose a scope</h3>
+            <p>
+              Use User across projects, Workspace for this project, or Folder
+              for one folder.
+            </p>
+          </div>
+        </li>
+        <li>
+          <span className="setup-number" aria-hidden="true">
+            2
+          </span>
+          <div>
+            <h3>Choose a language</h3>
+            <p>
+              Use All languages for shared settings, or pick one language for an
+              exception.
+            </p>
+          </div>
+        </li>
+        <li>
+          <span className="setup-number" aria-hidden="true">
+            3
+          </span>
+          <div>
+            <h3>Pick a formatter</h3>
+            <p>Choose which tool VS Code uses to format your code.</p>
+          </div>
+        </li>
+        <li>
+          <span className="setup-number" aria-hidden="true">
+            4
+          </span>
+          <div>
+            <h3>Choose when it runs</h3>
+            <p>Turn on formatting when you save, paste, or type.</p>
+          </div>
+        </li>
+      </ol>
+      <button
+        type="button"
+        className="primary"
+        onClick={() => navigate("formatting")}
+      >
+        Open Formatting →
+      </button>
     </section>
     <section className="common-questions" aria-labelledby="common-questions">
       <h2 id="common-questions">Common questions</h2>
-      <div className="profile-list help-panel help-questions">
+      <div className="profile-list help-questions">
         <details name="help-questions" open>
           <summary>Why isn’t my file formatting as expected?</summary>
           <div className="help-answer">
@@ -75,7 +71,11 @@ export const HelpSetup = ({
               Open the file and run Diagnostics. Check the formatter, the
               formatting triggers, and where their settings came from.
             </p>
-            <button type="button" onClick={() => navigate("diagnostics")}>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => navigate("diagnostics")}
+            >
               Open Diagnostics →
             </button>
           </div>
@@ -87,7 +87,11 @@ export const HelpSetup = ({
               Code actions can still fix your code or organize imports when you
               save. Check which actions are enabled in Save actions.
             </p>
-            <button type="button" onClick={() => navigate("actions")}>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => navigate("actions")}
+            >
               Open Save actions →
             </button>
           </div>

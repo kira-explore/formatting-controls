@@ -605,7 +605,7 @@ export const reviewDashboard = async (
     await wait("document.querySelector('h1').textContent === 'Help & setup'");
     assert.equal(
       await evaluate<number>(
-        "document.querySelectorAll('.setup-guide .help-panel .setup-steps li').length",
+        "document.querySelectorAll('.setup-guide .setup-steps li').length",
       ),
       4,
     );
@@ -1325,19 +1325,15 @@ export const reviewDashboard = async (
       })()`);
     const checkPicker = async (listSelector: string, count: number) => {
       const list = `document.querySelector('${listSelector}')`;
-      await wait(`${list}?.children.length === ${count}`);
-      assert.equal(
-        await evaluate(`(() => {
-          const list = ${list};
-          const bounds = list.getBoundingClientRect();
-          return list.scrollTop === 0 &&
-            Math.abs(list.children[2].getBoundingClientRect().bottom - bounds.bottom) <= 1 &&
-            (list.scrollHeight > list.clientHeight) === ${count > 3} &&
-            list.nextElementSibling.getBoundingClientRect().top >= bounds.bottom;
-        })()`),
-        true,
-        `Expected three complete rows with actions below ${listSelector}`,
-      );
+      await wait(`(() => {
+        const list = ${list};
+        if (list?.children.length !== ${count}) return false;
+        const bounds = list.getBoundingClientRect();
+        return list.scrollTop === 0 &&
+          Math.abs(list.children[2].getBoundingClientRect().bottom - bounds.bottom) <= 1 &&
+          (list.scrollHeight > list.clientHeight) === ${count > 3} &&
+          list.nextElementSibling.getBoundingClientRect().top >= bounds.bottom;
+      })()`);
     };
     const savedPicker = "#saved-profiles .picker-scroll";
     await renderPickers(3, 3);
