@@ -706,7 +706,12 @@ export const reviewStatus = async (
     await hover.waitFor({ state: "hidden" });
     await picker
       .locator(".monaco-list-row")
-      .filter({ hasText: `${action} automatic formatting` })
+      .filter({
+        hasText:
+          action === "Pause"
+            ? "Pause automatic formatting"
+            : "Resume and restore settings",
+      })
       .waitFor();
     await page.screenshot({
       path: join(directory, `status-${action.toLowerCase()}-picker.png`),
