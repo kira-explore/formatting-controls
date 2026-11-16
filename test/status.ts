@@ -195,12 +195,17 @@ export const reviewStatus = async (
   const hover = page.locator(".monaco-hover").filter({
     has: page.getByRole("img", { name: /^Kira Formatting Controls/ }),
   });
+  const pauseCaption = hover.getByRole("img", {
+    name: /^Pause (active|needs attention) · /,
+  });
   const loaded = async () => {
-    await hover.waitFor({ state: "visible" });
-    const images = hover.locator("img");
-    await images.nth(21).waitFor();
-    assert.ok(
-      [23, 25].includes(await images.count()),
+    await hover.getByRole("img", { name: /^Report an issue/ }).waitFor();
+    const warning = await hover
+      .getByRole("link", { name: "Review in dashboard · Diagnostics" })
+      .count();
+    assert.equal(
+      await hover.locator("img").count(),
+      23 + (await pauseCaption.count()) + 2 * warning,
       "All status artwork is rendered, including any conditional warning",
     );
   };
@@ -717,21 +722,35 @@ export const reviewStatus = async (
       tabs,
     );
     const bounds = await hover.boundingBox();
+    assert.ok(bounds && hovered);
     assert.equal(
-      bounds?.width,
-      hovered?.width,
+      bounds.width,
+      hovered.width,
       "Pause/Resume keeps the card width",
     );
-    assert.equal(
-      bounds?.height,
-      hovered?.height,
-      "Pause/Resume keeps the card height",
-    );
-    assert.deepEqual(
-      bounds,
-      hovered,
-      "The reopened card keeps its anchored position",
-    );
+    if (action === "Pause") {
+      await pauseCaption.waitFor();
+      assert.match(
+        (await pauseCaption.getAttribute("alt")) ?? "",
+        /^Pause active · /,
+      );
+      assert.ok(
+        bounds.height > hovered.height,
+        "The active pause adds a status row",
+      );
+      assert.equal(
+        bounds.x,
+        hovered.x,
+        "The paused card stays aligned horizontally",
+      );
+    } else {
+      assert.equal(await pauseCaption.count(), 0);
+      assert.deepEqual(
+        bounds,
+        hovered,
+        "Resume restores the original card bounds",
+      );
+    }
     await captureCard(`status-${action.toLowerCase()}-complete.png`);
   }
   assert.equal(
