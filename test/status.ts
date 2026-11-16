@@ -299,6 +299,13 @@ export const reviewStatus = async (
     path: join(directory, "status-hover-window.png"),
   });
   const picker = page.locator(".quick-input-widget:visible");
+  const pauseChoice = (action: string) =>
+    picker.locator(".monaco-list-row").filter({
+      hasText:
+        action === "Pause"
+          ? "Pause automatic formatting"
+          : "Resume and restore settings",
+    });
   const reopen = async () => {
     const deadline = Date.now() + 15000;
     while (true) {
@@ -704,15 +711,7 @@ export const reviewStatus = async (
     await actionLink.click();
     await picker.waitFor();
     await hover.waitFor({ state: "hidden" });
-    await picker
-      .locator(".monaco-list-row")
-      .filter({
-        hasText:
-          action === "Pause"
-            ? "Pause automatic formatting"
-            : "Resume and restore settings",
-      })
-      .waitFor();
+    await pauseChoice(action).waitFor();
     await page.screenshot({
       path: join(directory, `status-${action.toLowerCase()}-picker.png`),
     });
@@ -876,9 +875,7 @@ export const reviewStatus = async (
   for (let cycle = 0; cycle < 4; cycle++) {
     for (const action of ["Pause", "Resume"]) {
       await hover.getByRole("link", { name: action, exact: true }).click();
-      const choice = picker
-        .locator(".monaco-list-row")
-        .filter({ hasText: `${action} automatic formatting` });
+      const choice = pauseChoice(action);
       await choice.waitFor();
       if (cycle % 2) await choice.click();
       else await page.keyboard.press("Enter");
@@ -915,10 +912,7 @@ export const reviewStatus = async (
     .filter({ hasText: "Pause / Resume Automatic Formatting" })
     .waitFor();
   await page.keyboard.press("Enter");
-  await picker
-    .locator(".monaco-list-row")
-    .filter({ hasText: "Pause automatic formatting" })
-    .waitFor();
+  await pauseChoice("Pause").waitFor();
   await page.keyboard.press("Escape");
   await picker.waitFor({ state: "hidden" });
   await reopen();
