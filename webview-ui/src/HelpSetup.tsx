@@ -63,71 +63,76 @@ export const HelpSetup = ({
     </section>
     <section className="common-questions" aria-labelledby="common-questions">
       <h2 id="common-questions">Common questions</h2>
-      <div className="profile-list help-questions">
-        <details name="help-questions" open>
-          <summary>Why isn’t my file formatting as expected?</summary>
-          <div className="help-answer">
-            <p>
-              Open the file and run Diagnostics. Check the formatter, the
-              formatting triggers, and where their settings came from.
+      <section className="faq-group" aria-labelledby="faq-formatting">
+        <h3 id="faq-formatting">Formatting and saves</h3>
+        <div className="profile-list help-questions">
+          <details name="help-questions" open>
+            <summary>Why isn’t my file formatting as expected?</summary>
+            <div className="help-answer">
+              <p>
+                Open the affected file and run Diagnostics to check its
+                formatter, automatic triggers, and setting sources.
+              </p>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => navigate("diagnostics")}
+              >
+                Open Diagnostics →
+              </button>
+            </div>
+          </details>
+          <details name="help-questions">
+            <summary>Why does my file change with formatting off?</summary>
+            <div className="help-answer">
+              <p>
+                Save actions can still apply fixes or organize imports when you
+                save.
+              </p>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => navigate("actions")}
+              >
+                Open Save actions →
+              </button>
+            </div>
+          </details>
+          <details name="help-questions">
+            <summary>Why did my setting get overridden?</summary>
+            <p className="help-answer">
+              A folder or language-specific setting can take precedence.
+              Diagnostics shows which value applies to the open file.
             </p>
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => navigate("diagnostics")}
-            >
-              Open Diagnostics →
-            </button>
-          </div>
-        </details>
-        <details name="help-questions">
-          <summary>Why does my file change with formatting off?</summary>
-          <div className="help-answer">
-            <p>
-              Code actions can still fix your code or organize imports when you
-              save. Check which actions are enabled in Save actions.
+          </details>
+        </div>
+      </section>
+      <section className="faq-group" aria-labelledby="faq-recovery">
+        <h3 id="faq-recovery">Pause and restore</h3>
+        <div className="profile-list help-questions">
+          <details name="help-questions">
+            <summary>Why can formatting still run while paused?</summary>
+            <p className="help-answer">
+              A pause applies to its selected scope. Another folder or a
+              language override can still have formatting enabled.
             </p>
-            <button
-              type="button"
-              className="text-button"
-              onClick={() => navigate("actions")}
-            >
-              Open Save actions →
-            </button>
-          </div>
-        </details>
-        <details name="help-questions">
-          <summary>Why did my setting get overridden?</summary>
-          <p className="help-answer">
-            Folder settings can override workspace settings, and a
-            language-specific setting can override an all-language setting. Run
-            Diagnostics with the file open to see which value applies.
-          </p>
-        </details>
-        <details name="help-questions">
-          <summary>Why can formatting still run while paused?</summary>
-          <p className="help-answer">
-            A pause applies to the folder or workspace shown beside Pause
-            active. Another folder or a language override can still have
-            formatting enabled.
-          </p>
-        </details>
-        <details name="help-questions">
-          <summary>What does Resume restore?</summary>
-          <p className="help-answer">
-            Resume restores the previous values for settings changed by the
-            pause. Edits you made after pausing are kept.
-          </p>
-        </details>
-        <details name="help-questions">
-          <summary>Why did my restore point disappear?</summary>
-          <p className="help-answer">
-            A successful restore uses up that restore point. Applying another
-            profile or preset at the same scope replaces the previous restore
-            point.
-          </p>
-        </details>
-      </div>
+          </details>
+          <details name="help-questions">
+            <summary>What does Resume restore?</summary>
+            <p className="help-answer">
+              Resume restores the previous values for settings changed by the
+              pause and preserves edits you made during it.
+            </p>
+          </details>
+          <details name="help-questions">
+            <summary>Why did my restore point disappear?</summary>
+            <p className="help-answer">
+              Restoring uses up the point. Applying another profile or preset at
+              the same scope replaces it.
+            </p>
+          </details>
+        </div>
+      </section>
     </section>
   </section>
 );

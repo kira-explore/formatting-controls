@@ -634,6 +634,15 @@ export const reviewDashboard = async (
       ),
       "Why isn’t my file formatting as expected?",
     );
+    assert.deepEqual(
+      await evaluate(
+        "[...document.querySelectorAll('.faq-group')].map(group => [group.querySelector('h3').textContent, group.querySelectorAll('details').length])",
+      ),
+      [
+        ["Formatting and saves", 3],
+        ["Pause and restore", 3],
+      ],
+    );
     for (const question of [1, 2, 3, 5, 4, 0]) {
       await evaluate(
         `document.querySelectorAll('.common-questions summary')[${question}].click()`,
@@ -799,10 +808,12 @@ export const reviewDashboard = async (
       document.querySelector('${saveForm} .primary')?.textContent.trim() === 'Save'`,
     );
     const payload = "<img src=x onerror=alert(1)>";
-    const fillProfileName = (name = payload) =>
-      evaluate(
-        `(()=>{const i=document.querySelector('[aria-label="New profile name"]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(i,${JSON.stringify(name)});i.dispatchEvent(new Event('input',{bubbles:true}));})()`,
+    const fillProfileName = async (name = payload) => {
+      await evaluate(
+        `document.querySelector('[aria-label="New profile name"]').select()`,
       );
+      await send("Input.insertText", { text: name });
+    };
     const submitProfile = () =>
       evaluate(`document.querySelector('${saveForm} .primary').click()`);
     assert.ok(
