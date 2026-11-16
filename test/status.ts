@@ -195,12 +195,17 @@ export const reviewStatus = async (
   const hover = page.locator(".monaco-hover").filter({
     has: page.getByRole("img", { name: /^Kira Formatting Controls/ }),
   });
+  const pauseCaption = hover.getByRole("img", {
+    name: /^Pause (active|needs attention) · /,
+  });
   const loaded = async () => {
-    await hover.waitFor({ state: "visible" });
-    const images = hover.locator("img");
-    await images.nth(21).waitFor();
-    assert.ok(
-      [23, 25].includes(await images.count()),
+    await hover.getByRole("img", { name: /^Report an issue/ }).waitFor();
+    const warning = await hover
+      .getByRole("link", { name: "Review in dashboard · Diagnostics" })
+      .count();
+    assert.equal(
+      await hover.locator("img").count(),
+      23 + (await pauseCaption.count()) + 2 * warning,
       "All status artwork is rendered, including any conditional warning",
     );
   };
@@ -294,6 +299,13 @@ export const reviewStatus = async (
     path: join(directory, "status-hover-window.png"),
   });
   const picker = page.locator(".quick-input-widget:visible");
+  const pauseChoice = (action: string) =>
+    picker.locator(".monaco-list-row").filter({
+      hasText:
+        action === "Pause"
+          ? "Pause automatic formatting"
+          : "Resume and restore settings",
+    });
   const reopen = async () => {
     const deadline = Date.now() + 15000;
     while (true) {
@@ -699,10 +711,7 @@ export const reviewStatus = async (
     await actionLink.click();
     await picker.waitFor();
     await hover.waitFor({ state: "hidden" });
-    await picker
-      .locator(".monaco-list-row")
-      .filter({ hasText: `${action} automatic formatting` })
-      .waitFor();
+    await pauseChoice(action).waitFor();
     await page.screenshot({
       path: join(directory, `status-${action.toLowerCase()}-picker.png`),
     });
@@ -717,21 +726,35 @@ export const reviewStatus = async (
       tabs,
     );
     const bounds = await hover.boundingBox();
+    assert.ok(bounds && hovered);
     assert.equal(
-      bounds?.width,
-      hovered?.width,
+      bounds.width,
+      hovered.width,
       "Pause/Resume keeps the card width",
     );
-    assert.equal(
-      bounds?.height,
-      hovered?.height,
-      "Pause/Resume keeps the card height",
-    );
-    assert.deepEqual(
-      bounds,
-      hovered,
-      "The reopened card keeps its anchored position",
-    );
+    if (action === "Pause") {
+      await pauseCaption.waitFor();
+      assert.match(
+        (await pauseCaption.getAttribute("alt")) ?? "",
+        /^Pause active · /,
+      );
+      assert.ok(
+        bounds.height > hovered.height,
+        "The active pause adds a status row",
+      );
+      assert.equal(
+        bounds.x,
+        hovered.x,
+        "The paused card stays aligned horizontally",
+      );
+    } else {
+      assert.equal(await pauseCaption.count(), 0);
+      assert.deepEqual(
+        bounds,
+        hovered,
+        "Resume restores the original card bounds",
+      );
+    }
     await captureCard(`status-${action.toLowerCase()}-complete.png`);
   }
   assert.equal(
@@ -852,9 +875,7 @@ export const reviewStatus = async (
   for (let cycle = 0; cycle < 4; cycle++) {
     for (const action of ["Pause", "Resume"]) {
       await hover.getByRole("link", { name: action, exact: true }).click();
-      const choice = picker
-        .locator(".monaco-list-row")
-        .filter({ hasText: `${action} automatic formatting` });
+      const choice = pauseChoice(action);
       await choice.waitFor();
       if (cycle % 2) await choice.click();
       else await page.keyboard.press("Enter");
@@ -891,10 +912,7 @@ export const reviewStatus = async (
     .filter({ hasText: "Pause / Resume Automatic Formatting" })
     .waitFor();
   await page.keyboard.press("Enter");
-  await picker
-    .locator(".monaco-list-row")
-    .filter({ hasText: "Pause automatic formatting" })
-    .waitFor();
+  await pauseChoice("Pause").waitFor();
   await page.keyboard.press("Escape");
   await picker.waitFor({ state: "hidden" });
   await reopen();

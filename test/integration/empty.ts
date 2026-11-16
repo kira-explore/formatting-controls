@@ -83,7 +83,7 @@ export const run = async (): Promise<void> => {
       item.dispose();
     }
     await dashboard.open();
-    await dashboard.open(true);
+    await dashboard.open("welcome");
     assert.equal((await dashboard.snapshot()).page, "welcome");
     console.log(
       "Empty-window assertions passed: activation, commands, User settings, profile recovery, workspace rejection and real dashboard.",

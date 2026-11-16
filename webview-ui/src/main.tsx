@@ -3,8 +3,8 @@ import { createRoot } from "react-dom/client";
 import { languageName } from "../../shared/language";
 import type { Key, Scope, Setting } from "../../shared/protocol";
 import { formatterSource, settingForAction } from "../../shared/status-details";
-import type { Slot } from "../../shared/workflows";
 import { BrandMark } from "./BrandMark";
+import { ChangeReview } from "./ChangeReview";
 import {
   actionNames,
   descriptions,
@@ -18,13 +18,8 @@ import { HelpSetup } from "./HelpSetup";
 import { Icon } from "./Icon";
 import { useEditor } from "./useEditor";
 import { WorkflowPages } from "./WorkflowPages";
+import { PauseReview, pausedDestination } from "./WorkspacePause";
 import "./styles.css";
-
-const reviewValue = (slot: Slot) => {
-  if (!slot.present) return "Inherited";
-  if (typeof slot.value === "boolean") return slot.value ? "On" : "Off";
-  return display(slot.value);
-};
 
 const focusConfirmation = (panel: HTMLElement | null) => panel?.focus();
 
@@ -35,11 +30,13 @@ const App = () => {
     setPage,
     pending,
     reviewingProfile,
+    savingProfile,
     error,
     setError,
     applyError,
     clearApplyError,
     notice,
+    profileNotice,
     send,
     confirmation,
     replyToConfirmation,
@@ -49,6 +46,9 @@ const App = () => {
   const [customFormatter, setCustomFormatter] = useState("");
   const [delay, setDelay] = useState("");
   const workspace = useRef<HTMLDivElement>(null);
+  const recoveryNavigation = useRef<number>(undefined);
+  const formattingPauseButton = useRef<HTMLButtonElement>(null);
+  const returnToPauseButton = useRef(false);
   const settingsByKey = useMemo(
     () => new Map(state?.settings.map((setting) => [setting.key, setting])),
     [state?.settings],
@@ -65,6 +65,31 @@ const App = () => {
     document.getElementById(`page-${page}`)?.focus({ preventScroll: true });
     workspace.current?.scrollTo(0, 0);
   }, [page, navigation]);
+  const recoveryKind = state?.recovery?.kind;
+  const requestedPage = state?.page;
+  useEffect(() => {
+    if (
+      requestedPage !== "profiles" ||
+      page !== "profiles" ||
+      navigation === undefined ||
+      recoveryNavigation.current === navigation
+    )
+      return;
+    recoveryNavigation.current = navigation;
+    if (recoveryKind)
+      document
+        .getElementById(
+          recoveryKind === "pause"
+            ? "workspace-pause-heading"
+            : "restore-settings-heading",
+        )
+        ?.focus();
+  }, [page, navigation, requestedPage, recoveryKind]);
+  useEffect(() => {
+    if (!returnToPauseButton.current || pending) return;
+    if (page === "formatting") formattingPauseButton.current?.focus();
+    returnToPauseButton.current = false;
+  }, [page, pending]);
   if (!state)
     return (
       <main className="loading">
@@ -212,7 +237,8 @@ const App = () => {
       : state.status === "OFF"
         ? "Disabled"
         : "Mixed";
-  const paused = state.recovery?.kind === "pause";
+  const activePause = state.recovery?.kind === "pause" ? state.recovery : null;
+  const paused = !!activePause;
   const canPause =
     !disabled &&
     (paused ||
@@ -372,26 +398,29 @@ const App = () => {
       </label>
       <p className="scope-description">
         {page === "diagnostics" ? inspectionContext : scopeDescription}
-        {page !== "diagnostics" && state.scope.language
+        {page !== "diagnostics" && page !== "profiles" && state.scope.language
           ? ` Editing ${languageName(state.scope.language)} rules.`
           : ""}
       </p>
     </section>
   );
+  const profileRestore =
+    confirmation?.restoreRequest?.action === "restore" &&
+    !!confirmation.restoreRequest.id;
   const renderConfirmation = (onClose?: () => void, onBack?: () => void) =>
-    confirmation &&
-    !confirmation.profileToDelete &&
-    confirmation.restoreRequest?.action !== "discard" && (
+    confirmation && (
       <section
+        key={confirmation.token}
         className="dashboard-confirmation"
         aria-label="Review changes"
         ref={focusConfirmation}
         tabIndex={-1}
       >
-        <h2>{confirmation.title}</h2>
-        {(confirmation.profileToApply || confirmation.changes.length > 0) && (
+        <h2>{profileRestore ? "Review restore" : confirmation.title}</h2>
+        {(confirmation.profileToApply ||
+          profileRestore ||
+          confirmation.changes.length > 0) && (
           <p>
-            {confirmation.profileToApply && `${confirmation.profileToApply} · `}
             {confirmation.scope.target === "user"
               ? "User settings · applies across workspaces"
               : confirmation.scope.target === "workspace"
@@ -404,37 +433,18 @@ const App = () => {
         )}
         {confirmation.changes.length > 0 && (
           <div className="change-review">
-            <table>
-              <thead>
-                <tr>
-                  <th scope="col">Setting</th>
-                  <th scope="col">Current</th>
-                  <th scope="col">Proposed</th>
-                </tr>
-              </thead>
-              <tbody>
-                {confirmation.changes.map((change) => (
-                  <tr
-                    key={JSON.stringify([
-                      change.key,
-                      change.language,
-                      change.action,
-                    ])}
-                  >
-                    <th scope="row">
-                      {change.language
-                        ? `${languageName(change.language)} · `
-                        : ""}
-                      {labels[change.key]}
-                      {change.action ? ` · ${change.action}` : ""}
-                    </th>
-                    <td>{reviewValue(change.before)}</td>
-                    <td>{reviewValue(change.after)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <ChangeReview changes={confirmation.changes} />
           </div>
+        )}
+        {confirmation.applyBlocked && (
+          <p className="profile-apply-note">{confirmation.applyBlocked}</p>
+        )}
+        {profileRestore && (
+          <p>
+            {confirmation.changes.length === 0
+              ? "No settings can be restored. Newer edits are preserved."
+              : "Settings edited since this restore point was created are preserved."}
+          </p>
         )}
         <div className="button-row">
           {onBack && (
@@ -449,25 +459,33 @@ const App = () => {
               onClose?.();
             }}
           >
-            Cancel
+            {confirmation.applyBlocked ? "Done" : "Cancel"}
           </button>
-          {(!confirmation.profileToApply ||
-            confirmation.changes.length > 0) && (
-            <button
-              type="button"
-              className="primary"
-              onClick={() => {
-                replyToConfirmation(true);
-                onClose?.();
-              }}
-            >
-              {confirmation.profileToApply
-                ? "Apply changes"
-                : confirmation.restoreRequest
-                  ? "Restore settings"
-                  : "Confirm"}
-            </button>
-          )}
+          {!confirmation.applyBlocked &&
+            (!confirmation.profileToApply ||
+              confirmation.changes.length > 0) && (
+              <button
+                type="button"
+                className="primary"
+                aria-label={
+                  confirmation.profileToApply
+                    ? "Apply changes"
+                    : profileRestore
+                      ? "Restore settings"
+                      : undefined
+                }
+                onClick={() => {
+                  replyToConfirmation(true);
+                  onClose?.();
+                }}
+              >
+                {confirmation.profileToApply
+                  ? "Apply"
+                  : profileRestore
+                    ? "Restore"
+                    : "Confirm"}
+              </button>
+            )}
         </div>
       </section>
     );
@@ -552,7 +570,7 @@ const App = () => {
                     diagnostics:
                       "See what applies and trace each setting to its source.",
                     welcome:
-                      "Get started with formatting and find answers when you need them.",
+                      "Set up formatting and find answers to common questions.",
                   }[page]
                 }
               </p>
@@ -604,7 +622,10 @@ const App = () => {
             </>
           )}
           {!confirmation?.profileToApply &&
+            !confirmation?.profileToDelete &&
             !confirmation?.restoreRequest &&
+            !confirmation?.workspacePause &&
+            !confirmation?.formattingPause &&
             renderConfirmation()}
           {page !== "diagnostics" && page !== "profiles" && (
             <div aria-live="polite" className="feedback">
@@ -619,23 +640,6 @@ const App = () => {
               </button>
             </div>
           )}
-          {state.recovery &&
-            page !== "profiles" &&
-            state.recovery.kind !== "pause" && (
-              <div className="callout">
-                <div>
-                  <strong>A profile restore point is available</strong>
-                  <p>External edits are preserved on restore.</p>
-                  <button
-                    type="button"
-                    className="text-button"
-                    onClick={() => setPage("profiles")}
-                  >
-                    Review in Profiles →
-                  </button>
-                </div>
-              </div>
-            )}
           {page === "diagnostics" && (
             <Diagnostics
               key={navigation}
@@ -680,7 +684,37 @@ const App = () => {
               applyError={applyError}
               clearApplyError={clearApplyError}
               reviewingProfile={reviewingProfile}
+              savingProfile={savingProfile}
+              saveNotice={
+                profileNotice?.section === "save" ? profileNotice.message : ""
+              }
+              savedNotice={
+                profileNotice?.section === "saved" ? profileNotice.message : ""
+              }
+              presetNotice={
+                profileNotice?.section === "preset" ? profileNotice.message : ""
+              }
               restoreRequest={confirmation?.restoreRequest}
+              pauseConfirmation={
+                confirmation?.workspacePause
+                  ? { ...confirmation, action: "pause" }
+                  : confirmation?.restoreRequest &&
+                      !confirmation.restoreRequest.id
+                    ? {
+                        ...confirmation,
+                        action: confirmation.restoreRequest.action,
+                      }
+                    : undefined
+              }
+              reviewingPause={pending === "pause"}
+              restoreNotice={
+                profileNotice?.section === "restore"
+                  ? profileNotice.message
+                  : ""
+              }
+              pauseNotice={
+                profileNotice?.section === "pause" ? profileNotice.message : ""
+              }
               replyToConfirmation={replyToConfirmation}
               selectLanguage={(language) => {
                 send({ type: "read" }, { ...state.scope, language });
@@ -807,50 +841,75 @@ const App = () => {
                       {status}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    className={paused ? "resume-button" : ""}
-                    disabled={!canPause}
-                    onClick={() =>
-                      send({
-                        type: "formattingPause",
-                        revision: state.revision,
-                      })
-                    }
-                  >
-                    {paused ? "Resume" : "Pause"}
-                  </button>
+                  {!confirmation?.formattingPause && (
+                    <button
+                      type="button"
+                      ref={formattingPauseButton}
+                      className={paused ? "resume-button" : ""}
+                      disabled={!canPause}
+                      onClick={() =>
+                        send({
+                          type: "formattingPause",
+                          revision: state.revision,
+                        })
+                      }
+                    >
+                      {paused ? "Review resume" : "Pause"}
+                    </button>
+                  )}
                 </div>
-                <div className="trigger-list">
-                  {[
-                    "editor.formatOnSave",
-                    "editor.formatOnPaste",
-                    "editor.formatOnType",
-                  ].map((key) => {
-                    const s = setting(key as Key);
-                    return (
-                      s && (
-                        <article className="trigger-row" key={key}>
-                          {control(key as Key)}
-                          <div>
-                            <h3>{labels[key]}</h3>
-                            <p>{source(s)}</p>
-                          </div>
-                        </article>
-                      )
-                    );
-                  })}
-                </div>
-                {paused && (
-                  <p className="workflow-note">
-                    Pause session active. Resume restores unchanged settings and
-                    keeps your edits.
-                  </p>
-                )}
-                {!paused && state.scope.target === "user" && (
-                  <p className="workflow-note">
-                    Choose Workspace or Folder to pause automatic formatting.
-                  </p>
+                {confirmation?.formattingPause ? (
+                  <PauseReview
+                    confirmation={{
+                      ...confirmation,
+                      action: paused ? "restore" : "pause",
+                    }}
+                    folders={state.folders}
+                    respond={(accepted) => {
+                      returnToPauseButton.current = true;
+                      replyToConfirmation(accepted);
+                    }}
+                  />
+                ) : (
+                  <>
+                    {activePause && (
+                      <p className="workflow-note">
+                        <span className="pause-status">
+                          {activePause.phase === "applied"
+                            ? "Pause active"
+                            : "Pause needs attention"}
+                        </span>
+                        {" · "}
+                        {pausedDestination(activePause.scope, state.folders)}
+                      </p>
+                    )}
+                    <div className="trigger-list">
+                      {[
+                        "editor.formatOnSave",
+                        "editor.formatOnPaste",
+                        "editor.formatOnType",
+                      ].map((key) => {
+                        const s = setting(key as Key);
+                        return (
+                          s && (
+                            <article className="trigger-row" key={key}>
+                              {control(key as Key)}
+                              <div>
+                                <h3>{labels[key]}</h3>
+                                <p>{source(s)}</p>
+                              </div>
+                            </article>
+                          )
+                        );
+                      })}
+                    </div>
+                    {!paused && state.scope.target === "user" && (
+                      <p className="workflow-note">
+                        Choose Workspace or Folder to pause automatic
+                        formatting.
+                      </p>
+                    )}
+                  </>
                 )}
               </section>
               <details className="disclosure formatting-disclosure">

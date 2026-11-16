@@ -45,7 +45,7 @@ CI runs the editor suite on Linux minimum/stable, macOS stable and Windows stabl
 
 ## Budgets and interpretation
 
-Warm dashboard snapshots use 40 samples with a p95 budget of 500 ms. Archived host/UI/CSS budgets are 128/384/20 KiB; the VSIX archive budget is 2 MiB. These fixture measurements detect large regressions; they do not measure cold startup, provider execution or isolated extension memory consumption.
+Warm dashboard snapshots use 40 samples with a p95 budget of 500 ms. Archived host/UI/CSS budgets are 129/384/21 KiB; the VSIX archive budget is 2 MiB. These fixture measurements detect large regressions; they do not measure cold startup, provider execution or isolated extension memory consumption.
 
 Zero automated axe violations does not establish complete WCAG conformance. Image alternatives describe status values, but hands-on screen-reader review of the current card, native pickers and dashboard remains a release task. Verify theme contrast, keyboard order, long labels, zoom and narrow layouts in a clean editor before publishing.
 

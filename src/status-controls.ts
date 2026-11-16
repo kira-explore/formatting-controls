@@ -1,6 +1,7 @@
 import { setTimeout as delay } from "node:timers/promises";
 import * as vscode from "vscode";
 import type { Finding } from "../shared/diagnostics";
+import { pauseScopeLabel } from "../shared/pause-scope";
 import type { Scope, Setting } from "../shared/protocol";
 import { adapters } from "../shared/providers";
 import { settingSource } from "../shared/setting-source";
@@ -21,9 +22,17 @@ type PausePrompt = (
   paused: boolean,
   destination: string,
 ) => PromiseLike<boolean>;
+export const pauseDestination = (scope: Scope): string =>
+  pauseScopeLabel(
+    scope,
+    vscode.workspace.workspaceFolders?.find(
+      (folder) => folder.uri.toString() === scope.folder,
+    )?.name,
+  );
+
 const choosePause: PausePrompt = async (paused, destination) => {
   const label = paused
-    ? "Resume automatic formatting"
+    ? "Resume and restore settings"
     : "Pause automatic formatting";
   const choice = await vscode.window.showQuickPick(
     [
@@ -159,9 +168,11 @@ export class StatusControls {
       : undefined;
     const folder =
       document && vscode.workspace.getWorkspaceFolder(document.uri);
-    let paused = false;
+    let pauseStatus: string | undefined;
     try {
-      paused = this.workflows?.recovery()?.kind === "pause";
+      const recovery = this.workflows?.recovery();
+      if (recovery?.kind === "pause")
+        pauseStatus = `${recovery.phase === "applied" ? "Pause active" : "Pause needs attention"} · ${pauseDestination(recovery.scope)}`;
     } catch {
       /* The dashboard reports invalid recovery storage. */
     }
@@ -217,10 +228,12 @@ export class StatusControls {
         },
         document ? languageName(document.languageId) : undefined,
       ),
-      paused,
+      paused: !!pauseStatus,
+      ...(pauseStatus ? { pauseStatus } : {}),
       canPause:
         !!this.workflows &&
-        (paused || selection.target !== vscode.ConfigurationTarget.Global),
+        (!!pauseStatus ||
+          selection.target !== vscode.ConfigurationTarget.Global),
       file: document
         ? (document.uri.path.split("/").at(-1) ?? document.fileName)
         : "No active file",
@@ -342,11 +355,7 @@ export class StatusControls {
           "Choose a Workspace or Workspace folder scope before pausing formatting.",
         );
       const journal = JSON.stringify(this.workflows.journal());
-      const destination = paused
-        ? recovery.scope.target === "folder"
-          ? `Folder: ${vscode.workspace.workspaceFolders?.find((folder) => folder.uri.toString() === recovery.scope.folder)?.name ?? recovery.scope.folder}`
-          : "Workspace"
-        : this.scopeLabel(selection);
+      const scope = paused ? recovery.scope : this.scopeFor(selection);
       // Removing the anchor also dismisses a pinned native hover, which can
       // survive clearing its tooltip. Immediately restore the status item before
       // the picker takes focus; restore its tooltip when the operation exits.
@@ -355,7 +364,7 @@ export class StatusControls {
       this.item.hide();
       this.item.show();
       await delay(0);
-      if (!(await this.pausePrompt(paused, destination))) return;
+      if (!(await this.pausePrompt(paused, pauseDestination(scope)))) return;
       this.assertCurrent(revision);
       if (JSON.stringify(this.workflows.journal()) !== journal)
         throw new Error(
@@ -364,27 +373,7 @@ export class StatusControls {
       this.applyingPause = true;
       if (paused) await this.workflows.resumePause();
       else {
-        await this.workflows.pauseFormatting(
-          selection,
-          {
-            target:
-              selection.target === vscode.ConfigurationTarget.Global
-                ? "user"
-                : selection.target === vscode.ConfigurationTarget.Workspace
-                  ? "workspace"
-                  : "folder",
-            ...(selection.target ===
-              vscode.ConfigurationTarget.WorkspaceFolder && selection.uri
-              ? {
-                  folder: vscode.workspace
-                    .getWorkspaceFolder(selection.uri)
-                    ?.uri.toString() as string,
-                }
-              : {}),
-            ...(selection.language ? { language: selection.language } : {}),
-          },
-          "background",
-        );
+        await this.workflows.pauseFormatting(selection, scope, "background");
       }
       this.failure = undefined;
     } else if (action === "scope") {

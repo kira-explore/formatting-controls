@@ -6,6 +6,7 @@ import {
   applyBatch,
   type BatchPort,
   type Change,
+  formattingPresets,
   type Journal,
   type Profile,
   type ProfileSummary,
@@ -35,40 +36,13 @@ export type Confirm = (
   title: string,
   changes: readonly Change[],
   scope: Scope,
+  applyBlocked?: string,
 ) => Promise<boolean>;
 const profileKey = "formattingControls.profiles.v1",
   journalKey = "formattingControls.recovery.v1";
-const formattingPresets = [
-  {
-    name: "Manual Only",
-    save: false,
-    paste: false,
-    type: false,
-    description: "Format only when you run a formatting command.",
-  },
-  {
-    name: "Save Only",
-    save: true,
-    paste: false,
-    type: false,
-    description: "Format when you save.",
-  },
-  {
-    name: "Save & Paste",
-    save: true,
-    paste: true,
-    type: false,
-    description: "Format when you save or paste.",
-  },
-  {
-    name: "Save, Paste & Type",
-    save: true,
-    paste: true,
-    type: true,
-    description: "Format when you save, paste, or type.",
-  },
-];
-const builtinNames = formattingPresets.map(({ name }) => name);
+const builtinNames = new Set(
+  formattingPresets.map(([name]) => name.toLowerCase()),
+);
 export const confirmChanges: Confirm = async (title, changes, scope) => {
   let previewUri: string | undefined;
   if (changes.length) {
@@ -216,6 +190,9 @@ export class Workflows implements vscode.Disposable {
         ) ?? journals[0]);
   }
   private recoverySummary(journal: Journal): Recovery {
+    const saveActions = journal.changes.filter(
+      ({ key }) => key === "editor.codeActionsOnSave",
+    ).length;
     return {
       id: JSON.stringify([
         journal.scope.target,
@@ -228,6 +205,12 @@ export class Workflows implements vscode.Disposable {
       scope: journal.scope,
       created: journal.created,
       count: journal.changes.length,
+      ...(journal.kind === "pause" && {
+        pauseChanges: {
+          formatting: journal.changes.length - saveActions,
+          saveActions,
+        },
+      }),
       languageCount: new Set(
         journal.changes.flatMap((change) => {
           const language = change.language ?? journal.scope.language;
@@ -260,7 +243,7 @@ export class Workflows implements vscode.Disposable {
     );
   }
   private presets(): Profile[] {
-    return formattingPresets.map(({ name, save, paste, type }) => ({
+    return formattingPresets.map(([name, save, paste, type]) => ({
       version: 1,
       name,
       settings: {
@@ -275,9 +258,6 @@ export class Workflows implements vscode.Disposable {
       ...this.presets().map((p) => ({
         name: p.name,
         builtin: true,
-        description:
-          formattingPresets.find(({ name }) => name === p.name)?.description ??
-          "",
         count: Object.keys(p.settings).length,
         ...(p.language ? { language: p.language } : {}),
       })),
@@ -286,8 +266,6 @@ export class Workflows implements vscode.Disposable {
         return {
           name: p.name,
           builtin: false,
-          description:
-            "Saved explicit preferences; unrelated action entries are preserved on apply.",
           count: Object.entries(p.settings).reduce(
             (count, [key, value]) =>
               count +
@@ -302,17 +280,20 @@ export class Workflows implements vscode.Disposable {
       }),
     ];
   }
-  private profile(name: string): Profile {
-    const p = [...this.presets(), ...this.saved()].find((p) => p.name === name);
+  private profile(name: string, builtin?: boolean): Profile {
+    const named = (profile: Profile) => profile.name === name;
+    const p =
+      (builtin !== false && this.presets().find(named)) ||
+      (builtin !== true && this.saved().find(named));
     if (!p) throw new Error("Profile not found.");
     return p;
   }
-  private assertNewBatch(): void {
+  private batchBlocker(): string | undefined {
     const existing = this.journal();
-    if (existing && (existing.kind === "pause" || existing.phase !== "applied"))
-      throw new Error(
-        "Restore or review the existing pause/recovery record before applying another batch.",
-      );
+    if (existing?.kind === "pause")
+      return "Resolve the active pause in Workspace pause before applying changes.";
+    if (existing && existing.phase !== "applied")
+      return "Review the incomplete restore point in Restore previous settings before applying changes.";
   }
   private journalSelection(journal: Journal): Selection {
     const s: Selection = {
@@ -458,10 +439,11 @@ export class Workflows implements vscode.Disposable {
     kind: "profile" | "pause",
     review = true,
     confirm = this.confirm,
-    reviewUnchanged = false,
+    inlineProfileReview = false,
   ): Promise<string> {
     this.assertSelection(s, scope);
-    this.assertNewBatch();
+    const blocker = this.batchBlocker();
+    if (blocker && !inlineProfileReview) throw new Error(blocker);
     if (profile.language && profile.language !== scope.language)
       throw new Error(
         `Select language ${profile.language} before applying this profile.`,
@@ -488,8 +470,13 @@ export class Workflows implements vscode.Disposable {
         : {}),
       ...(scope.language ? { language: scope.language } : {}),
     };
+    if (blocker) {
+      await confirm(`Preview ${profile.name}`, changes, scopeRecord, blocker);
+      return "";
+    }
     if (!changes.length && !(kind === "pause" && !review)) {
-      if (reviewUnchanged) await confirm("No changes needed", [], scopeRecord);
+      if (inlineProfileReview)
+        await confirm("No changes needed", [], scopeRecord);
       return "These preferences already match the selected scope.";
     }
     const journal = parseJournal({
@@ -506,9 +493,11 @@ export class Workflows implements vscode.Disposable {
     if (review && !(await confirm(title, changes, scopeRecord)))
       return "Cancelled. No settings were changed.";
     if (changes.length) await waitForSettingsSave(s);
+    const currentBlocker = this.batchBlocker();
+    if (currentBlocker) throw new Error(currentBlocker);
     await applyBatch(journal, this.port(journal, true));
     return kind === "pause"
-      ? "Paused at the selected scope. Resume from Profiles; overrides may still apply."
+      ? "Paused at the selected scope. Language or folder overrides may still apply."
       : `Applied ${profile.name} to ${scope.target}. A restore point is saved.`;
   }
   async save(
@@ -519,9 +508,7 @@ export class Workflows implements vscode.Disposable {
   ): Promise<string> {
     return this.exclusive(async () => {
       this.assertSelection(s, scope);
-      if (
-        builtinNames.some((n) => n.toLowerCase() === name.trim().toLowerCase())
-      )
+      if (builtinNames.has(name.trim().toLowerCase()))
         throw new Error("Choose a custom name instead of a preset name.");
       const settings: Profile["settings"] = {};
       for (const key of settingKeys) {
@@ -583,10 +570,11 @@ export class Workflows implements vscode.Disposable {
     s: Selection,
     scope: Scope,
     confirm?: Confirm,
+    builtin?: boolean,
   ): Promise<string> {
     return this.exclusive(() =>
       this.applyProfile(
-        this.profile(name),
+        this.profile(name, builtin),
         s,
         scope,
         "profile",
@@ -618,7 +606,7 @@ export class Workflows implements vscode.Disposable {
           "editor.codeActionsOnSave": this.pausedActions(effective),
         },
       };
-      return this.applyProfile(profile, s, scope, "pause", true, confirm);
+      return this.applyProfile(profile, s, scope, "pause", true, confirm, true);
     });
   }
   async pauseFormatting(
@@ -654,19 +642,20 @@ export class Workflows implements vscode.Disposable {
   async restore(id?: string, confirm = this.confirm): Promise<string> {
     return this.restoreSaved(true, id, confirm);
   }
-  async resumePause(): Promise<string> {
-    return this.restoreSaved(false);
+  async resumePause(confirm?: Confirm): Promise<string> {
+    return this.restoreSaved(!!confirm, undefined, confirm, true);
   }
   private async restoreSaved(
     review: boolean,
     id?: string,
     confirm = this.confirm,
+    pauseOnly = false,
   ): Promise<string> {
     return this.exclusive(async () => {
       const journal = this.journal(id);
       if (!journal) return "No restore point is saved for this workspace.";
       if (
-        !review &&
+        pauseOnly &&
         (journal.kind !== "pause" || journal.scope.target === "user")
       )
         throw new Error("Open the dashboard to review this restore point.");
@@ -698,12 +687,26 @@ export class Workflows implements vscode.Disposable {
         await port.save(undefined);
         return "Resumed formatting. Settings edited during the pause were kept.";
       }
-      return conflicts
-        ? `${conflicts} externally edited values were preserved. Review the record in Profiles or keep current values.`
-        : "Restored previous preferences. Unrelated values were preserved.";
+      if (conflicts)
+        return `${conflicts} externally edited values were preserved. Review the record in Profiles or keep current values.`;
+      const { scope } = journal;
+      const target =
+        scope.target === "folder"
+          ? (vscode.workspace.workspaceFolders?.find(
+              (folder) => folder.uri.toString() === scope.folder,
+            )?.name ?? "the selected folder")
+          : scope.target === "workspace"
+            ? (vscode.workspace.name ?? "the current workspace")
+            : "User scope";
+      return journal.kind === "pause"
+        ? `Resumed. Previous settings restored for ${target}.`
+        : `Previous settings restored for ${target}. This restore point was used.`;
     });
   }
-  async discard(id?: string, confirm = this.confirm): Promise<string> {
+  async discard(
+    id?: string,
+    confirm = this.confirm,
+  ): Promise<string | undefined> {
     return this.exclusive(async () => {
       const journal = this.journal(id);
       if (!journal) return "No restore point is saved.";
@@ -716,24 +719,25 @@ export class Workflows implements vscode.Disposable {
           journal.scope,
         ))
       )
-        return "Restore point kept.";
+        return;
       await this.port(journal).save(undefined);
-      return "Kept current preferences and discarded the restore point.";
+      return journal.kind === "pause"
+        ? "Pause ended. Current settings were kept."
+        : "Kept current preferences and discarded the restore point.";
     });
   }
   async remove(
     name: string,
     scope: Scope,
     confirm = this.confirm,
-  ): Promise<string> {
+  ): Promise<string | undefined> {
     return this.exclusive(async () => {
       const expected = structuredClone(
         this.saved().find((p) => p.name === name),
       );
       if (!expected)
         throw new Error("Only saved custom profiles can be deleted.");
-      if (!(await confirm(`Delete saved profile ${name}?`, [], scope)))
-        return "Profile deletion cancelled.";
+      if (!(await confirm(`Delete saved profile ${name}?`, [], scope))) return;
       const current = this.saved();
       if (
         !isDeepStrictEqual(
@@ -754,9 +758,9 @@ export class Workflows implements vscode.Disposable {
       return `Deleted saved profile ${name}.`;
     });
   }
-  async export(name: string, _s: Selection, _scope: Scope): Promise<string> {
+  async export(name: string, builtin?: boolean): Promise<string> {
     return this.exclusive(async () => {
-      const profile = parseProfile(this.profile(name));
+      const profile = parseProfile(this.profile(name, builtin));
       const uri = await this.files.save(name);
       if (!uri) return "Profile export cancelled.";
       await vscode.workspace.fs.writeFile(
@@ -776,9 +780,7 @@ export class Workflows implements vscode.Disposable {
       if (data.byteLength > 131072)
         throw new Error("Profile file is too large.");
       const profile = parseProfile(JSON.parse(new TextDecoder().decode(data)));
-      if (
-        builtinNames.some((n) => n.toLowerCase() === profile.name.toLowerCase())
-      )
+      if (builtinNames.has(profile.name.toLowerCase()))
         profile.name = `${profile.name} (imported)`;
       return this.storeProfile(profile, scope, confirm);
     });

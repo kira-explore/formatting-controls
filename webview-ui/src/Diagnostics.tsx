@@ -2,20 +2,21 @@ import { useEffect, useRef, useState } from "react";
 import { diagnosticScopeLabel } from "../../shared/diagnostic-context";
 import { languageName } from "../../shared/language";
 import type { DiagnosticReport, Key, Snapshot } from "../../shared/protocol";
-import { actionNames, display, labels, saveModeLabels } from "./catalog";
+import {
+  detailedActionNames,
+  display,
+  labels,
+  saveModeLabels,
+} from "./catalog";
 import { Icon } from "./Icon";
+import { InlineDeleteConfirmation } from "./InlineDeleteConfirmation";
+import { usePickerScroll } from "./usePickerScroll";
 
 const autoSaveLabels: Record<string, string> = {
   off: "Off",
   afterDelay: "After a delay",
   onFocusChange: "When the editor loses focus",
   onWindowChange: "When the window loses focus",
-};
-const diagnosticActionNames: Record<string, string> = {
-  ...actionNames,
-  "source.action.useSortedAttributes.biome": "Sort attributes · Biome",
-  "source.action.useSortedKeys.biome": "Sort keys · Biome",
-  "source.action.useSortedProperties.biome": "Sort properties · Biome",
 };
 const actionMode = (value: unknown): string => {
   switch (value) {
@@ -92,155 +93,153 @@ export const Diagnostics = ({
   notice: string;
 }) => {
   const [selectedId, setSelectedId] = useState<string>();
+  const [viewedId, setViewedId] = useState<string>();
   const [deleteTarget, setDeleteTarget] = useState<string>();
-  const deleteTrigger = useRef<HTMLButtonElement>(null);
+  const deleteRunButton = useRef<HTMLButtonElement>(null);
+  const clearAllButton = useRef<HTMLButtonElement>(null);
   const cancelButton = useRef<HTMLButtonElement>(null);
   const selectedButton = useRef<HTMLButtonElement>(null);
   const runButton = useRef<HTMLButtonElement>(null);
+  const reportHeading = useRef<HTMLHeadingElement>(null);
+  const focusReport = useRef(false);
+  const cancelledDeletion = useRef<"all" | "run" | undefined>(undefined);
   const history = state.diagnosticHistory;
   const latest = history[0];
-  const report = history.find(({ id }) => id === selectedId);
+  const selected = history.find(({ id }) => id === selectedId) ?? latest;
+  const historyScroll = usePickerScroll<HTMLUListElement>(
+    history.length,
+    selected ? history.indexOf(selected) : -1,
+  );
+  const report = history.find(({ id }) => id === viewedId);
   const clearAll = deleteTarget === "all";
   const targetRun = history.find(({ id }) => id === deleteTarget);
   const confirming = clearAll ? history.length > 0 : !!targetRun;
 
   useEffect(() => {
-    if (confirming && deleteTarget) {
+    if (confirming) {
       cancelButton.current?.focus();
+    } else if (cancelledDeletion.current) {
+      (cancelledDeletion.current === "all"
+        ? clearAllButton
+        : deleteRunButton
+      ).current?.focus();
+      cancelledDeletion.current = undefined;
     } else if (!pending && deleteTarget) {
+      setDeleteTarget(undefined);
       (selectedButton.current ?? runButton.current)?.focus();
     }
   }, [pending, confirming, deleteTarget]);
 
-  const clearConfirmation = clearAll && confirming && (
-    <div className="diagnostic-delete-confirmation">
-      <p id="diagnostic-clear-note">
-        {`Delete all saved runs for this ${state.hasWorkspace ? "workspace" : "window"}?`}
-      </p>
-      <div className="diagnostic-history-actions">
-        <button
-          type="button"
-          ref={cancelButton}
-          title="Cancel deletion"
-          aria-label="Cancel deletion"
-          className="row-icon"
-          aria-describedby="diagnostic-clear-note"
-          disabled={pending}
-          onClick={() => {
-            setDeleteTarget(undefined);
-            deleteTrigger.current?.focus();
-          }}
-        >
-          <Icon name="close" />
-        </button>
-        <button
-          type="button"
-          className="row-icon"
-          aria-describedby="diagnostic-clear-note"
-          disabled={pending}
-          title="Delete all runs"
-          aria-label="Delete all runs"
-          onClick={() => remove()}
-        >
-          <Icon name="check" />
-        </button>
-      </div>
-    </div>
-  );
+  useEffect(() => {
+    if (!focusReport.current || !report) return;
+    reportHeading.current?.focus();
+    focusReport.current = false;
+  }, [report]);
 
   return (
     <div className="diagnostics">
-      {latest && (
-        <section
-          className="diagnostic-history-section"
-          aria-labelledby="diagnostic-history"
-        >
-          <div className="diagnostic-history-heading">
-            <h2 id="diagnostic-history">Run history</h2>
-            {history.length > 1 && (
-              <button
-                type="button"
-                className="text-button diagnostic-clear-all"
-                disabled={pending}
-                onClick={(event) => {
-                  deleteTrigger.current = event.currentTarget;
-                  setDeleteTarget("all");
-                }}
-              >
-                Clear all
-              </button>
-            )}
-          </div>
-          {clearConfirmation}
-          <ul className="diagnostic-history">
-            {history.map((entry) => (
-              <li key={entry.id} className="diagnostic-history-row">
-                <button
-                  type="button"
-                  className="diagnostic-history-entry"
-                  ref={report?.id === entry.id ? selectedButton : undefined}
-                  aria-pressed={report?.id === entry.id}
-                  aria-controls={
-                    report?.id === entry.id ? "diagnostic-report" : undefined
-                  }
-                  onClick={() => setSelectedId(entry.id)}
-                >
-                  <span>
-                    {entry.fileName ?? "No active file"}
-                    {entry.id === latest.id && (
-                      <span className="diagnostic-latest">Latest</span>
-                    )}
-                  </span>
-                  <small>
-                    {runTime.format(entry.createdAt)} · {runContext(entry)}
-                  </small>
-                </button>
-                <div className="diagnostic-run-actions">
-                  {entry.id === deleteTarget && (
-                    <button
-                      type="button"
-                      className="row-icon"
-                      ref={cancelButton}
-                      title="Cancel deletion"
-                      aria-label="Cancel run deletion"
-                      disabled={pending}
-                      onClick={() => {
-                        setDeleteTarget(undefined);
-                        deleteTrigger.current?.focus();
-                      }}
-                    >
-                      <Icon name="close" />
-                    </button>
-                  )}
+      <section
+        className="diagnostic-history-section"
+        aria-labelledby="diagnostic-history"
+      >
+        <div className="diagnostic-history-heading">
+          <h2 id="diagnostic-history">Run history</h2>
+          {history.length > 1 && (
+            <button
+              type="button"
+              ref={clearAllButton}
+              aria-label="Clear all diagnostic runs"
+              disabled={pending || confirming}
+              onClick={() => setDeleteTarget("all")}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        {latest ? (
+          <div className="profile-list diagnostic-history-card">
+            <ul
+              className="diagnostic-history picker-scroll"
+              ref={historyScroll}
+            >
+              {history.map((entry) => (
+                <li key={entry.id} className="diagnostic-history-row">
                   <button
                     type="button"
-                    className="row-icon diagnostic-run-trash"
-                    title={
-                      entry.id === deleteTarget
-                        ? "Confirm delete run"
-                        : "Delete run"
-                    }
-                    aria-label={`${entry.id === deleteTarget ? "Confirm delete" : "Delete"} run from ${runTime.format(entry.createdAt)} · ${entry.fileName ?? "No active file"}`}
-                    disabled={pending}
-                    onClick={(event) => {
-                      if (entry.id === deleteTarget) {
-                        remove(entry.id);
-                      } else {
-                        deleteTrigger.current = event.currentTarget;
-                        setDeleteTarget(entry.id);
-                      }
-                    }}
+                    className="diagnostic-history-entry"
+                    ref={selected?.id === entry.id ? selectedButton : undefined}
+                    aria-pressed={selected?.id === entry.id}
+                    disabled={pending || confirming}
+                    onClick={() => setSelectedId(entry.id)}
                   >
-                    <Icon
-                      name={entry.id === deleteTarget ? "check" : "trash"}
-                    />
+                    <span>
+                      {entry.fileName ?? "No active file"}
+                      {entry.id === latest.id && (
+                        <span className="diagnostic-latest">Latest</span>
+                      )}
+                    </span>
+                    <small>
+                      {runTime.format(entry.createdAt)} · {runContext(entry)}
+                    </small>
                   </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+                </li>
+              ))}
+            </ul>
+            {confirming ? (
+              <InlineDeleteConfirmation
+                noteId="diagnostic-delete-note"
+                note={
+                  targetRun
+                    ? `Delete the run for ${targetRun.fileName ?? "No active file"} from ${runTime.format(targetRun.createdAt)}?`
+                    : `Delete all saved runs for this ${state.hasWorkspace ? "workspace" : "window"}?`
+                }
+                label={clearAll ? "Delete all runs" : "Delete run"}
+                cancelRef={cancelButton}
+                disabled={pending}
+                respond={(accepted) => {
+                  if (accepted) remove(targetRun?.id);
+                  else {
+                    cancelledDeletion.current = clearAll ? "all" : "run";
+                    setDeleteTarget(undefined);
+                  }
+                }}
+              />
+            ) : (
+              <div className="profile-picker-actions button-row">
+                <button
+                  type="button"
+                  className="primary"
+                  aria-label="View results"
+                  disabled={pending || !selected}
+                  onClick={() => {
+                    if (report?.id === selected?.id) {
+                      reportHeading.current?.focus();
+                    } else {
+                      focusReport.current = true;
+                      setViewedId(selected?.id);
+                    }
+                  }}
+                >
+                  View
+                </button>
+                <button
+                  type="button"
+                  ref={deleteRunButton}
+                  aria-label="Delete run"
+                  disabled={pending || !selected}
+                  onClick={() => setDeleteTarget(selected?.id)}
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="profile-empty diagnostic-history-card">
+            <p>No saved diagnostic runs.</p>
+          </div>
+        )}
+      </section>
       <div className="diagnostic-run">
         <button
           type="button"
@@ -249,8 +248,11 @@ export const Diagnostics = ({
           disabled={pending}
           onClick={() => {
             setDeleteTarget(undefined);
-            setSelectedId(undefined);
-            run(setSelectedId);
+            setViewedId(undefined);
+            run((runId) => {
+              setSelectedId(runId);
+              setViewedId(runId);
+            });
           }}
         >
           {running ? (
@@ -268,7 +270,7 @@ export const Diagnostics = ({
               ? "Working…"
               : latest
                 ? `Last run ${runTime.format(latest.createdAt)} · ${latest.findings.length === 0 ? "No findings" : `${latest.findings.length} ${latest.findings.length === 1 ? "finding" : "findings"}`}`
-                : "No diagnostics run yet."}
+                : ""}
         </p>
       </div>
       {state.focusFinding && (
@@ -282,7 +284,7 @@ export const Diagnostics = ({
           className="diagnostics-section"
           aria-labelledby="diagnostic-report-title"
         >
-          <h2 id="diagnostic-report-title">
+          <h2 id="diagnostic-report-title" ref={reportHeading} tabIndex={-1}>
             {report.id === latest.id
               ? "Last run results"
               : "Selected run results"}
@@ -364,8 +366,8 @@ const Report = ({
       <SourceRow
         key={id}
         label={
-          Object.hasOwn(diagnosticActionNames, id) ? (
-            diagnosticActionNames[id]
+          Object.hasOwn(detailedActionNames, id) ? (
+            detailedActionNames[id]
           ) : (
             <code>{id}</code>
           )

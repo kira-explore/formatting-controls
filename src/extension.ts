@@ -12,7 +12,7 @@ import {
 import { Dashboard } from "./dashboard";
 import { type ActionValue, flags, keys, type SettingKey } from "./model";
 import { FileProfiles } from "./profile-store";
-import { StatusControls } from "./status-controls";
+import { pauseDestination, StatusControls } from "./status-controls";
 import { Workflows } from "./workflows";
 
 export const activate = (context: vscode.ExtensionContext): void => {
@@ -45,7 +45,7 @@ export const activate = (context: vscode.ExtensionContext): void => {
     workflows,
     undefined,
     (finding, scope, document) =>
-      dashboard.open(false, {
+      dashboard.open("formatting", {
         finding,
         scope,
         ...(document ? { document } : {}),
@@ -292,7 +292,7 @@ export const activate = (context: vscode.ExtensionContext): void => {
     ),
     vscode.commands.registerCommand(
       "formattingControls.welcome",
-      guarded(() => dashboard.open(true)),
+      guarded(() => dashboard.open("welcome")),
     ),
     item,
     vscode.commands.registerCommand("formattingControls.open", guarded(open)),
@@ -328,11 +328,17 @@ export const activate = (context: vscode.ExtensionContext): void => {
       context.extensionMode !== vscode.ExtensionMode.Test
     )
       void guarded(async () => {
-        const choice = await vscode.window.showWarningMessage(
-          "Formatting Controls has a saved pause or incomplete recovery record for this workspace.",
-          "Review recovery",
-        );
-        if (choice) await dashboard.open();
+        const choice =
+          recovery.phase === "applied"
+            ? await vscode.window.showInformationMessage(
+                `Formatting is still paused · ${pauseDestination(recovery.scope)}`,
+                "Review pause",
+              )
+            : await vscode.window.showWarningMessage(
+                "Formatting settings need recovery.",
+                "Review recovery",
+              );
+        if (choice) await dashboard.open("profiles");
       })();
   } catch (error) {
     void vscode.window.showErrorMessage(
@@ -343,7 +349,7 @@ export const activate = (context: vscode.ExtensionContext): void => {
     void guarded(async () => {
       await context.globalState.update("welcomeShown", true);
       if (context.extensionMode !== vscode.ExtensionMode.Test)
-        await dashboard.open(true);
+        await dashboard.open("welcome");
     })();
   }
 };
