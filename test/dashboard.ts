@@ -1246,21 +1246,11 @@ export const reviewDashboard = async (
     );
     await evaluate(`document.querySelector('${pauseActive} .primary').click()`);
     await wait(
-      `document.querySelector('${pauseReview} .primary')?.textContent === 'Resume and restore settings'`,
-    );
-    assert.ok(
-      await evaluate<boolean>(`[...document.querySelectorAll('${pauseReview} tbody tr')].some(row =>
-        row.textContent.includes('source.fixAll.veryLongProviderActionForDashboardDiagnostics') &&
-        row.cells[1].textContent === 'Never' && row.cells[2].textContent === 'Manual save'
-      )`),
-      "The resume preview must show that the pause disabled the configured save action",
-    );
-    await evaluate(`document.querySelector('${pauseReview} .primary').click()`);
-    await wait(
       `document.querySelector('.profile-pause [role=status]')?.textContent.includes('Resumed. Previous settings restored for ') &&
       document.querySelector('${pauseStart} button:not(:disabled)') &&
       document.querySelector('#built-in-presets [aria-label="Preview Save, Paste & Type"]:not(:disabled)') &&
-      !document.querySelector('${pauseActive}')`,
+      !document.querySelector('${pauseActive}, ${pauseReview}') &&
+      document.activeElement === document.querySelector('${pauseStart} select')`,
     );
     assert.equal(workspaceSettings()["editor.formatOnSave"], true);
     assert.equal(
@@ -1272,15 +1262,21 @@ export const reviewDashboard = async (
       `document.querySelector('${pauseReview} .primary')?.textContent === 'Apply'`,
     );
     await evaluate(`document.querySelector('${pauseReview} .primary').click()`);
+    const pauseMore = `${pauseActive} [aria-label="More pause actions"]`;
+    const pauseMenu = "#pause-actions";
+    const chooseKeepSettings = async () => {
+      await wait(`document.querySelector('${pauseMore}:not(:disabled)') &&
+        !document.querySelector('${pauseMenu}:popover-open')`);
+      await evaluate(`document.querySelector('${pauseMore}').click()`);
+      await wait(
+        `document.querySelector('${pauseMenu}:popover-open button:not(:disabled)')?.textContent === 'End pause and keep settings'`,
+      );
+      await evaluate(`document.querySelector('${pauseMenu} button').click()`);
+    };
+    await chooseKeepSettings();
     await wait(
-      `document.querySelector('${pauseActive} [aria-label="Keep settings and end pause"]:not(:disabled)')?.textContent === 'Keep settings'`,
-    );
-    await evaluate(
-      `document.querySelector('${pauseActive} button:last-child').click()`,
-    );
-    await wait(
-      `document.querySelector('${pauseReview} h2')?.textContent === 'Keep current settings and end pause?' &&
-      document.querySelector('${pauseReview} .primary')?.textContent === 'Keep settings' &&
+      `document.querySelector('${pauseReview} h2')?.textContent === 'End pause and keep settings?' &&
+      document.querySelector('${pauseReview} .primary')?.textContent === 'End pause' &&
       !document.querySelector('${pauseActive}')`,
     );
     await session.send("Target.detachFromTarget", { sessionId });
@@ -1297,16 +1293,25 @@ export const reviewDashboard = async (
       .click();
     await attachDashboard();
     await wait(`document.querySelector('h1').textContent === 'Profiles' &&
-      document.querySelector('${pauseActive} button:last-child:not(:disabled)') &&
+      document.querySelector('${pauseMore}:not(:disabled)') &&
       !document.querySelector('${pauseReview}')`);
     await evaluate(`window.addEventListener("message", ({data}) => {
       if (data?.type === "state") window.pickerTestState = data.state;
     });`);
+    await chooseKeepSettings();
+    await wait(
+      `document.querySelector('${pauseReview} .primary')?.textContent === 'End pause'`,
+    );
     await evaluate(
-      `document.querySelector('${pauseActive} button:last-child').click()`,
+      `document.querySelector('${pauseReview} .button-row button').click()`,
     );
     await wait(
-      `document.querySelector('${pauseReview} .primary')?.textContent === 'Keep settings'`,
+      `document.activeElement === document.querySelector('${pauseMore}') &&
+      !document.querySelector('${pauseReview}')`,
+    );
+    await chooseKeepSettings();
+    await wait(
+      `document.querySelector('${pauseReview} .primary')?.textContent === 'End pause'`,
     );
     await evaluate(`document.querySelector('${pauseReview} .primary').click()`);
     await wait(

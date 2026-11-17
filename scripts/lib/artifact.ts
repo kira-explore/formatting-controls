@@ -69,9 +69,9 @@ export const validateArtifact = (
     "commonjs",
   );
   for (const [name, limit] of [
-    ["extension/dist/extension.js", 132352],
+    ["extension/dist/extension.js", 132608],
     ["extension/dist/webview/dashboard.js", 393216],
-    ["extension/dist/webview/dashboard.css", 21504],
+    ["extension/dist/webview/dashboard.css", 21760],
   ] as const)
     assert.ok(
       (files.get(name)?.length ?? Infinity) <= limit,

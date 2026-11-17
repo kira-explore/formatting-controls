@@ -33,12 +33,12 @@ export const PauseReview = ({
   const resuming = action === "restore";
   const keeping = action === "discard";
   const title = keeping
-    ? "Keep current settings and end pause?"
+    ? "End pause and keep settings?"
     : resuming
       ? "Review resume"
       : "Review pause";
   const confirmLabel = keeping
-    ? "Keep settings"
+    ? "End pause"
     : resuming
       ? "Resume and restore settings"
       : "Apply pause";
@@ -56,7 +56,8 @@ export const PauseReview = ({
       {keeping ? (
         <p>
           Ending the pause here keeps your current settings, including any
-          formatting and save actions that are still off.
+          formatting and save actions that are still off. This discards the
+          saved settings from before the pause.
         </p>
       ) : changes.length > 0 ? (
         <div className="change-review">
@@ -115,13 +116,15 @@ export const WorkspacePause = ({
   reply,
 }: Props) => {
   const [chosen, setChosen] = useState<string>();
-  const [returnFocus, setReturnFocus] = useState(false);
+  const [returnFocus, setReturnFocus] = useState<"resume" | "more">();
   const scopeSelect = useRef<HTMLSelectElement>(null);
   const resumeButton = useRef<HTMLButtonElement>(null);
+  const moreButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!returnFocus || confirmation || pending) return;
-    (resumeButton.current ?? scopeSelect.current)?.focus();
-    setReturnFocus(false);
+    const trigger = returnFocus === "more" ? moreButton : resumeButton;
+    (trigger.current ?? scopeSelect.current)?.focus();
+    setReturnFocus(undefined);
   }, [confirmation, pending, returnFocus]);
 
   const defaultScope =
@@ -140,7 +143,7 @@ export const WorkspacePause = ({
         confirmation={confirmation}
         folders={state.folders}
         respond={(accepted) => {
-          setReturnFocus(true);
+          setReturnFocus(confirmation.action === "discard" ? "more" : "resume");
           reply(accepted);
         }}
       />
@@ -155,12 +158,35 @@ export const WorkspacePause = ({
     ]
       .filter(Boolean)
       .join(" and ");
-    const resume = (action: "restore" | "discard") => {
+    const endPause = (action: "restore" | "discard") => {
+      if (action === "restore") setReturnFocus("resume");
       onStart();
       send({ type: "profile", action, revision });
     };
     return (
       <section className="profile-list pause-active" aria-label="Current pause">
+        <button
+          type="button"
+          ref={moreButton}
+          className="pause-more"
+          aria-label="More pause actions"
+          title="More actions"
+          popoverTarget="pause-actions"
+          disabled={pending}
+        >
+          ⋯
+        </button>
+        <div id="pause-actions" popover="auto">
+          <button
+            type="button"
+            popoverTarget="pause-actions"
+            popoverTargetAction="hide"
+            disabled={pending}
+            onClick={() => endPause("discard")}
+          >
+            End pause and keep settings
+          </button>
+        </div>
         <span className="pause-status">
           {activePause.phase === "applied"
             ? "Pause active"
@@ -169,7 +195,7 @@ export const WorkspacePause = ({
         <h3>{pausedDestination(activePause.scope, state.folders)}</h3>
         <p>
           {activePause.phase !== "applied"
-            ? "Review the pause to see which settings can be restored."
+            ? "Resume to restore settings that still have their paused values."
             : counts
               ? `${counts} paused at this scope.`
               : "Formatting is paused at this scope."}
@@ -179,20 +205,10 @@ export const WorkspacePause = ({
             type="button"
             ref={resumeButton}
             className="primary"
-            title="Review which settings to restore"
             disabled={pending}
-            onClick={() => resume("restore")}
+            onClick={() => endPause("restore")}
           >
-            Resume
-          </button>
-          <button
-            type="button"
-            aria-label="Keep settings and end pause"
-            title="Keep settings and end pause"
-            disabled={pending}
-            onClick={() => resume("discard")}
-          >
-            Keep settings
+            {activePause.scope.target === "user" ? "Review resume" : "Resume"}
           </button>
         </div>
       </section>

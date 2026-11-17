@@ -1330,6 +1330,21 @@ body.vscode-high-contrast-light {
 .pause-status {
   color: var(--vscode-editorWarning-foreground, #e5c07b);
 }
+.pause-more {
+  float: right;
+  anchor-name: --pause-more;
+}
+#pause-actions {
+  position-anchor: --pause-more;
+  position-area: bottom span-left;
+  position-try-fallbacks: flip-block;
+  margin: 4px 0;
+  padding: 4px;
+  color: inherit;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
 
 .dashboard-confirmation {
   padding: 14px 16px;
