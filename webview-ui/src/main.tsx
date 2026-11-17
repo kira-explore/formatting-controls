@@ -19,7 +19,6 @@ import { Icon } from "./Icon";
 import { useEditor } from "./useEditor";
 import { WorkflowPages } from "./WorkflowPages";
 import { PauseReview, pausedDestination } from "./WorkspacePause";
-import "./styles.css";
 
 const focusConfirmation = (panel: HTMLElement | null) => panel?.focus();
 

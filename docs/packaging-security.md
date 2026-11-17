@@ -1,11 +1,12 @@
 # Packaging dependency security
 
-The committed lockfile uses vsce 4.1.0 with two temporary Bun overrides:
+The committed lockfile pins vsce 4.1.0 with these Bun overrides:
 
 ```json
 "overrides": {
   "@azure/identity@4.14.0>@azure/msal-node": "7.1.1",
-  "minimatch": "11.0.3"
+  "@vscode/vsce@4.1.0>tinyglobby": "file:./scripts/vsce-glob",
+  "minimatch": "11.0.9"
 }
 ```
 
@@ -21,9 +22,13 @@ Regression tests resolve Identity through the installed vsce package and MSAL th
 
 The exact parent/version selector confines the override to Identity 4.14.0. Remove it when the packaging dependency's supported range includes patched MSAL, then deliberately update the resolved-version assertion and rerun the compatibility suite.
 
+## File discovery
+
+[GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) affects the Picomatch releases used by Vite and vsce's Tinyglobby dependency. esbuild now builds the dashboard directly. For packaging, the version-scoped override maps vsce's Tinyglobby call to a local adapter backed by `glob` 14.0.6. The adapter translates the file-discovery options used by vsce 4.1.0. When updating vsce, recheck the replacement and verify the archive contents. Remove the adapter once the supported package tree resolves without the advisory.
+
 ## minimatch
 
-[GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) describes pattern amplification that can exhaust CPU/memory. Versions below 11.0.1 are affected; the project selects 11.0.3 instead of the 10.x version requested by packaging tooling.
+[GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249) describes pattern amplification that can exhaust CPU/memory. Versions below 11.0.1 are affected. The project selects 11.0.9, which also satisfies the range declared by `glob` 14.0.6.
 
 This override also crosses the parent's major-version range. Final VSIX packaging/content validation exercises the actual installed toolchain, but does not establish compatibility for every glob pattern or every upstream caller. Review all resolved minimatch consumers on dependency updates. Remove the override when their supported ranges select a patched version without it.
 
@@ -36,6 +41,6 @@ bun run security:check
 bun run package
 ```
 
-The Node 24 unit suite and Linux/macOS/Windows checks exercise packaging authentication compatibility. Packaging validates the final archive after vsce's build hook. Keep `package.json`, `bun.lock` and this rationale consistent whenever either override changes. [Bun's override documentation](https://bun.sh/docs/pm/overrides) describes the selector syntax.
+The Node 24 unit suite and Linux/macOS/Windows checks exercise packaging authentication compatibility. Packaging validates the final archive after vsce's build hook. Keep `package.json`, `bun.lock` and this rationale consistent whenever an override changes. [Bun's override documentation](https://bun.sh/docs/pm/overrides) describes the selector syntax.
 
 A clean audit resolves dependency findings only. Manual accessibility review and maintainer publication approval remain separate [release gates](releasing.md).

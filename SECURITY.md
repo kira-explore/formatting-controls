@@ -8,7 +8,7 @@ The extension is in development; no Marketplace release is configured by this re
 
 PR validation and release preparation require a clean, unfiltered bun audit. No advisory exceptions are allowed. Reports are uploaded as CI artifacts.
 
-GHSA-xcx6-jx8p-x3h5 is resolved by a temporary Bun override scoped to @azure/identity 4.14.0, selecting patched MSAL 7.1.1. This deliberately exceeds Identity's declared ^6.0.0 range and is backed by compatibility tests for the packaging tool's actual dependency pair. A minimatch 11.0.3 override also addresses the packaging dependency advisory GHSA-g3hv-75wg-m249. See [the reviewed rationale, tests, limitations and removal conditions](docs/packaging-security.md). No authentication dependency tree is shipped in the VSIX.
+GHSA-xcx6-jx8p-x3h5 is resolved by a temporary Bun override scoped to @azure/identity 4.14.0, selecting patched MSAL 7.1.1. This deliberately exceeds Identity's declared ^6.0.0 range and is backed by compatibility tests for the packaging tool's actual dependency pair. The minimatch 11.0.9 override addresses GHSA-g3hv-75wg-m249. The build and packaging dependency tree excludes Picomatch to address GHSA-fc5q-39xc-vjpf. See [the reviewed rationale, tests, limitations and removal conditions](docs/packaging-security.md). No authentication dependency tree is shipped in the VSIX.
 
 ## Boundaries reviewed
 
