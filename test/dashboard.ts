@@ -1279,18 +1279,6 @@ export const reviewDashboard = async (
     await wait(
       `document.querySelector('${pauseReview} .primary')?.textContent === 'Apply'`,
     );
-    await evaluate(`document.querySelector('${pauseReview} .primary').click()`);
-    const chooseKeepSettings = async () => {
-      await wait(`document.querySelector('${pauseEnd}:not(:disabled)')`);
-      await evaluate(`document.querySelector('${pauseEnd}').click()`);
-    };
-    await chooseKeepSettings();
-    await wait(
-      `document.querySelector('${pauseReview} h2')?.textContent === 'End pause and keep settings?' &&
-      document.querySelector('${pauseReview} .primary')?.textContent === 'End pause' &&
-      document.querySelectorAll('${pauseReview} > p').length === 1 &&
-      !document.querySelector('${pauseActive}')`,
-    );
     await session.send("Target.detachFromTarget", { sessionId });
     await page.keyboard.press(
       process.platform === "darwin" ? "Meta+n" : "Control+n",
@@ -1305,30 +1293,25 @@ export const reviewDashboard = async (
       .click();
     await attachDashboard();
     await wait(`document.querySelector('h1').textContent === 'Profiles' &&
-      document.querySelector('${pauseEnd}:not(:disabled)') &&
-      !document.querySelector('${pauseReview}')`);
+      document.querySelector('${pauseStart} button:not(:disabled)') &&
+      !document.querySelector('${pauseReview}, ${pauseActive}')`);
+    assert.equal(workspaceSettings()["editor.formatOnSave"], true);
     await evaluate(`window.addEventListener("message", ({data}) => {
       if (data?.type === "state") window.pickerTestState = data.state;
     });`);
-    await chooseKeepSettings();
+    await choose(`${pauseStart} select`, "");
+    await evaluate(`document.querySelector('${pauseStart} .primary').click()`);
     await wait(
-      `document.querySelector('${pauseReview} .primary')?.textContent === 'End pause'`,
-    );
-    await evaluate(
-      `document.querySelector('${pauseReview} .button-row button').click()`,
-    );
-    await wait(
-      `document.activeElement === document.querySelector('${pauseEnd}') &&
-      !document.querySelector('${pauseReview}')`,
-    );
-    await chooseKeepSettings();
-    await wait(
-      `document.querySelector('${pauseReview} .primary')?.textContent === 'End pause'`,
+      `document.querySelector('${pauseReview} .primary')?.textContent === 'Apply'`,
     );
     await evaluate(`document.querySelector('${pauseReview} .primary').click()`);
+    await wait(`document.querySelector('${pauseEnd}:not(:disabled)')`);
+    await evaluate(`document.querySelector('${pauseEnd}').click()`);
     await wait(
       `document.querySelector('.profile-pause [role=status]')?.textContent.includes('Current settings were kept') &&
-      document.querySelector('${pauseStart} button:not(:disabled)')`,
+      document.querySelector('${pauseStart} button:not(:disabled)') &&
+      !document.querySelector('${pauseActive}, ${pauseReview}') &&
+      document.activeElement === document.querySelector('${pauseStart} select')`,
     );
     assert.equal(workspaceSettings()["editor.formatOnSave"], false);
     assert.equal(

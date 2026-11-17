@@ -10,7 +10,7 @@ import type { Recovery } from "../../shared/workflows";
 import { ChangeReview } from "./ChangeReview";
 
 export type PauseConfirmation = Extract<Response, { type: "confirmation" }> & {
-  action: "pause" | "restore" | "discard";
+  action: "pause" | "restore";
 };
 
 const focusReview = (panel: HTMLElement | null) => panel?.focus();
@@ -31,17 +31,8 @@ export const PauseReview = ({
 }) => {
   const { action, changes } = confirmation;
   const resuming = action === "restore";
-  const keeping = action === "discard";
-  const title = keeping
-    ? "End pause and keep settings?"
-    : resuming
-      ? "Review resume"
-      : "Review pause";
-  const confirmLabel = keeping
-    ? "End pause"
-    : resuming
-      ? "Resume and restore settings"
-      : "Apply pause";
+  const title = resuming ? "Review resume" : "Review pause";
+  const confirmLabel = resuming ? "Resume and restore settings" : "Apply pause";
   const canConfirm = action !== "pause" || changes.length > 0;
   return (
     <section
@@ -53,18 +44,17 @@ export const PauseReview = ({
     >
       <h2>{title}</h2>
       <p>{pausedDestination(confirmation.scope, folders)}</p>
-      {!keeping &&
-        (changes.length > 0 ? (
-          <div className="change-review">
-            <ChangeReview changes={changes} friendlyActions />
-          </div>
-        ) : (
-          <p>
-            {resuming
-              ? "There are no settings to restore."
-              : "These preferences already match the selected scope."}
-          </p>
-        ))}
+      {changes.length > 0 ? (
+        <div className="change-review">
+          <ChangeReview changes={changes} friendlyActions />
+        </div>
+      ) : (
+        <p>
+          {resuming
+            ? "There are no settings to restore."
+            : "These preferences already match the selected scope."}
+        </p>
+      )}
       {resuming && (
         <p>Settings edited during the pause keep their newer values.</p>
       )}
@@ -138,7 +128,7 @@ export const WorkspacePause = ({
         confirmation={confirmation}
         folders={state.folders}
         respond={(accepted) => {
-          setReturnFocus(confirmation.action === "discard" ? "end" : "resume");
+          setReturnFocus("resume");
           reply(accepted);
         }}
       />
@@ -156,7 +146,7 @@ export const WorkspacePause = ({
       .filter(Boolean)
       .join(" and ");
     const endPause = (action: "restore" | "discard") => {
-      if (action === "restore") setReturnFocus("resume");
+      setReturnFocus(action === "restore" ? "resume" : "end");
       onStart();
       send({ type: "profile", action, revision });
     };

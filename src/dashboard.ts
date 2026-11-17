@@ -631,7 +631,7 @@ export class Dashboard implements vscode.Disposable {
             case "discard":
               message = await this.workflows.discard(
                 request.restoreId,
-                confirm,
+                request.restoreId ? confirm : null,
               );
               break;
           }

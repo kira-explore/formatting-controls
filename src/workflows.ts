@@ -705,12 +705,15 @@ export class Workflows implements vscode.Disposable {
   }
   async discard(
     id?: string,
-    confirm = this.confirm,
+    confirm: Confirm | null = this.confirm,
   ): Promise<string | undefined> {
     return this.exclusive(async () => {
       const journal = this.journal(id);
       if (!journal) return "No restore point is saved.";
+      if (!confirm && journal.kind !== "pause")
+        throw new Error("There is no active pause.");
       if (
+        confirm &&
         !(await confirm(
           journal.kind === "pause"
             ? "Keep current settings and discard this restore point?"
