@@ -1116,7 +1116,7 @@ export const reviewDashboard = async (
     const pauseReview = ".profile-pause > section.dashboard-confirmation";
     const pauseStart = ".profile-pause .pause-scope";
     const pauseActive = ".profile-pause .pause-active";
-    const pauseEnd = `${pauseActive} .end-pause-button`;
+    const pauseEnd = `${pauseActive} button[aria-label="Keep current settings"]`;
     await wait(
       "document.querySelector('.profile-pause select:not(:disabled)')",
     );
@@ -1250,7 +1250,7 @@ export const reviewDashboard = async (
       `document.querySelector('${pauseReview} h2')?.textContent === 'Review resume' &&
       document.querySelector('${pauseReview} thead th:last-child')?.textContent === 'After resume' &&
       document.querySelectorAll('${pauseReview} tbody tr').length > 1 &&
-      document.querySelector('${pauseReview} .primary')?.textContent === 'Resume and restore settings'`,
+      document.querySelector('${pauseReview} .primary')?.textContent === 'Restore'`,
     );
     assert.equal(workspaceSettings()["editor.formatOnSave"], false);
     await evaluate(`document.querySelector('${pauseReview} .primary').click()`);
@@ -1296,13 +1296,15 @@ export const reviewDashboard = async (
       `document.querySelector('${pauseReview} .primary')?.textContent === 'Apply'`,
     );
     await evaluate(`document.querySelector('${pauseReview} .primary').click()`);
-    await wait(`document.querySelector('${pauseEnd}:not(:disabled)')`);
+    await wait(
+      `document.querySelector('${pauseEnd}:not(:disabled)')?.textContent === 'Keep'`,
+    );
     await evaluate(`document.querySelector('${pauseEnd}').click()`);
     await wait(
-      `document.querySelector('${pauseReview} h2')?.textContent === 'Review end pause' &&
-      document.querySelector('${pauseReview}').textContent.includes('discards the saved settings') &&
+      `document.querySelector('${pauseReview} h2')?.textContent === 'Keep current settings?' &&
+      document.querySelector('${pauseReview}').textContent.includes('discards the saved pre-pause settings') &&
       !document.querySelector('${pauseReview} table') &&
-      document.querySelector('${pauseReview} .primary')?.textContent === 'End pause and keep settings'`,
+      document.querySelector('${pauseReview} .primary')?.textContent === 'End'`,
     );
     await evaluate(
       `document.querySelector('${pauseReview} .button-row button').click()`,
@@ -1313,7 +1315,7 @@ export const reviewDashboard = async (
     );
     await evaluate(`document.querySelector('${pauseEnd}').click()`);
     await wait(
-      `document.querySelector('${pauseReview} .primary')?.textContent === 'End pause and keep settings'`,
+      `document.querySelector('${pauseReview} .primary')?.textContent === 'End'`,
     );
     await evaluate(`document.querySelector('${pauseReview} .primary').click()`);
     await wait(

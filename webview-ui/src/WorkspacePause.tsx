@@ -24,24 +24,23 @@ export const PauseReview = ({
   confirmation,
   folders,
   respond,
+  fromProfiles = false,
 }: {
   confirmation: PauseConfirmation;
   folders: Snapshot["folders"];
   respond: (accepted: boolean) => void;
+  fromProfiles?: boolean;
 }) => {
   const { action, changes } = confirmation;
   const resuming = action === "restore";
   const ending = action === "discard";
   const title = ending
-    ? "Review end pause"
+    ? "Keep current settings?"
     : resuming
       ? "Review resume"
       : "Review pause";
-  const confirmLabel = ending
-    ? "End pause and keep settings"
-    : resuming
-      ? "Resume and restore settings"
-      : "Apply pause";
+  const restoreLabel = fromProfiles ? "Restore" : "Resume and restore settings";
+  const confirmLabel = ending ? "End" : resuming ? restoreLabel : "Apply pause";
   const canConfirm = action !== "pause" || changes.length > 0;
   return (
     <section
@@ -57,13 +56,13 @@ export const PauseReview = ({
         <p>
           Resume restores the previous values for settings that still match what
           the pause set. Settings with different values are kept.
+          {fromProfiles && " Restoring these settings ends the pause."}
         </p>
       )}
       {ending ? (
         <p>
-          Keep your current settings, including any formatting and save actions
-          that are still off. This discards the saved settings from before the
-          pause.
+          Formatting and save actions that are off stay off. This ends the pause
+          and discards the saved pre-pause settings.
         </p>
       ) : changes.length > 0 ? (
         <div className="change-review">
@@ -88,7 +87,13 @@ export const PauseReview = ({
           <button
             type="button"
             className="primary"
-            aria-label={action === "pause" ? confirmLabel : undefined}
+            aria-label={
+              ending
+                ? "End pause and keep settings"
+                : action === "pause"
+                  ? confirmLabel
+                  : undefined
+            }
             onClick={() => respond(true)}
           >
             {action === "pause" ? "Apply" : confirmLabel}
@@ -149,6 +154,7 @@ export const WorkspacePause = ({
       <PauseReview
         confirmation={confirmation}
         folders={state.folders}
+        fromProfiles
         respond={(accepted) => {
           setReturnFocus(confirmation.action === "discard" ? "end" : "resume");
           reply(accepted);
@@ -198,11 +204,11 @@ export const WorkspacePause = ({
           <button
             type="button"
             ref={endButton}
-            className="end-pause-button"
+            aria-label="Keep current settings"
             disabled={pending}
             onClick={() => endPause("discard")}
           >
-            End pause
+            Keep
           </button>
         </div>
       </section>
