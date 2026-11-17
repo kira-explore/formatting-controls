@@ -10,7 +10,7 @@ import type { Recovery } from "../../shared/workflows";
 import { ChangeReview } from "./ChangeReview";
 
 export type PauseConfirmation = Extract<Response, { type: "confirmation" }> & {
-  action: "pause" | "restore";
+  action: "pause" | "restore" | "discard";
 };
 
 const focusReview = (panel: HTMLElement | null) => panel?.focus();
@@ -31,8 +31,17 @@ export const PauseReview = ({
 }) => {
   const { action, changes } = confirmation;
   const resuming = action === "restore";
-  const title = resuming ? "Review resume" : "Review pause";
-  const confirmLabel = resuming ? "Resume and restore settings" : "Apply pause";
+  const ending = action === "discard";
+  const title = ending
+    ? "Review end pause"
+    : resuming
+      ? "Review resume"
+      : "Review pause";
+  const confirmLabel = ending
+    ? "End pause and keep settings"
+    : resuming
+      ? "Resume and restore settings"
+      : "Apply pause";
   const canConfirm = action !== "pause" || changes.length > 0;
   return (
     <section
@@ -44,9 +53,25 @@ export const PauseReview = ({
     >
       <h2>{title}</h2>
       <p>{pausedDestination(confirmation.scope, folders)}</p>
-      {changes.length > 0 ? (
+      {resuming && (
+        <p>
+          Resume restores the previous values for settings that still match what
+          the pause set. Settings with different values are kept.
+        </p>
+      )}
+      {ending ? (
+        <p>
+          Keep your current settings, including any formatting and save actions
+          that are still off. This discards the saved settings from before the
+          pause.
+        </p>
+      ) : changes.length > 0 ? (
         <div className="change-review">
-          <ChangeReview changes={changes} friendlyActions />
+          <ChangeReview
+            changes={changes}
+            friendlyActions
+            proposedHeading={resuming ? "After resume" : undefined}
+          />
         </div>
       ) : (
         <p>
@@ -54,9 +79,6 @@ export const PauseReview = ({
             ? "There are no settings to restore."
             : "These preferences already match the selected scope."}
         </p>
-      )}
-      {resuming && (
-        <p>Settings edited during the pause keep their newer values.</p>
       )}
       <div className="button-row">
         <button type="button" onClick={() => respond(false)}>
@@ -128,7 +150,7 @@ export const WorkspacePause = ({
         confirmation={confirmation}
         folders={state.folders}
         respond={(accepted) => {
-          setReturnFocus("resume");
+          setReturnFocus(confirmation.action === "discard" ? "end" : "resume");
           reply(accepted);
         }}
       />
@@ -136,8 +158,6 @@ export const WorkspacePause = ({
   }
 
   if (activePause) {
-    const resumeLabel =
-      activePause.scope.target === "user" ? "Review resume" : "Resume";
     const { formatting = 0, saveActions = 0 } = activePause.pauseChanges ?? {};
     const counts = [
       formatting ? countLabel(formatting, "automatic formatting setting") : "",
@@ -165,33 +185,20 @@ export const WorkspacePause = ({
               ? `${counts} paused at this scope.`
               : "Formatting is paused at this scope."}
         </p>
-        <div className="pause-guidance">
-          <p id="pause-resume-help">
-            {resumeLabel === "Resume"
-              ? "Resume restores the settings changed by the pause to their previous values. Any edits you made during the pause are kept."
-              : "Review resume shows which settings can be restored. Any edits you made during the pause are kept."}
-          </p>
-          <p id="pause-end-help">
-            Ending the pause here keeps your current settings, including any
-            formatting and save actions that are still off. This discards the
-            saved settings from before the pause.
-          </p>
-        </div>
         <div className="button-row">
           <button
             type="button"
             ref={resumeButton}
             className="primary"
-            aria-describedby="pause-resume-help"
             disabled={pending}
             onClick={() => endPause("restore")}
           >
-            {resumeLabel}
+            Resume
           </button>
           <button
             type="button"
             ref={endButton}
-            aria-describedby="pause-end-help"
+            className="end-pause-button"
             disabled={pending}
             onClick={() => endPause("discard")}
           >

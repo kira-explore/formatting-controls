@@ -1330,13 +1330,6 @@ body.vscode-high-contrast-light {
 .pause-status {
   color: var(--vscode-editorWarning-foreground, #e5c07b);
 }
-.pause-guidance p {
-  margin: 0;
-}
-.pause-guidance p + p {
-  margin-top: 8px;
-}
-
 .dashboard-confirmation {
   padding: 14px 16px;
   margin: 12px 0;

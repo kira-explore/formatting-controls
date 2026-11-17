@@ -1116,7 +1116,7 @@ export const reviewDashboard = async (
     const pauseReview = ".profile-pause > section.dashboard-confirmation";
     const pauseStart = ".profile-pause .pause-scope";
     const pauseActive = ".profile-pause .pause-active";
-    const pauseEnd = `${pauseActive} button[aria-describedby="pause-end-help"]`;
+    const pauseEnd = `${pauseActive} .end-pause-button`;
     await wait(
       "document.querySelector('.profile-pause select:not(:disabled)')",
     );
@@ -1245,24 +1245,15 @@ export const reviewDashboard = async (
     await wait(
       `document.querySelector('${pauseActive} .primary:not(:disabled)')?.textContent === 'Resume'`,
     );
-    assert.ok(
-      await evaluate<boolean>(`(() => {
-        const resumeHelp = document.querySelector('#pause-resume-help');
-        const endHelp = document.querySelector('#pause-end-help');
-        const resume = document.querySelector('${pauseActive} .primary');
-        const end = document.querySelector('${pauseEnd}');
-        const bounds = element => element.getBoundingClientRect();
-        return resume.getAttribute('aria-describedby') === resumeHelp.id &&
-          resumeHelp.textContent.includes('Any edits you made during the pause are kept.') &&
-          endHelp.textContent.includes('This discards the saved settings from before the pause.') &&
-          end.textContent === 'End pause' &&
-          bounds(resumeHelp).bottom <= bounds(endHelp).top &&
-          bounds(endHelp).bottom <= bounds(resume).top &&
-          bounds(resume).top === bounds(end).top;
-      })()`),
-      "Each pause action should have its own line of help above the two buttons",
-    );
     await evaluate(`document.querySelector('${pauseActive} .primary').click()`);
+    await wait(
+      `document.querySelector('${pauseReview} h2')?.textContent === 'Review resume' &&
+      document.querySelector('${pauseReview} thead th:last-child')?.textContent === 'After resume' &&
+      document.querySelectorAll('${pauseReview} tbody tr').length > 1 &&
+      document.querySelector('${pauseReview} .primary')?.textContent === 'Resume and restore settings'`,
+    );
+    assert.equal(workspaceSettings()["editor.formatOnSave"], false);
+    await evaluate(`document.querySelector('${pauseReview} .primary').click()`);
     await wait(
       `document.querySelector('.profile-pause [role=status]')?.textContent.includes('Resumed. Previous settings restored for ') &&
       document.querySelector('${pauseStart} button:not(:disabled)') &&
@@ -1307,6 +1298,24 @@ export const reviewDashboard = async (
     await evaluate(`document.querySelector('${pauseReview} .primary').click()`);
     await wait(`document.querySelector('${pauseEnd}:not(:disabled)')`);
     await evaluate(`document.querySelector('${pauseEnd}').click()`);
+    await wait(
+      `document.querySelector('${pauseReview} h2')?.textContent === 'Review end pause' &&
+      document.querySelector('${pauseReview}').textContent.includes('discards the saved settings') &&
+      !document.querySelector('${pauseReview} table') &&
+      document.querySelector('${pauseReview} .primary')?.textContent === 'End pause and keep settings'`,
+    );
+    await evaluate(
+      `document.querySelector('${pauseReview} .button-row button').click()`,
+    );
+    await wait(
+      `!document.querySelector('${pauseReview}') &&
+      document.activeElement === document.querySelector('${pauseEnd}:not(:disabled)')`,
+    );
+    await evaluate(`document.querySelector('${pauseEnd}').click()`);
+    await wait(
+      `document.querySelector('${pauseReview} .primary')?.textContent === 'End pause and keep settings'`,
+    );
+    await evaluate(`document.querySelector('${pauseReview} .primary').click()`);
     await wait(
       `document.querySelector('.profile-pause [role=status]')?.textContent.includes('Current settings were kept') &&
       document.querySelector('${pauseStart} button:not(:disabled)') &&

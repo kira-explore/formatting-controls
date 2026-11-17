@@ -27,16 +27,18 @@ function reviewLabel(
 export const ChangeReview = ({
   changes,
   friendlyActions = false,
+  proposedHeading = "Proposed",
 }: {
   changes: readonly Change[];
   friendlyActions?: boolean;
+  proposedHeading?: string | undefined;
 }) => (
   <table>
     <thead>
       <tr>
         <th scope="col">Setting</th>
         <th scope="col">Current at scope</th>
-        <th scope="col">Proposed</th>
+        <th scope="col">{proposedHeading}</th>
       </tr>
     </thead>
     <tbody>

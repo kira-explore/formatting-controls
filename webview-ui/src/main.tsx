@@ -698,7 +698,7 @@ const App = () => {
               pauseConfirmation={
                 confirmation?.workspacePause
                   ? { ...confirmation, action: "pause" }
-                  : confirmation?.restoreRequest?.action === "restore" &&
+                  : confirmation?.restoreRequest &&
                       !confirmation.restoreRequest.id
                     ? {
                         ...confirmation,

@@ -642,21 +642,25 @@ export class Workflows implements vscode.Disposable {
   async restore(id?: string, confirm = this.confirm): Promise<string> {
     return this.restoreSaved(true, id, confirm);
   }
-  async resumePause(confirm?: Confirm): Promise<string> {
-    return this.restoreSaved(!!confirm, undefined, confirm, true);
+  async resumePause(
+    confirm?: Confirm,
+    origin: "workspace" | "profiles" = "workspace",
+  ): Promise<string> {
+    return this.restoreSaved(!!confirm, undefined, confirm, origin);
   }
   private async restoreSaved(
     review: boolean,
     id?: string,
     confirm = this.confirm,
-    pauseOnly = false,
+    pauseOrigin?: "workspace" | "profiles",
   ): Promise<string> {
     return this.exclusive(async () => {
       const journal = this.journal(id);
       if (!journal) return "No restore point is saved for this workspace.";
       if (
-        pauseOnly &&
-        (journal.kind !== "pause" || journal.scope.target === "user")
+        pauseOrigin &&
+        (journal.kind !== "pause" ||
+          (pauseOrigin === "workspace" && journal.scope.target === "user"))
       )
         throw new Error("Open the dashboard to review this restore point.");
       await waitForSettingsSave(this.journalSelection(journal));
@@ -679,7 +683,7 @@ export class Workflows implements vscode.Disposable {
       )
         return "Restore cancelled. Current preferences were kept.";
       const conflicts = await restoreBatch(journal, port, reviewed);
-      if (!review && conflicts) {
+      if (conflicts && (!review || pauseOrigin === "profiles")) {
         // Resume has finished restoring unchanged settings. Values edited
         // during the pause are now the user's current preferences, not pending
         // work: keeping this record would make every later Pause run Resume.
@@ -705,15 +709,15 @@ export class Workflows implements vscode.Disposable {
   }
   async discard(
     id?: string,
-    confirm: Confirm | null = this.confirm,
+    confirm = this.confirm,
+    pauseOnly = false,
   ): Promise<string | undefined> {
     return this.exclusive(async () => {
       const journal = this.journal(id);
       if (!journal) return "No restore point is saved.";
-      if (!confirm && journal.kind !== "pause")
+      if (pauseOnly && journal.kind !== "pause")
         throw new Error("There is no active pause.");
       if (
-        confirm &&
         !(await confirm(
           journal.kind === "pause"
             ? "Keep current settings and discard this restore point?"

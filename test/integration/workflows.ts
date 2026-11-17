@@ -304,7 +304,10 @@ export const runWorkflowTests = async (
     });
     await workflows.apply("TSX Project", selection, scope);
     await assert.rejects(workflows.resumePause(), /dashboard/);
-    await assert.rejects(workflows.discard(undefined, null), /no active pause/);
+    await assert.rejects(
+      workflows.discard(undefined, undefined, true),
+      /no active pause/,
+    );
     assert.equal(workflows.recovery()?.kind, "profile");
     assert.equal(own(selection, "editor.formatOnSave"), true);
     assert.equal(
@@ -359,7 +362,17 @@ export const runWorkflowTests = async (
       "source.fixAll.biome": "always",
       "source.fixAll.custom": "explicit",
     });
-    await reloaded.restore();
+    await write(selection, "editor.formatOnPaste", true);
+    await write(selection, "editor.formatOnPaste", false);
+    await reloaded.resumePause(async (_title, preview) => {
+      assert.ok(
+        preview.some((change) => change.key === "editor.formatOnPaste"),
+      );
+      assert.ok(
+        preview.every((change) => change.action !== "source.fixAll.biome"),
+      );
+      return true;
+    }, "profiles");
     assert.equal(own(selection, "editor.formatOnSave"), true);
     assert.equal(own(selection, "editor.formatOnPaste"), true);
     const resumed = own(selection, "editor.codeActionsOnSave") as Record<
@@ -369,8 +382,7 @@ export const runWorkflowTests = async (
     assert.equal(resumed["source.fixAll.biome"], "always");
     assert.equal(resumed["source.organizeImports"], "always");
     assert.equal(resumed["source.fixAll.custom"], "explicit");
-    assert.equal(reloaded.recovery()?.phase, "conflicts");
-    await reloaded.discard();
+    assert.equal(reloaded.recovery(), null);
     await assert.rejects(
       reloaded.pause(
         { ...selection, target: vscode.ConfigurationTarget.Global },

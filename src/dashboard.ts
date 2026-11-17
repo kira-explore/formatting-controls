@@ -622,16 +622,15 @@ export class Dashboard implements vscode.Disposable {
               message = await this.workflows.import(this.scope, confirm);
               break;
             case "restore":
-              message =
-                request.restoreId ||
-                this.workflows.journal()?.scope.target === "user"
-                  ? await this.workflows.restore(request.restoreId, confirm)
-                  : await this.workflows.resumePause();
+              message = request.restoreId
+                ? await this.workflows.restore(request.restoreId, confirm)
+                : await this.workflows.resumePause(confirm, "profiles");
               break;
             case "discard":
               message = await this.workflows.discard(
                 request.restoreId,
-                request.restoreId ? confirm : null,
+                confirm,
+                !request.restoreId,
               );
               break;
           }
