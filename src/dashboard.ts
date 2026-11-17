@@ -38,7 +38,7 @@ export class Dashboard implements vscode.Disposable {
     return (title, changes, scope, applyBlocked) =>
       new Promise<boolean>((resolve) => {
         const panel = this.panel;
-        if (!panel) {
+        if (!panel?.visible) {
           resolve(false);
           return;
         }
@@ -155,30 +155,34 @@ export class Dashboard implements vscode.Disposable {
     const css = panel.webview.asWebviewUri(
       vscode.Uri.joinPath(root, "dashboard.css"),
     );
-    panel.webview.html = `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src ${panel.webview.cspSource}; font-src ${panel.webview.cspSource}; img-src ${panel.webview.cspSource};"><title>Formatting Controls</title><link rel="stylesheet" href="${css}"></head><body><div id="root"></div><script nonce="${nonce}" type="module" src="${js}"></script></body></html>`;
     this.listeners = [
       panel.webview.onDidReceiveMessage((raw: unknown) => {
         if (this.panel !== panel) return;
-        if (
-          raw &&
-          typeof raw === "object" &&
-          "type" in raw &&
-          raw.type === "confirmationReply"
-        ) {
-          const confirmation = this.confirmation;
-          if (
-            confirmation &&
-            "token" in raw &&
-            raw.token === confirmation.token &&
-            "accepted" in raw &&
-            typeof raw.accepted === "boolean"
-          )
-            confirmation.finish(raw.accepted);
-          return;
+        if (raw && typeof raw === "object" && "type" in raw) {
+          if (raw.type === "ready") {
+            // A new webview must connect even if a hidden view left work queued.
+            void this.handle(raw);
+            return;
+          }
+          if (raw.type === "confirmationReply") {
+            const confirmation = this.confirmation;
+            if (
+              confirmation &&
+              "token" in raw &&
+              raw.token === confirmation.token &&
+              "accepted" in raw &&
+              typeof raw.accepted === "boolean"
+            )
+              confirmation.finish(raw.accepted);
+            return;
+          }
         }
         this.queue = this.queue
           .then(() => (this.panel === panel ? this.handle(raw) : undefined))
           .catch(() => undefined);
+      }),
+      panel.onDidChangeViewState(() => {
+        if (!panel.visible) this.confirmation?.finish(false);
       }),
       vscode.workspace.onDidChangeConfiguration(() => {
         this.revision++;
@@ -246,6 +250,7 @@ export class Dashboard implements vscode.Disposable {
         for (const listener of this.listeners.splice(0)) listener.dispose();
       }),
     ];
+    panel.webview.html = `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src ${panel.webview.cspSource}; font-src ${panel.webview.cspSource}; img-src ${panel.webview.cspSource};"><title>Formatting Controls</title><link rel="stylesheet" href="${css}"></head><body><div id="root"></div><script nonce="${nonce}" type="module" src="${js}"></script></body></html>`;
   }
   private selection(scope: Scope): Selection {
     const folder = scope.folder
@@ -424,12 +429,15 @@ export class Dashboard implements vscode.Disposable {
     try {
       request = parseRequest(raw);
       if (request.type === "ready") {
+        this.confirmation?.finish(false);
         this.reconcileScope();
+        const scope = this.scope;
         if (
-          this.scope.language &&
-          !(await vscode.languages.getLanguages()).includes(this.scope.language)
+          scope.language &&
+          !(await vscode.languages.getLanguages()).includes(scope.language) &&
+          this.scope === scope
         ) {
-          this.scope = { ...this.scope };
+          this.scope = { ...scope };
           delete this.scope.language;
           this.revision++;
         }

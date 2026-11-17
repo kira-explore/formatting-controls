@@ -69,7 +69,7 @@ export const validateArtifact = (
     "commonjs",
   );
   for (const [name, limit] of [
-    ["extension/dist/extension.js", 132096],
+    ["extension/dist/extension.js", 132352],
     ["extension/dist/webview/dashboard.js", 393216],
     ["extension/dist/webview/dashboard.css", 21504],
   ] as const)
