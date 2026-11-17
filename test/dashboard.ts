@@ -1253,6 +1253,8 @@ export const reviewDashboard = async (
         const end = document.querySelector('${pauseEnd}');
         const bounds = element => element.getBoundingClientRect();
         return resume.getAttribute('aria-describedby') === resumeHelp.id &&
+          resumeHelp.textContent.includes('Any edits you made during the pause are kept.') &&
+          endHelp.textContent.includes('This discards the saved settings from before the pause.') &&
           end.textContent === 'End pause' &&
           bounds(resumeHelp).bottom <= bounds(endHelp).top &&
           bounds(endHelp).bottom <= bounds(resume).top &&
@@ -1286,6 +1288,7 @@ export const reviewDashboard = async (
     await wait(
       `document.querySelector('${pauseReview} h2')?.textContent === 'End pause and keep settings?' &&
       document.querySelector('${pauseReview} .primary')?.textContent === 'End pause' &&
+      document.querySelectorAll('${pauseReview} > p').length === 1 &&
       !document.querySelector('${pauseActive}')`,
     );
     await session.send("Target.detachFromTarget", { sessionId });

@@ -53,23 +53,18 @@ export const PauseReview = ({
     >
       <h2>{title}</h2>
       <p>{pausedDestination(confirmation.scope, folders)}</p>
-      {keeping ? (
-        <p>
-          Ending the pause here keeps your current settings, including any
-          formatting and save actions that are still off. This discards the
-          saved settings from before the pause.
-        </p>
-      ) : changes.length > 0 ? (
-        <div className="change-review">
-          <ChangeReview changes={changes} friendlyActions />
-        </div>
-      ) : (
-        <p>
-          {resuming
-            ? "There are no settings to restore."
-            : "These preferences already match the selected scope."}
-        </p>
-      )}
+      {!keeping &&
+        (changes.length > 0 ? (
+          <div className="change-review">
+            <ChangeReview changes={changes} friendlyActions />
+          </div>
+        ) : (
+          <p>
+            {resuming
+              ? "There are no settings to restore."
+              : "These preferences already match the selected scope."}
+          </p>
+        ))}
       {resuming && (
         <p>Settings edited during the pause keep their newer values.</p>
       )}
@@ -182,14 +177,14 @@ export const WorkspacePause = ({
         </p>
         <div className="pause-guidance">
           <p id="pause-resume-help">
-            <strong>{resumeLabel}</strong>{" "}
             {resumeLabel === "Resume"
-              ? "restores the settings changed by the pause and keeps your edits."
-              : "shows which settings can be restored."}
+              ? "Resume restores the settings changed by the pause to their previous values. Any edits you made during the pause are kept."
+              : "Review resume shows which settings can be restored. Any edits you made during the pause are kept."}
           </p>
           <p id="pause-end-help">
-            <strong>End pause</strong> keeps the current settings, including
-            anything the pause turned off.
+            Ending the pause here keeps your current settings, including any
+            formatting and save actions that are still off. This discards the
+            saved settings from before the pause.
           </p>
         </div>
         <div className="button-row">
