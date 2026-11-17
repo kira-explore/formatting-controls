@@ -1,0 +1,10 @@
+{
+  "name": "@formatting-controls/vsce-glob",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": "./index.js",
+  "dependencies": {
+    "glob": "14.0.6"
+  }
+}

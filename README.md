@@ -168,7 +168,7 @@ The development VSIX can be installed locally. PR and release checks require a c
 
 **Package manager:** Bun 1.4.4 with a committed `bun.lock`. **Node.js:** use the latest patch of Node 24 LTS for development. CI, Node type declarations and host/test bundle targets use the 24.x line. Tool versions are declared in `package.json`.
 
-All authored scripts use TypeScript and ES imports. The dashboard uses React and Vite; Biome handles formatting, linting, and import organization. The extension host is bundled separately, and dashboard assets load only when requested.
+The dashboard uses React. esbuild bundles the extension host and dashboard separately, and dashboard assets load only when requested. Biome handles formatting, linting, and import organization.
 
 ```sh
 bun run typecheck       # Host and dashboard types
