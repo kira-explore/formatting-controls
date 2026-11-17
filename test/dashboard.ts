@@ -1116,6 +1116,7 @@ export const reviewDashboard = async (
     const pauseReview = ".profile-pause > section.dashboard-confirmation";
     const pauseStart = ".profile-pause .pause-scope";
     const pauseActive = ".profile-pause .pause-active";
+    const pauseEnd = `${pauseActive} button[aria-describedby="pause-end-help"]`;
     await wait(
       "document.querySelector('.profile-pause select:not(:disabled)')",
     );
@@ -1244,6 +1245,21 @@ export const reviewDashboard = async (
     await wait(
       `document.querySelector('${pauseActive} .primary:not(:disabled)')?.textContent === 'Resume'`,
     );
+    assert.ok(
+      await evaluate<boolean>(`(() => {
+        const resumeHelp = document.querySelector('#pause-resume-help');
+        const endHelp = document.querySelector('#pause-end-help');
+        const resume = document.querySelector('${pauseActive} .primary');
+        const end = document.querySelector('${pauseEnd}');
+        const bounds = element => element.getBoundingClientRect();
+        return resume.getAttribute('aria-describedby') === resumeHelp.id &&
+          end.textContent === 'End pause' &&
+          bounds(resumeHelp).bottom <= bounds(endHelp).top &&
+          bounds(endHelp).bottom <= bounds(resume).top &&
+          bounds(resume).top === bounds(end).top;
+      })()`),
+      "Each pause action should have its own line of help above the two buttons",
+    );
     await evaluate(`document.querySelector('${pauseActive} .primary').click()`);
     await wait(
       `document.querySelector('.profile-pause [role=status]')?.textContent.includes('Resumed. Previous settings restored for ') &&
@@ -1262,16 +1278,9 @@ export const reviewDashboard = async (
       `document.querySelector('${pauseReview} .primary')?.textContent === 'Apply'`,
     );
     await evaluate(`document.querySelector('${pauseReview} .primary').click()`);
-    const pauseMore = `${pauseActive} [aria-label="More pause actions"]`;
-    const pauseMenu = "#pause-actions";
     const chooseKeepSettings = async () => {
-      await wait(`document.querySelector('${pauseMore}:not(:disabled)') &&
-        !document.querySelector('${pauseMenu}:popover-open')`);
-      await evaluate(`document.querySelector('${pauseMore}').click()`);
-      await wait(
-        `document.querySelector('${pauseMenu}:popover-open button:not(:disabled)')?.textContent === 'End pause and keep settings'`,
-      );
-      await evaluate(`document.querySelector('${pauseMenu} button').click()`);
+      await wait(`document.querySelector('${pauseEnd}:not(:disabled)')`);
+      await evaluate(`document.querySelector('${pauseEnd}').click()`);
     };
     await chooseKeepSettings();
     await wait(
@@ -1293,7 +1302,7 @@ export const reviewDashboard = async (
       .click();
     await attachDashboard();
     await wait(`document.querySelector('h1').textContent === 'Profiles' &&
-      document.querySelector('${pauseMore}:not(:disabled)') &&
+      document.querySelector('${pauseEnd}:not(:disabled)') &&
       !document.querySelector('${pauseReview}')`);
     await evaluate(`window.addEventListener("message", ({data}) => {
       if (data?.type === "state") window.pickerTestState = data.state;
@@ -1306,7 +1315,7 @@ export const reviewDashboard = async (
       `document.querySelector('${pauseReview} .button-row button').click()`,
     );
     await wait(
-      `document.activeElement === document.querySelector('${pauseMore}') &&
+      `document.activeElement === document.querySelector('${pauseEnd}') &&
       !document.querySelector('${pauseReview}')`,
     );
     await chooseKeepSettings();

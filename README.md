@@ -154,7 +154,7 @@ Choose a scope and optional language first. **Save** captures only explicit valu
 
 **Import** saves a validated version 1 profile without applying it. **Export** uses a native file picker. Profile files contain formatting preferences, not workspace paths. Language-specific profiles require selecting the same language before applying.
 
-In **Workspace pause**, choose a workspace or folder and select **Review** to see the formatting flags and save actions that will change. Higher-priority overrides may still run. The pause persists across reloads. **Resume** ends it immediately, restoring settings changed by the pause while preserving edits you made during it. To leave the current values in place, open **More actions**, select **End pause and keep settings**, and confirm.
+In **Workspace pause**, choose a workspace or folder and select **Review** to see the formatting flags and save actions that will change. Higher-priority overrides may still run. The pause persists across reloads. **Resume** ends it immediately, restoring settings changed by the pause while preserving edits you made during it. To leave the current values in place, select **End pause** and confirm.
 
 Restore preserves externally edited settings and newly added actions. A completed restore uses up its restore point. If conflicts remain, review the point in Profiles or choose **Delete** under **Restore points** to keep the current settings. The Command Palette's **Formatting Controls: Restore Previous Settings** works without the dashboard open. Restore points belong to the workspace/window where the batch was applied. Saved custom profiles are shared across workspaces.
 

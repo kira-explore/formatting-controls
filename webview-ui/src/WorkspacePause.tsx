@@ -116,13 +116,13 @@ export const WorkspacePause = ({
   reply,
 }: Props) => {
   const [chosen, setChosen] = useState<string>();
-  const [returnFocus, setReturnFocus] = useState<"resume" | "more">();
+  const [returnFocus, setReturnFocus] = useState<"resume" | "end">();
   const scopeSelect = useRef<HTMLSelectElement>(null);
   const resumeButton = useRef<HTMLButtonElement>(null);
-  const moreButton = useRef<HTMLButtonElement>(null);
+  const endButton = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!returnFocus || confirmation || pending) return;
-    const trigger = returnFocus === "more" ? moreButton : resumeButton;
+    const trigger = returnFocus === "end" ? endButton : resumeButton;
     (trigger.current ?? scopeSelect.current)?.focus();
     setReturnFocus(undefined);
   }, [confirmation, pending, returnFocus]);
@@ -143,7 +143,7 @@ export const WorkspacePause = ({
         confirmation={confirmation}
         folders={state.folders}
         respond={(accepted) => {
-          setReturnFocus(confirmation.action === "discard" ? "more" : "resume");
+          setReturnFocus(confirmation.action === "discard" ? "end" : "resume");
           reply(accepted);
         }}
       />
@@ -151,6 +151,8 @@ export const WorkspacePause = ({
   }
 
   if (activePause) {
+    const resumeLabel =
+      activePause.scope.target === "user" ? "Review resume" : "Resume";
     const { formatting = 0, saveActions = 0 } = activePause.pauseChanges ?? {};
     const counts = [
       formatting ? countLabel(formatting, "automatic formatting setting") : "",
@@ -165,28 +167,6 @@ export const WorkspacePause = ({
     };
     return (
       <section className="profile-list pause-active" aria-label="Current pause">
-        <button
-          type="button"
-          ref={moreButton}
-          className="pause-more"
-          aria-label="More pause actions"
-          title="More actions"
-          popoverTarget="pause-actions"
-          disabled={pending}
-        >
-          ⋯
-        </button>
-        <div id="pause-actions" popover="auto">
-          <button
-            type="button"
-            popoverTarget="pause-actions"
-            popoverTargetAction="hide"
-            disabled={pending}
-            onClick={() => endPause("discard")}
-          >
-            End pause and keep settings
-          </button>
-        </div>
         <span className="pause-status">
           {activePause.phase === "applied"
             ? "Pause active"
@@ -200,15 +180,37 @@ export const WorkspacePause = ({
               ? `${counts} paused at this scope.`
               : "Formatting is paused at this scope."}
         </p>
+        <div className="pause-guidance">
+          <p id="pause-resume-help">
+            <strong>{resumeLabel}</strong>{" "}
+            {resumeLabel === "Resume"
+              ? "restores the settings changed by the pause and keeps your edits."
+              : "shows which settings can be restored."}
+          </p>
+          <p id="pause-end-help">
+            <strong>End pause</strong> keeps the current settings, including
+            anything the pause turned off.
+          </p>
+        </div>
         <div className="button-row">
           <button
             type="button"
             ref={resumeButton}
             className="primary"
+            aria-describedby="pause-resume-help"
             disabled={pending}
             onClick={() => endPause("restore")}
           >
-            {activePause.scope.target === "user" ? "Review resume" : "Resume"}
+            {resumeLabel}
+          </button>
+          <button
+            type="button"
+            ref={endButton}
+            aria-describedby="pause-end-help"
+            disabled={pending}
+            onClick={() => endPause("discard")}
+          >
+            End pause
           </button>
         </div>
       </section>
