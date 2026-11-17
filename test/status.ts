@@ -833,14 +833,13 @@ export const reviewStatus = async (
     .getByRole("tab", { name: /Formatting Controls/ })
     .first()
     .waitFor();
-  // Close the newly opened webview before driving Quick Open: initial webview
-  // focus can otherwise dismiss the picker while its first frame loads.
+  // Close the newly opened dashboard from the tab strip. Focusing the webview
+  // first can redirect keyboard shortcuts while its first frame loads.
   const diagnosticTab = page
     .getByRole("tab", { name: /Formatting Controls/ })
     .first();
-  await diagnosticTab.click();
-  await page.keyboard.press(`${modifier}+W`);
-  await diagnosticTab.waitFor({ state: "hidden" });
+  await diagnosticTab.click({ button: "middle", timeout: 10000 });
+  await diagnosticTab.waitFor({ state: "hidden", timeout: 10000 });
   // Start elsewhere so the next tab transition confirms that the warning's
   // asynchronous Open action finished before saving and opening another file.
   await openFile(testFiles.activeFile);
