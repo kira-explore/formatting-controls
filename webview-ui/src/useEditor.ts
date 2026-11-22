@@ -49,7 +49,7 @@ export const useEditor = () => {
     message: string;
     section?: NoticeSection;
   }>();
-  const requestId = useRef(0);
+  const requestId = useRef(Date.now());
   const pendingRef = useRef<{
     id: string;
     page: string;
@@ -219,6 +219,12 @@ export const useEditor = () => {
             ...(request.profileToDelete
               ? { profileToDelete: request.profileToDelete }
               : {}),
+          });
+        } else {
+          api?.postMessage({
+            type: "confirmationReply",
+            token: data.token,
+            accepted: false,
           });
         }
         return;

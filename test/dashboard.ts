@@ -73,42 +73,48 @@ export const reviewDashboard = async (
           .catch(reject);
       });
     let contextId: number | undefined;
-    const readyDeadline = Date.now() + 15000;
-    while (!contextId && Date.now() < readyDeadline) {
-      const { targetInfos } = await session.send("Target.getTargets");
-      // Earlier integration steps open/close webviews. Inspect all matching
-      // targets rather than attaching permanently to a disposed/loading one.
-      for (const target of targetInfos.filter(
-        (t) =>
-          t.type === "iframe" &&
-          t.url.includes("extensionId=rajudhami.formatting-controls"),
-      )) {
-        ({ sessionId } = await session.send("Target.attachToTarget", {
-          targetId: target.targetId,
-          flatten: false,
-        }));
-        contexts.length = 0;
-        await send("Runtime.enable");
-        const candidateDeadline = Math.min(Date.now() + 1000, readyDeadline);
-        while (!contextId && Date.now() < candidateDeadline) {
-          for (const context of contexts.filter((c) => c.auxData?.isDefault)) {
-            const reply = await send("Runtime.evaluate", {
-              contextId: context.id,
-              expression: '!!document.querySelector(".app")',
-              returnByValue: true,
-            });
-            if (reply.result?.result?.value) contextId = context.id;
+    const attachDashboard = async () => {
+      contextId = undefined;
+      const readyDeadline = Date.now() + 15000;
+      while (!contextId && Date.now() < readyDeadline) {
+        const { targetInfos } = await session.send("Target.getTargets");
+        // Earlier integration steps open/close webviews. Inspect all matching
+        // targets rather than attaching permanently to a disposed/loading one.
+        for (const target of targetInfos.filter(
+          (t) =>
+            t.type === "iframe" &&
+            t.url.includes("extensionId=rajudhami.formatting-controls"),
+        )) {
+          ({ sessionId } = await session.send("Target.attachToTarget", {
+            targetId: target.targetId,
+            flatten: false,
+          }));
+          contexts.length = 0;
+          await send("Runtime.enable");
+          const candidateDeadline = Math.min(Date.now() + 1000, readyDeadline);
+          while (!contextId && Date.now() < candidateDeadline) {
+            for (const context of contexts.filter(
+              (c) => c.auxData?.isDefault,
+            )) {
+              const reply = await send("Runtime.evaluate", {
+                contextId: context.id,
+                expression: '!!document.querySelector(".app")',
+                returnByValue: true,
+              });
+              if (reply.result?.result?.value) contextId = context.id;
+            }
+            if (!contextId) await delay(50);
           }
-          if (!contextId) await delay(50);
+          if (contextId) break;
+          await session.send("Target.detachFromTarget", {
+            sessionId,
+          });
         }
-        if (contextId) break;
-        await session.send("Target.detachFromTarget", {
-          sessionId,
-        });
+        if (!contextId) await delay(50);
       }
-      if (!contextId) await delay(50);
-    }
-    assert.ok(contextId, "Real dashboard must be mounted");
+      assert.ok(contextId, "Real dashboard must be mounted");
+    };
+    await attachDashboard();
     const evaluate = async <T>(expression: string): Promise<T> => {
       const reply = await send("Runtime.evaluate", {
         contextId,
@@ -1110,6 +1116,7 @@ export const reviewDashboard = async (
     const pauseReview = ".profile-pause > section.dashboard-confirmation";
     const pauseStart = ".profile-pause .pause-scope";
     const pauseActive = ".profile-pause .pause-active";
+    const pauseEnd = `${pauseActive} button[aria-label="Keep current settings"]`;
     await wait(
       "document.querySelector('.profile-pause select:not(:disabled)')",
     );
@@ -1240,21 +1247,19 @@ export const reviewDashboard = async (
     );
     await evaluate(`document.querySelector('${pauseActive} .primary').click()`);
     await wait(
-      `document.querySelector('${pauseReview} .primary')?.textContent === 'Resume and restore settings'`,
+      `document.querySelector('${pauseReview} h2')?.textContent === 'Review resume' &&
+      document.querySelector('${pauseReview} thead th:last-child')?.textContent === 'After resume' &&
+      document.querySelectorAll('${pauseReview} tbody tr').length > 1 &&
+      document.querySelector('${pauseReview} .primary')?.textContent === 'Restore'`,
     );
-    assert.ok(
-      await evaluate<boolean>(`[...document.querySelectorAll('${pauseReview} tbody tr')].some(row =>
-        row.textContent.includes('source.fixAll.veryLongProviderActionForDashboardDiagnostics') &&
-        row.cells[1].textContent === 'Never' && row.cells[2].textContent === 'Manual save'
-      )`),
-      "The resume preview must show that the pause disabled the configured save action",
-    );
+    assert.equal(workspaceSettings()["editor.formatOnSave"], false);
     await evaluate(`document.querySelector('${pauseReview} .primary').click()`);
     await wait(
       `document.querySelector('.profile-pause [role=status]')?.textContent.includes('Resumed. Previous settings restored for ') &&
       document.querySelector('${pauseStart} button:not(:disabled)') &&
       document.querySelector('#built-in-presets [aria-label="Preview Save, Paste & Type"]:not(:disabled)') &&
-      !document.querySelector('${pauseActive}')`,
+      !document.querySelector('${pauseActive}, ${pauseReview}') &&
+      document.activeElement === document.querySelector('${pauseStart} select')`,
     );
     assert.equal(workspaceSettings()["editor.formatOnSave"], true);
     assert.equal(
@@ -1265,22 +1270,59 @@ export const reviewDashboard = async (
     await wait(
       `document.querySelector('${pauseReview} .primary')?.textContent === 'Apply'`,
     );
+    await session.send("Target.detachFromTarget", { sessionId });
+    await page.keyboard.press(
+      process.platform === "darwin" ? "Meta+n" : "Control+n",
+    );
+    await page
+      .getByRole("tab", { name: /Untitled-/ })
+      .first()
+      .waitFor();
+    await page
+      .getByRole("tab", { name: /Formatting Controls/ })
+      .first()
+      .click();
+    await attachDashboard();
+    await wait(`document.querySelector('h1').textContent === 'Profiles' &&
+      document.querySelector('${pauseStart} button:not(:disabled)') &&
+      !document.querySelector('${pauseReview}, ${pauseActive}')`);
+    assert.equal(workspaceSettings()["editor.formatOnSave"], true);
+    await evaluate(`window.addEventListener("message", ({data}) => {
+      if (data?.type === "state") window.pickerTestState = data.state;
+    });`);
+    await choose(`${pauseStart} select`, "");
+    await evaluate(`document.querySelector('${pauseStart} .primary').click()`);
+    await wait(
+      `document.querySelector('${pauseReview} .primary')?.textContent === 'Apply'`,
+    );
     await evaluate(`document.querySelector('${pauseReview} .primary').click()`);
     await wait(
-      `document.querySelector('${pauseActive} [aria-label="Keep settings and end pause"]:not(:disabled)')?.textContent === 'Keep settings'`,
+      `document.querySelector('${pauseEnd}:not(:disabled)')?.textContent === 'Keep'`,
+    );
+    await evaluate(`document.querySelector('${pauseEnd}').click()`);
+    await wait(
+      `document.querySelector('${pauseReview} h2')?.textContent === 'Keep current settings?' &&
+      document.querySelector('${pauseReview}').textContent.includes('discards the saved pre-pause settings') &&
+      !document.querySelector('${pauseReview} table') &&
+      document.querySelector('${pauseReview} .primary')?.textContent === 'End'`,
     );
     await evaluate(
-      `document.querySelector('${pauseActive} button:last-child').click()`,
+      `document.querySelector('${pauseReview} .button-row button').click()`,
     );
     await wait(
-      `document.querySelector('${pauseReview} h2')?.textContent === 'Keep current settings and end pause?' &&
-      document.querySelector('${pauseReview} .primary')?.textContent === 'Keep settings' &&
-      !document.querySelector('${pauseActive}')`,
+      `!document.querySelector('${pauseReview}') &&
+      document.activeElement === document.querySelector('${pauseEnd}:not(:disabled)')`,
+    );
+    await evaluate(`document.querySelector('${pauseEnd}').click()`);
+    await wait(
+      `document.querySelector('${pauseReview} .primary')?.textContent === 'End'`,
     );
     await evaluate(`document.querySelector('${pauseReview} .primary').click()`);
     await wait(
       `document.querySelector('.profile-pause [role=status]')?.textContent.includes('Current settings were kept') &&
-      document.querySelector('${pauseStart} button:not(:disabled)')`,
+      document.querySelector('${pauseStart} button:not(:disabled)') &&
+      !document.querySelector('${pauseActive}, ${pauseReview}') &&
+      document.activeElement === document.querySelector('${pauseStart} select')`,
     );
     assert.equal(workspaceSettings()["editor.formatOnSave"], false);
     assert.equal(

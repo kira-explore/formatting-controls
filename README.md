@@ -154,7 +154,7 @@ Choose a scope and optional language first. **Save** captures only explicit valu
 
 **Import** saves a validated version 1 profile without applying it. **Export** uses a native file picker. Profile files contain formatting preferences, not workspace paths. Language-specific profiles require selecting the same language before applying.
 
-In **Workspace pause**, choose a workspace or folder and select **Review** to see the formatting flags and save actions that will change. Higher-priority overrides may still run. The pause persists across reloads. Select **Resume** to review which settings to restore, or **Keep settings** to review keeping the current values.
+In **Workspace pause**, choose a workspace or folder and select **Review** to see the formatting flags and save actions that will change. Higher-priority overrides may still run. The pause persists across reloads. **Resume** opens a preview of the settings eligible to restore. Select **Restore** to end the pause and restore eligible settings that still match the paused values. To keep the current values and discard the saved settings from before the pause, choose **Keep**, then **End**.
 
 Restore preserves externally edited settings and newly added actions. A completed restore uses up its restore point. If conflicts remain, review the point in Profiles or choose **Delete** under **Restore points** to keep the current settings. The Command Palette's **Formatting Controls: Restore Previous Settings** works without the dashboard open. Restore points belong to the workspace/window where the batch was applied. Saved custom profiles are shared across workspaces.
 
@@ -168,7 +168,7 @@ The development VSIX can be installed locally. PR and release checks require a c
 
 **Package manager:** Bun 1.4.4 with a committed `bun.lock`. **Node.js:** use the latest patch of Node 24 LTS for development. CI, Node type declarations and host/test bundle targets use the 24.x line. Tool versions are declared in `package.json`.
 
-All authored scripts use TypeScript and ES imports. The dashboard uses React and Vite; Biome handles formatting, linting, and import organization. The extension host is bundled separately, and dashboard assets load only when requested.
+The dashboard uses React. esbuild bundles the extension host and dashboard separately, and dashboard assets load only when requested. Biome handles formatting, linting, and import organization.
 
 ```sh
 bun run typecheck       # Host and dashboard types
